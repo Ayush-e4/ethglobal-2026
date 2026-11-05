@@ -202,6 +202,9 @@ abstract contract MandateEscrow is MandateStore {
 
     /// @dev Asks Hedera to call `claim(id)` at `at` (or the next second with room, up to 5 s
     ///   later). Never reverts: without a schedule, anyone can still claim after the review.
+    // Events after the call are fine: 0x16b is Hedera's own schedule service, not user code, and
+    // the escrow's state is already final before it.
+    // slither-disable-start reentrancy-events
     function _schedulePayout(bytes32 id, uint256 at) internal {
         for (uint256 i; i < 5; ++i) {
             // A view call to Hedera's schedule service, at most 5 times.
@@ -227,12 +230,15 @@ abstract contract MandateEscrow is MandateStore {
         );
         if (sent && out.length >= 64) {
             (int64 code, address schedule) = abi.decode(out, (int64, address));
+            // Hedera answers with exact response codes; 22 is SUCCESS.
+            // slither-disable-next-line incorrect-equality
             if (code == HTS_SUCCESS) emit PayoutScheduled(id, schedule, at);
             else emit PayoutNotScheduled(id, code);
         } else {
             emit PayoutNotScheduled(id, -1);
         }
     }
+    // slither-disable-end reentrancy-events
 
     function _refund(Escrow storage e) internal {
         Mandate storage m = _mandates[e.mandateId];
