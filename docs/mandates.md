@@ -31,7 +31,7 @@ all run by public code that nobody, us included, can change.
 
 | Step | Who | When |
 |---|---|---|
-| `payIntoEscrow` / `executeEscrowTransfer` (x402) | anyone, with the agent's `EscrowAuth` signature | money moves into the registry: **Held** |
+| `payIntoEscrow`, or x402 `executeTransfer` with `to` = the registry | anyone, with the agent's `EscrowAuth` signature | money moves into the registry: **Held** |
 | `cancel` | owner or agent | **during the undo window**: full refund, budget back |
 | `markDelivered(id, resultHash)` | payee | **after** the window, by `deliverBy` |
 | `release` | owner or agent | any time it's open |
@@ -58,9 +58,11 @@ Web2 analogy: a cron job that lives inside the database, run by the database its
 
 ### Over x402
 
-x402's `executeEscrowTransfer(from, asset, to, amount, authorization)` checks that the money
-reached `to`, so for a held payment **`to` is the registry itself** and the merchant (`payee`)
-travels inside the agent-signed terms.
+The registry implements the spec's one executor function, `executeTransfer(from, asset, to,
+amount, authorization)`. With `to` = a merchant it pays now; with **`to` = the registry itself**
+it holds the money (undo window, then pay on delivery), and the merchant (`payee`) travels inside
+the agent-signed terms. x402 settlement checks that the money reached `to`, which it did: it's
+held here. So both kinds of payment are plain, spec-conforming `transferExecutor` payments.
 
 Sub-mandates: an agent can hand another agent a slice of its budget, signed by the parent's
 agent; limits only get tighter, and revoking a parent stops the whole tree.
@@ -83,10 +85,11 @@ what was paid out or is still held; spending never passes the budget.
 
 ## Deployment (Hedera testnet)
 
-`MandateRegistry` at `0x1776b14d2af3df71500ab9ebb432739622e08442`
-([0.0.11329497](https://hashscan.io/testnet/contract/0.0.11329497)), opted in to test USDC and
+`MandateRegistry` at `0x3287ee420479437d57fcace38368c3df98e32737`
+([0.0.11329685](https://hashscan.io/testnet/contract/0.0.11329685)), opted in to test USDC and
 holding 20 HBAR for scheduled payouts. Deployed by the operator; it has no owner. Earlier test
-deployments (`0.0.11328912`, `0.0.11329422`) are retired.
+deployments (`0.0.11328912`, `0.0.11329422`, `0.0.11329497`) are retired; the live test below
+ran on `0.0.11329497`, and the x402 one ([x402.md](x402.md)) on the current one.
 
 ## Live test (testnet, 6 Nov 2026)
 

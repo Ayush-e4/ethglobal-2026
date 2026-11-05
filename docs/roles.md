@@ -36,3 +36,10 @@ its rules or move money in it. Who can do what with a limit and a held payment i
 during its window, only the owner can create or raise a limit, and the merchant can't start until
 the window ends. The registry also holds a little HBAR that anyone can add to; it can only pay
 the fees of the payouts it schedules on Hedera.
+
+## x402 facilitator
+
+Our facilitator submits x402 payments with the **relayer** key: it pays the fee and wraps the
+call, and can't move money itself (it only calls admitted contracts with a call it builds from
+the requirements). The **log writer** adds an `x402.settled` entry for each payment. Details in
+[x402.md](x402.md#who-controls-what).

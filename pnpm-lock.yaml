@@ -201,6 +201,25 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
+  apps/facilitator:
+    dependencies:
+      '@app/hedera':
+        specifier: workspace:*
+        version: link:../../packages/hedera
+      '@app/x402':
+        specifier: workspace:*
+        version: link:../../packages/x402
+      '@hono/node-server':
+        specifier: ^2.1.5
+        version: 2.1.6(hono@4.13.13)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.6
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+
   apps/web:
     dependencies:
       '@app/shared':
@@ -294,6 +313,55 @@ importers:
 
   packages/shared:
     devDependencies:
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/x402:
+    dependencies:
+      '@app/hedera':
+        specifier: workspace:*
+        version: link:../hedera
+      '@app/mandates':
+        specifier: workspace:*
+        version: link:../mandates
+      '@app/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@hiero-ledger/sdk':
+        specifier: 2.90.1
+        version: 2.90.1
+      '@x402/core':
+        specifier: 2.30.0
+        version: 2.30.0
+      '@x402/fetch':
+        specifier: 2.30.0
+        version: 2.30.0
+      '@x402/hedera':
+        specifier: 2.30.0
+        version: 2.30.0(protobufjs@8.6.6)
+      '@x402/hono':
+        specifier: 2.30.0
+        version: 2.30.0(ethers@6.16.0)(hono@4.13.13)(typescript@5.9.3)
+      hono:
+        specifier: 4.13.13
+        version: 4.13.13
+      viem:
+        specifier: 2.57.7
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@hono/node-server':
+        specifier: ^2.1.5
+        version: 2.1.6(hono@4.13.13)
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.6
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
       vitest:
         specifier: 5.0.5
         version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
@@ -980,6 +1048,20 @@ packages:
   '@scure/bip39@1.6.0':
     resolution: {integrity: sha512-+lF0BbLiJNwVlev4eKelw1WWLaiKXw7sSl8T6FvBlWkdX+94aGJ4o8XjUdlyhTCjd8c+B3KT3JfS8P0bLRNU6A==}
 
+  '@signinwithethereum/siwe-parser@4.2.1':
+    resolution: {integrity: sha512-GAdwNiBaRpUMTiFfPrbQ3e/RBhPbEhRRN1sZmDMLgLEZuKqKwO7V0ksVzCerE9l8HFKTNw5R/q3kPDCWJRz4zA==}
+
+  '@signinwithethereum/siwe@4.2.1':
+    resolution: {integrity: sha512-CQEQhCIgN9blil1YpaGR+wvGPdsBVK6zed5DBu03s1IdbSO3kA/n7Zp+SAkZGiHy3HY6OJm1Su0/Bd33vKK6nQ==}
+    peerDependencies:
+      ethers: ^5.7.0 || ^6.13.0
+      viem: ^2.7.0
+    peerDependenciesMeta:
+      ethers:
+        optional: true
+      viem:
+        optional: true
+
   '@swc/helpers@0.5.23':
     resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
@@ -1144,6 +1226,27 @@ packages:
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
 
+  '@x402/core@2.30.0':
+    resolution: {integrity: sha512-gvMxCum2QlNI6jI/3NL1jdrmOgtX9sWEWxSIOmeI67/5ndOJvYOtP7JZLSO8o8af+O+A+Vhhjza1NCda0yVppg==}
+
+  '@x402/extensions@2.30.0':
+    resolution: {integrity: sha512-Lqu8hYkFAIhzarWa8V1272tyolFAW7WjHrxQ7we5P0fEZ8oMXOq1hna2X0FXQetZoOFzBDwSWBBMsrqE8ZzvcQ==}
+
+  '@x402/fetch@2.30.0':
+    resolution: {integrity: sha512-rEC8CHQN5ZFn2W9b1mZ8ZvRyEw9Zkc5LuuVXo1CBU9w3PCtQO3c7+ChS7Ht9MvF66JTicK3ja0KgUF+fpChvNA==}
+
+  '@x402/hedera@2.30.0':
+    resolution: {integrity: sha512-r92oEQiUjTbk0jM5oP/EhCK6XXy7s/rqvAm96Fj07pDPU98cGhhRN6UVr0YkiiTa12zTd+T0V/suGjekHSjJmQ==}
+
+  '@x402/hono@2.30.0':
+    resolution: {integrity: sha512-ctdA345cQEp5zbCXzVlHrP3jp7Zl5ucQJ7595o6pELPZSBb/uUlCkthlOYWtx/Uv9brdLsoDIjySyXj5Uo2l5Q==}
+    peerDependencies:
+      '@x402/paywall': ^2.30.0
+      hono: '>=4.13.7 <5.0.0'
+    peerDependenciesMeta:
+      '@x402/paywall':
+        optional: true
+
   '@yuku-toolchain/darwin-arm64@0.25.0':
     resolution: {integrity: sha512-21QMCgP74cgSrgxIgw/SS5uMnn7cFHwgjNEBZYgO1HxpdjG4ULenXyUY92xRReuAJZdbRyz6OGwtYi6lDKumSw==}
     cpu: [arm64]
@@ -1188,6 +1291,9 @@ packages:
   aes-js@4.0.0-beta.5:
     resolution: {integrity: sha512-G965FqalsNyrPqgEGON7nIx1e/OVENSgiEIzyC63haUMuvNnwIgIjMs52hlTCKhkBny7A2ORNlfY9Zu+jmGk1Q==}
 
+  ajv@8.20.0:
+    resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
+
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
     engines: {node: '>=8'}
@@ -1195,6 +1301,9 @@ packages:
   ansi-styles@4.3.0:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
     engines: {node: '>=8'}
+
+  apg-js@4.4.0:
+    resolution: {integrity: sha512-fefmXFknJmtgtNEXfPwZKYkMFX4Fyeyz+fNF6JWp87biGOPslJbCBVU158zvKRZfHBKnJDy8CMM40oLFGkXT8Q==}
 
   asn1js@3.0.6:
     resolution: {integrity: sha512-UOCGPYbl0tv8+006qks/dTgV9ajs97X2p0FAbyS2iyCRrmLSRolDaHdp+v/CLgnzHc3fVB+CwYiUmei7ndFcgA==}
@@ -1313,8 +1422,14 @@ packages:
   fast-copy@3.1.0:
     resolution: {integrity: sha512-IuCOCDFM1F/s4LtG7Bjr3yUUwPHybyhqN74xk2cMYoP51vVeErMy8+6HGFchi/+45lW8uzhs6lBeEqks2GWt6A==}
 
+  fast-deep-equal@3.1.3:
+    resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
+
   fast-safe-stringify@2.1.1:
     resolution: {integrity: sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==}
+
+  fast-uri@3.1.9:
+    resolution: {integrity: sha512-hS/0Wt3Ya043oKXs0sIxrMpKQITXhMLIrVAKKXi4gozGC9v7YRWVnXIZzjNPTO02M9BdxLCWqK1yRXgNziVyJQ==}
 
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -1376,12 +1491,18 @@ packages:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
 
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
 
   js-base64@3.7.4:
     resolution: {integrity: sha512-wpM/wi20Tl+3ifTyi0RdDckS4YTD4Lf953mBRrpG8547T7hInHNPEj8+ck4gB8VDcGyeAWFK++Wb/fU1BeavKQ==}
+
+  json-schema-traverse@1.0.0:
+    resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -1587,6 +1708,10 @@ packages:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
 
+  require-from-string@2.0.2:
+    resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
+    engines: {node: '>=0.10.0'}
+
   resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
 
@@ -1756,6 +1881,9 @@ packages:
   turbo@2.11.9:
     resolution: {integrity: sha512-k2ev5dv9OgP2pJwaPuydkZdid+haX2U5TDGcPtpAz0gb0nbRR3eXY/cpfrlvHih52YRTxWIcRVKc0ri3C2Scrg==}
     hasBin: true
+
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -2385,6 +2513,18 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/base': 1.2.6
 
+  '@signinwithethereum/siwe-parser@4.2.1':
+    dependencies:
+      '@noble/hashes': 1.8.0
+      apg-js: 4.4.0
+
+  '@signinwithethereum/siwe@4.2.1(ethers@6.16.0)(viem@2.57.7(typescript@5.9.3)(zod@4.6.7))':
+    dependencies:
+      '@signinwithethereum/siwe-parser': 4.2.1
+    optionalDependencies:
+      ethers: 6.16.0
+      viem: 2.57.7(typescript@5.9.3)(zod@4.6.7)
+
   '@swc/helpers@0.5.23':
     dependencies:
       tslib: 2.9.1
@@ -2515,6 +2655,53 @@ snapshots:
 
   '@vitest/spy@5.0.5': {}
 
+  '@x402/core@2.30.0':
+    dependencies:
+      zod: 4.6.7
+
+  '@x402/extensions@2.30.0(ethers@6.16.0)(typescript@5.9.3)':
+    dependencies:
+      '@noble/curves': 1.9.1
+      '@scure/base': 1.2.6
+      '@signinwithethereum/siwe': 4.2.1(ethers@6.16.0)(viem@2.57.7(typescript@5.9.3)(zod@4.6.7))
+      '@x402/core': 2.30.0
+      ajv: 8.20.0
+      jose: 5.10.0
+      tweetnacl: 1.0.3
+      viem: 2.57.7(typescript@5.9.3)(zod@4.6.7)
+      zod: 4.6.7
+    transitivePeerDependencies:
+      - bufferutil
+      - ethers
+      - typescript
+      - utf-8-validate
+
+  '@x402/fetch@2.30.0':
+    dependencies:
+      '@x402/core': 2.30.0
+
+  '@x402/hedera@2.30.0(protobufjs@8.6.6)':
+    dependencies:
+      '@hiero-ledger/proto': 2.32.0(protobufjs@8.6.6)
+      '@hiero-ledger/sdk': 2.90.1
+      '@x402/core': 2.30.0
+    transitivePeerDependencies:
+      - bufferutil
+      - expo-crypto
+      - protobufjs
+      - utf-8-validate
+
+  '@x402/hono@2.30.0(ethers@6.16.0)(hono@4.13.13)(typescript@5.9.3)':
+    dependencies:
+      '@x402/core': 2.30.0
+      '@x402/extensions': 2.30.0(ethers@6.16.0)(typescript@5.9.3)
+      hono: 4.13.13
+    transitivePeerDependencies:
+      - bufferutil
+      - ethers
+      - typescript
+      - utf-8-validate
+
   '@yuku-toolchain/darwin-arm64@0.25.0':
     optional: true
 
@@ -2540,11 +2727,20 @@ snapshots:
 
   aes-js@4.0.0-beta.5: {}
 
+  ajv@8.20.0:
+    dependencies:
+      fast-deep-equal: 3.1.3
+      fast-uri: 3.1.9
+      json-schema-traverse: 1.0.0
+      require-from-string: 2.0.2
+
   ansi-regex@5.0.1: {}
 
   ansi-styles@4.3.0:
     dependencies:
       color-convert: 2.0.1
+
+  apg-js@4.4.0: {}
 
   asn1js@3.0.6:
     dependencies:
@@ -2663,7 +2859,11 @@ snapshots:
 
   fast-copy@3.1.0: {}
 
+  fast-deep-equal@3.1.3: {}
+
   fast-safe-stringify@2.1.1: {}
+
+  fast-uri@3.1.9: {}
 
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
@@ -2700,9 +2900,13 @@ snapshots:
 
   jiti@2.7.0: {}
 
+  jose@5.10.0: {}
+
   joycon@3.1.1: {}
 
   js-base64@3.7.4: {}
+
+  json-schema-traverse@1.0.0: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true
@@ -2911,6 +3115,8 @@ snapshots:
 
   require-directory@2.1.1: {}
 
+  require-from-string@2.0.2: {}
+
   resolve-pkg-maps@1.0.0: {}
 
   rfc4648@1.5.3: {}
@@ -3083,6 +3289,8 @@ snapshots:
       '@turbo/linux-arm64': 2.11.9
       '@turbo/windows-64': 2.11.9
       '@turbo/windows-arm64': 2.11.9
+
+  tweetnacl@1.0.3: {}
 
   typescript@5.9.3: {}
 

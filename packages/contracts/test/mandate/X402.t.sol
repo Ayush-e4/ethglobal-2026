@@ -43,21 +43,28 @@ contract X402Test is MandateBase {
         );
     }
 
-    function test_executeEscrowTransferHoldsInTheRegistry() public {
+    function test_payToTheRegistryHoldsTheMoney() public {
         IMandateRegistry.EscrowAuth memory a = _escrowAuth(id, hotel, 4e6, 8);
         bytes memory auth = abi.encode(_terms(a), _sign(tripKey, registry.escrowDigest(a)));
-        bytes32 e =
-            registry.executeEscrowTransfer(owner, address(usdc), address(registry), 4e6, auth);
-        assertEq(e, registry.escrowIdOf(id, 8));
+        registry.executeTransfer(owner, address(usdc), address(registry), 4e6, auth);
+        bytes32 e = registry.escrowIdOf(id, 8);
         assertEq(usdc.balanceOf(address(registry)), 4e6, "x402 sees the money reach payTo");
         assertEq(registry.getEscrow(e).payee, hotel, "the merchant comes from the signed terms");
     }
 
-    function test_escrowPayToMustBeTheRegistry() public {
+    function test_escrowTermsSentToAMerchantDontDecodeAsAPayment() public {
+        IMandateRegistry.EscrowAuth memory a = _escrowAuth(id, hotel, 4e6, 8);
+        bytes memory auth = abi.encode(_terms(a), _sign(tripKey, registry.escrowDigest(a)));
+        vm.expectRevert(); // read as a direct PaymentAuth, it's nonsense
+        registry.executeTransfer(owner, address(usdc), hotel, 4e6, auth);
+        assertEq(usdc.balanceOf(hotel), 0);
+    }
+
+    function test_escrowFromMustBeTheOwner() public {
         IMandateRegistry.EscrowAuth memory a = _escrowAuth(id, hotel, 4e6, 8);
         bytes memory auth = abi.encode(_terms(a), _sign(tripKey, registry.escrowDigest(a)));
         vm.expectRevert(IMandateRegistry.WrongOwnerOrAsset.selector);
-        registry.executeEscrowTransfer(owner, address(usdc), hotel, 4e6, auth);
+        registry.executeTransfer(stranger, address(usdc), address(registry), 4e6, auth);
     }
 
     function test_escrowPayeeIsBoundToTheSignature() public {
@@ -66,9 +73,7 @@ contract X402Test is MandateBase {
         bytes memory sig = _sign(tripKey, registry.escrowDigest(a));
         t.payee = airline; // someone redirects the money
         vm.expectRevert(IMandateRegistry.BadSignature.selector);
-        registry.executeEscrowTransfer(
-            owner, address(usdc), address(registry), 4e6, abi.encode(t, sig)
-        );
+        registry.executeTransfer(owner, address(usdc), address(registry), 4e6, abi.encode(t, sig));
     }
 
     function test_fromAndAssetMustMatchTheMandate() public {

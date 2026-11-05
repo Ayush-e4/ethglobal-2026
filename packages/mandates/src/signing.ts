@@ -108,8 +108,8 @@ export const encodePaymentAuthorization = (a: PaymentAuth, signature: Hex) =>
   );
 
 /**
- * x402 `authorization` for `executeEscrowTransfer`: abi.encode(EscrowTerms, sig). x402's `payTo`
- * is then the registry (the money is held there); the merchant is `payee` in the terms.
+ * x402 `authorization` for `executeTransfer` with `to` = the registry (held, pay on delivery):
+ * abi.encode(EscrowTerms, sig). The merchant is `payee` in the terms.
  */
 export const encodeEscrowAuthorization = (a: EscrowAuth, signature: Hex) =>
   encodeAbiParameters(

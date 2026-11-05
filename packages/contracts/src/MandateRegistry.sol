@@ -86,9 +86,13 @@ contract MandateRegistry is MandateEscrow {
         _pay(a, signature);
     }
 
-    /// @notice x402 Hedera `transferExecutor` entry point.
-    /// @param authorization abi.encode(mandateId, nonce, validBefore, signature): the agent's
-    ///   EIP-712 PaymentAuth. `from` and `asset` must be the mandate's owner and token.
+    /// @notice x402 Hedera `transferExecutor` entry point (the spec's `executeTransfer`).
+    ///   `to` = a merchant: pay now; `authorization` = abi.encode(mandateId, nonce, validBefore,
+    ///   signature), the agent's EIP-712 PaymentAuth.
+    ///   `to` = this registry: hold it (pay on delivery, with an undo window); `authorization` =
+    ///   abi.encode(EscrowTerms, signature), the agent's EIP-712 EscrowAuth. The merchant is in
+    ///   the terms, so the money provably lands where x402 expects: here.
+    ///   Either way `from` and `asset` must be the mandate's owner and token.
     function executeTransfer(
         address from,
         address asset,
@@ -96,6 +100,9 @@ contract MandateRegistry is MandateEscrow {
         uint256 amount,
         bytes calldata authorization
     ) external {
+        if (to == address(this)) {
+            return _executeEscrow(from, asset, amount, authorization);
+        }
         (uint256 mandateId, uint256 nonce, uint256 validBefore, bytes memory signature) =
             abi.decode(authorization, (uint256, uint256, uint256, bytes));
         Mandate storage m = _mandates[mandateId];
