@@ -1,0 +1,27 @@
+{
+  "name": "@app/mandates",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./deploy": "./src/deploy.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "deploy-registry": "tsx --env-file-if-exists=../../.env scripts/deploy-registry.ts",
+    "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts"
+  },
+  "dependencies": {
+    "viem": "2.57.7"
+  },
+  "devDependencies": {
+    "@app/contracts": "workspace:*",
+    "@app/hedera": "workspace:*",
+    "@app/shared": "workspace:*",
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "vitest": "5.0.5"
+  }
+}

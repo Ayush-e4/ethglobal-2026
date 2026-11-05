@@ -27,3 +27,11 @@ log writer can add to it. Anyone can read it on HashScan or the mirror node.
   and checks each account, plus that the log has no admin key and only the log writer can write.
 - `log-demo` writes as the log writer, then shows the operator's key is refused.
 - `pay-demo` pays from the operator, then shows the relayer can't move the operator's USDC.
+
+## Spending limits (MandateRegistry)
+
+The contract has **no admin** and can't be upgraded: nobody, us included, can freeze it, change
+its rules or move money in it. Who can do what with a limit and a held payment is in
+[mandates.md](mandates.md#who-controls-what). In short: the owner and the AI can undo a payment
+during its window, only the owner can create or raise a limit, and the merchant can't start until
+the window ends.
