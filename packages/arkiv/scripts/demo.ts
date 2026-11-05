@@ -148,7 +148,8 @@ const quotes = await liveQuotes(r, task);
 console.log(
   `  live quotes for ${task}: ${quotes.length} (${quotes.map((q) => q.record.summary).join(", ")})`,
 );
-console.log(`  jobs: ${(await jobsForTask(r, task)).map((j) => j.record.status).join(", ")}`);
+const jobStatus = (await jobsForTask(r, task)).map((j) => j.record.status).join(", ");
+console.log(`  jobs: ${jobStatus}`);
 console.log(
   `  receipts from our writer: ${(await receiptsForJob(r, job.entityKey, platform.address)).length}`,
 );
@@ -158,4 +159,4 @@ console.log(`  StayWise rating: ${average}`);
 const forgedShown = quotes.some((q) => q.record.summary === "forged");
 console.log(`${forgedShown ? "✗" : "✓"} the forged quote is ${forgedShown ? "SHOWN" : "ignored"}`);
 console.log(`  entity: ${ARKIV_EXPLORER.entity(profile.profile)}`);
-process.exit(forgedShown || quotes.length !== 1 ? 1 : 0);
+process.exit(forgedShown || quotes.length !== 1 || jobStatus !== "delivered" ? 1 : 0);

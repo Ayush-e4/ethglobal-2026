@@ -46,6 +46,20 @@ describe("decodeRow trust rules", () => {
     );
   });
 
+  it("a job's patched status column wins over its original body", () => {
+    const job = {
+      task: "goa-trip",
+      buyer: AGENT,
+      seller: OTHER,
+      quote: KEY,
+      status: "paid",
+      mandateId: "8",
+    };
+    const d = decodeRow("job", { ...row(AGENT, job), status: { type: "str", value: "delivered" } });
+    expect(d?.record.status).toBe("delivered");
+    expect(decodeRow("job", { ...row(AGENT, job), status: "nonsense" })).toBeNull();
+  });
+
   it("drops invalid bodies", () => {
     expect(decodeRow("quote", row(AGENT, { ...quote, feeUnits: "-1" }))).toBeNull();
     expect(decodeRow("quote", { ...row(AGENT, quote), body: { value: "0xzz" } })).toBeNull();

@@ -28,13 +28,20 @@ const AUTHOR: Record<Kind, (r: Record<string, unknown>) => string | null> = {
   rating: (r) => r.rater as string,
 };
 
-/** Decodes one row; null if the body is invalid or the author doesn't match. */
+/** A column as the SDK returns it: `{ type, value }` or the bare value. */
+const plain = (v: unknown) =>
+  v && typeof v === "object" && "value" in v ? (v as { value: unknown }).value : v;
+
+/**
+ * Decodes one row; null if the body is invalid or the author doesn't match. A job's `status` is
+ * patched in its indexed column, so that column wins over the status in the original body.
+ */
 export function decodeRow<K extends Kind>(
   kind: K,
-  row: { $key: Hex; $creator: Hex; $expiresAt: bigint; body: unknown },
+  row: { $key: Hex; $creator: Hex; $expiresAt: bigint; body: unknown; status?: unknown },
   trustedWriter?: Hex,
 ): Found<RecordOf<K>> | null {
-  const raw = (row.body as { value?: unknown } | undefined)?.value ?? row.body;
+  const raw = plain(row.body);
   const bytes = raw instanceof Uint8Array ? raw : isHex(raw) ? hexToBytes(raw) : null;
   if (!bytes) return null;
   let json: unknown;
@@ -42,6 +49,10 @@ export function decodeRow<K extends Kind>(
     json = JSON.parse(new TextDecoder().decode(bytes));
   } catch {
     return null;
+  }
+  const status = plain(row.status);
+  if (kind === "job" && typeof status === "string" && json && typeof json === "object") {
+    json = { ...json, status };
   }
   const parsed = RECORDS[kind].safeParse(json);
   if (!parsed.success) return null;
@@ -71,8 +82,9 @@ async function find<K extends Kind>(
   filters: Filter[],
   opts: { createdBy?: Hex; trustedWriter?: Hex; limit?: number } = {},
 ) {
+  const columns = { $key: true, $creator: true, $expiresAt: true, body: true };
   let q = r
-    .select({ $key: true, $creator: true, $expiresAt: true, body: true })
+    .select(kind === "job" ? { ...columns, status: true } : columns)
     .from(SCHEMAS[kind] as never) as unknown as Builder;
   if (filters.length) q = q.where(filters.length === 1 ? filters[0] : and(...filters));
   if (opts.createdBy) q = q.createdBy(opts.createdBy);
