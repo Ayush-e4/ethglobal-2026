@@ -13,6 +13,11 @@ export const ROLES = {
     job: "Pays network fees for transactions other people sign (so users need no HBAR)",
     cannot: "Move anyone's money: it only sends what someone else already signed",
   },
+  demoWallet: {
+    env: "DEMO_WALLET",
+    job: 'Holds test USDC for "Try the demo" accounts and owns their spending limits (with daily caps)',
+    cannot: "Pay anyone outside a limit: payments only move through MandateRegistry's rules",
+  },
   logWriter: {
     env: "LOG_WRITER",
     job: "Writes entries to the public log (an HCS topic)",

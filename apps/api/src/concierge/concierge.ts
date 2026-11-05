@@ -1,14 +1,14 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Card, ConciergeEvent } from "@app/shared";
-import type { Market } from "./market";
 import { systemPrompt } from "./prompt";
-import { runTool, TOOLS } from "./tools";
+import { runTool, TOOLS, type ToolContext, type ToolDeps } from "./tools";
 
 /** Project rule: Claude Haiku by default (fast, cheap). */
 export const MODEL = "claude-haiku-5-5";
 const MAX_STEPS = 6;
 
 export interface ConciergeInput {
+  context: ToolContext;
   history: Anthropic.MessageParam[];
   text: string;
   emit: (event: ConciergeEvent) => void;
@@ -26,6 +26,7 @@ export type Concierge = (input: ConciergeInput) => Promise<ConciergeReply>;
 const STATUS: Record<string, string> = {
   find_agents: "Looking at the market",
   get_hotel_quotes: "Asking hotel agents for live prices",
+  book_quote: "Paying the agent into escrow",
 };
 
 /**
@@ -33,8 +34,8 @@ const STATUS: Record<string, string> = {
  * each tool result becomes a card. Tool inputs are validated before running; a refusal or a
  * truncated turn stops the loop instead of running half a tool call.
  */
-export function claudeConcierge(market: Market, client = new Anthropic()): Concierge {
-  return async ({ history, text, emit, signal }) => {
+export function claudeConcierge(deps: ToolDeps, client = new Anthropic()): Concierge {
+  return async ({ context, history, text, emit, signal }) => {
     const messages: Anthropic.MessageParam[] = [...history, { role: "user", content: text }];
     let reply = "";
     const cards: Card[] = [];
@@ -70,7 +71,7 @@ export function claudeConcierge(market: Market, client = new Anthropic()): Conci
       const results = await Promise.all(
         calls.map(async (call): Promise<Anthropic.ToolResultBlockParam> => {
           emit({ type: "status", label: STATUS[call.name] ?? "Working" });
-          const out = await runTool(market, call.name, call.input).catch(() => ({
+          const out = await runTool(deps, context, call.name, call.input).catch(() => ({
             result: "The tool failed; say so briefly and offer to try again.",
             isError: true,
             card: undefined,

@@ -236,15 +236,30 @@ importers:
       '@app/arkiv':
         specifier: workspace:*
         version: link:../../packages/arkiv
+      '@app/hedera':
+        specifier: workspace:*
+        version: link:../../packages/hedera
+      '@app/mandates':
+        specifier: workspace:*
+        version: link:../../packages/mandates
       '@app/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@app/x402':
+        specifier: workspace:*
+        version: link:../../packages/x402
       '@hono/node-server':
         specifier: ^2.1.5
         version: 2.1.6(hono@4.13.13)
       '@simplewebauthn/server':
         specifier: 14.0.3
         version: 14.0.3
+      '@x402/core':
+        specifier: 2.30.0
+        version: 2.30.0
+      '@x402/fetch':
+        specifier: 2.30.0
+        version: 2.30.0
       drizzle-orm:
         specifier: 0.45.4
         version: 0.45.4(@electric-sql/pglite@0.5.9)(@opentelemetry/api@1.10.0)(postgres@3.4.9)
@@ -254,6 +269,9 @@ importers:
       postgres:
         specifier: 3.4.9
         version: 3.4.9
+      viem:
+        specifier: 2.57.7
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
       zod:
         specifier: ^4.6.7
         version: 4.6.7

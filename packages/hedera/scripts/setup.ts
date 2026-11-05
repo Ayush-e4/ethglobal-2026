@@ -15,6 +15,7 @@ import {
   NETWORKS,
   ROLES,
   type Role,
+  transferToken,
   upsertEnv,
 } from "../src";
 
@@ -30,7 +31,7 @@ if (!op) throw new Error(`The operator ${operator.id} doesn't exist on ${config.
 console.log(`operator    ${operator.id}  ${formatHbar(op.tinybars)}`);
 
 // Starting HBAR per role: the relayer pays everyone's fees, the log writer only its own.
-const FUNDING: Partial<Record<Role, number>> = { relayer: 20, logWriter: 5 };
+const FUNDING: Partial<Record<Role, number>> = { relayer: 20, logWriter: 5, demoWallet: 30 };
 const client = createClient(config.network, operator);
 try {
   if (net.usdcTokenId in op.tokens) console.log(`usdc        operator can hold ${net.usdcTokenId}`);
@@ -54,6 +55,20 @@ try {
     config.roles[role] = { id: a.id, key: a.key };
     console.log(`${role.padEnd(11)} ${a.id} created with ${hbar} HBAR: ${link.account(a.id)}`);
   }
+
+  // The demo wallet needs test USDC to pay demo users' agents (from the operator's).
+  const demo = account(config, "demoWallet");
+  const demoUsdc = (await mirror.balances(demo.id))?.tokens[net.usdcTokenId] ?? BigInt(0);
+  if (demoUsdc < BigInt(500_000)) {
+    const tx = await transferToken(client, {
+      tokenId: net.usdcTokenId,
+      from: operator.id,
+      to: demo.id,
+      units: BigInt(2_000_000),
+      memo: "demo wallet top-up",
+    });
+    console.log(`demoWallet  topped up with 2 USDC: ${link.tx(tx)}`);
+  } else console.log(`demoWallet  holds ${demoUsdc} USDC units`);
 
   if (config.spendLogTopicId) console.log(`log         ${config.spendLogTopicId} (already set up)`);
   else {
