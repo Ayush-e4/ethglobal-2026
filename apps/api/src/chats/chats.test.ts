@@ -85,6 +85,7 @@ describe("chats", () => {
       body: JSON.stringify({ text: "Hotel in Goa?" }),
     });
     expect(res.headers.get("content-type")).toMatch(/text\/event-stream/);
+    expect(res.headers.get("cache-control")).toContain("no-transform"); // or Next gzips and holds it
     const got = events(await res.text());
     expect(got.map((e) => e.type)).toEqual(["status", "text", "text", "card", "done"]);
 

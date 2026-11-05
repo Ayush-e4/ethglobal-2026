@@ -20,7 +20,7 @@ pnpm --filter @app/web dev                   # app http://localhost:3000
 |---|---|
 | `/login` | Create an account with a passkey (Face ID, fingerprint, phone), sign in with it, or **Try the demo** |
 | `/chat` | Chat home: greeting, composer, suggestions. Sending starts a chat and opens it |
-| `/chat/[id]` | The conversation: replies stream in, with cards (agents, choices, quotes with **Choose**) |
+| `/chat/[id]` | The conversation: replies stream in, with cards (agents, choices, quotes with **Choose**, and the **hire card**) |
 
 Signed-out visitors go to `/login` (`src/proxy.ts`: a cookie-presence check only; the API checks
 every request). After sign-in, `?next=` only ever leads to a path inside the app.
@@ -39,8 +39,27 @@ The screens come from the practice project's final, already-fixed version, built
 - **Only the latest reply's cards** can be acted on.
 - **A dropped stream doesn't lose the reply**: the app fetches the saved conversation until it shows.
 - **Chats refresh every 6 s while open and idle**, so a delivery the server posts later appears.
+- **Replies really stream**: the API marks the stream `no-transform`, or Next's proxy gzips it and
+  the status line, cards and text all land at the end (caught while testing the hire card).
 - **Long requests**: Next's proxy timeout is 5 minutes; the default 30 s made a booking look
   failed while its payment went through.
+
+## The hire card
+
+After **Choose**, the concierge hires the agent and the chat shows its card, which follows the hire
+live (`GET /chats/:id/hires` every 3 s, stopping once it's finished):
+
+| Pill | Steps |
+|---|---|
+| **can undo** | fee held on Hedera, not paid yet (links the transaction on HashScan) · the agent books when the undo window ends · **Undo · 0:45 left** |
+| booking… | the agent is booking it |
+| booked | Booked · reference … · Hedera pays the agent when the review window ends |
+| done · paid | Hedera paid the agent the fee (no one pressed anything: a scheduled call on Hedera) |
+| undone · nothing paid | Undone: nothing booked, the fee is back on your limit |
+| refunded / didn't go through | the agent refunded, or the payment failed (with the reason) |
+
+**Undo works from any card**, not only the latest reply's: the window is short, and the concierge
+may still be writing when you want out. A late tap gets the server's reason ("Too late to undo").
 
 ## Checked in the browser (6 Nov 2026)
 
@@ -48,3 +67,7 @@ Signed out → `/login` → Try the demo → chat home → "Find me a hotel in G
 in 12 December, 2 nights" → the reply streamed with a quote card (Park Inn by Radisson Goa
 Candolim, ₹12,914, fee 0.02 USDC paid on delivery). No console errors. On a phone (375 px) the
 **Choose** button wrapped onto two lines; it now keeps its width.
+
+Hire card (6 Nov 2026): Choose → card with a 0:50 countdown → **Undo** → "undone · nothing paid"
+and a line in the chat. Hired again and let it run: booked (sandbox reference nZVtDFuGh) → after
+the 2-minute review **done · paid**, by Hedera's scheduled call. Phone (375 px) checked.

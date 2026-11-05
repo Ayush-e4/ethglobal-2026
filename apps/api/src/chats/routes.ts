@@ -47,20 +47,24 @@ export function chatRoutes(db: Db, concierge: Concierge) {
 
     const history = toHistory(await store.messages(chat.id));
     await store.add(chat.id, "user", body.data.text);
-    c.header("Cache-Control", "no-cache, no-transform"); // proxies must not hold the stream back
-    return streamSSE(c, async (sse) => {
-      // Writes go out in order, and all of them before the stream closes.
+    const res = streamSSE(c, async (sse) => {
+      // Writes go out in order, and all of them before the stream closes. A write to a reader
+      // that left fails quietly: the turn still finishes and is saved.
       let writes = Promise.resolve();
-      const emit = (event: unknown) => {
-        writes = writes.then(() => sse.writeSSE({ data: JSON.stringify(event) }));
+      const write = (data: string, event?: string) => {
+        writes = writes.then(() => sse.writeSSE({ data, event })).catch(() => {});
       };
+      const emit = (event: unknown) => write(JSON.stringify(event));
+      // Hiring can take a while; a ping every 10 s stops proxies closing a quiet stream.
+      const ping = setInterval(() => write("{}", "ping"), 10_000);
       try {
+        // No abort signal: once a turn starts it runs to the end even if the reader leaves,
+        // because an agent may already have been paid. The app fetches the saved reply.
         const reply = await concierge({
           context: { user, chatId: chat.id },
           history,
           text: body.data.text,
           emit,
-          signal: c.req.raw.signal,
         });
         const saved = await store.add(chat.id, "assistant", reply.text, reply.cards);
         emit({ type: "done", messageId: saved.id });
@@ -68,9 +72,15 @@ export function chatRoutes(db: Db, concierge: Concierge) {
         console.error(`chat ${chat.id}: ${err instanceof Error ? err.message : err}`);
         await store.add(chat.id, "assistant", "Sorry, something went wrong. Please try again.");
         emit({ type: "error", message: "Something went wrong. Please try again." });
+      } finally {
+        clearInterval(ping);
       }
       await writes;
     });
+    // no-transform: a proxy (Next's /api rewrite) must not gzip the stream, which holds every
+    // event back until the end. Set after streamSSE, which sets its own Cache-Control.
+    c.header("Cache-Control", "no-cache, no-transform");
+    return res;
   });
 
   return app;
