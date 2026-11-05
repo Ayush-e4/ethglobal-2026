@@ -20,9 +20,20 @@ export async function makeQuote(
   q: { task: string; iataCode: string; checkin: string; checkout: string; adults: number },
 ): Promise<StoredQuote | null> {
   const offers = await d.lite.searchHotels({ ...q, refundableOnly: true, limit: 10 });
-  const best = offers[0];
-  if (!best) return null;
-  const pre = await d.lite.prebook(best.offerId);
+  // A rate can sell out between search and prebook (LiteAPI answers 409): try the next ones.
+  let found: {
+    best: (typeof offers)[number];
+    pre: Awaited<ReturnType<LiteApiClient["prebook"]>>;
+  } | null = null;
+  for (const offer of offers.slice(0, 4)) {
+    const pre = await d.lite.prebook(offer.offerId).catch(() => null);
+    if (pre) {
+      found = { best: offer, pre };
+      break;
+    }
+  }
+  if (!found) return null;
+  const { best, pre } = found;
   const nights = Math.round((Date.parse(q.checkout) - Date.parse(q.checkin)) / 86_400_000);
   const feeUnits = parseUsdc(d.feeUsd.replace("$", "")).toString();
   const summary = `${best.hotelName}, ${nights} night${nights === 1 ? "" : "s"}, ${pre.currency} ${Math.round(pre.total)}${pre.refundable ? ", free cancellation" : ""}`;
