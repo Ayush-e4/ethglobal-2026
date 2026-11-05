@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Market } from "./market";
+import { stay } from "./quote-store";
 import { runTool } from "./tools";
 
 const agent = {
@@ -87,5 +88,12 @@ describe("concierge tools", () => {
   it("lists agents as a card", async () => {
     const out = await runTool(deps, ctx, "find_agents", { skill: "hotels" });
     expect(out.card).toMatchObject({ type: "agents", skill: "hotels" });
+  });
+});
+
+describe("stay", () => {
+  it("reads like a person wrote it", () => {
+    expect(stay("2026-12-14", "2026-12-16")).toBe("14–16 Dec");
+    expect(stay("2026-12-30", "2027-01-02")).toBe("30 Dec – 2 Jan");
   });
 });

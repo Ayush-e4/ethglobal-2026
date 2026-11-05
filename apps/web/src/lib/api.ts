@@ -23,6 +23,19 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+/** A hire as GET /chats/:id/hires shows it: the hire card's live status. */
+export interface HireView {
+  id: string;
+  title: string;
+  agentName: string;
+  feeUnits: string;
+  status: "paying" | "held" | "cancelled" | "delivered" | "released" | "refunded" | "failed";
+  payTx: string | null; // the Hedera transaction that holds the fee
+  undoUntil: string | null;
+  bookingRef: string | null;
+  note: string | null;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -52,3 +65,5 @@ export async function api<T>(
 /** 20000 → "0.02". */
 export const usdc = (units: string | bigint) => (Number(units) / 1e6).toFixed(2);
 export const shortAddress = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
+/** HashScan opens a transaction by its Hedera id (0.0.x@seconds.nanos). */
+export const hashscanTx = (tx: string) => `https://hashscan.io/testnet/transaction/${tx}`;

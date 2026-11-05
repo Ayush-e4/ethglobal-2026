@@ -2,6 +2,7 @@
 
 import type { Card } from "@app/shared";
 import { shortAddress, usdc } from "@/lib/api";
+import { HireCard } from "./HireCard";
 
 /** What a card can do: send a reply as the user, and know whether it's the latest one. */
 export interface CardCtx {
@@ -40,12 +41,7 @@ export function CardView({ card, ctx }: { card: Card; ctx: CardCtx }) {
     case "quotes":
       return <Quotes card={card} ctx={ctx} />;
     case "hire":
-      return (
-        <p className="rounded-2xl border border-line px-4 py-3 text-sm">
-          Hired: {card.title} · fee <span className="font-mono">{usdc(card.feeUnits)} USDC</span>{" "}
-          held
-        </p>
-      );
+      return <HireCard card={card} ctx={ctx} />;
   }
 }
 

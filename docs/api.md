@@ -29,6 +29,12 @@ the same key can later control the user's wallet contract.
 | `POST /chats`, `GET /chats`, `GET /chats/:id` | Start a chat, list them, read one with its messages (each user sees only their own) |
 | `POST /chats/:id/messages` `{ text }` | The user's turn is saved first; the reply streams as Server-Sent Events (`text` deltas, `card`, `status`, then `done` or `error`) and is saved with its cards when complete |
 
+The stream is sent with `Cache-Control: no-cache, no-transform`, set after Hono's `streamSSE`
+(which sets its own): without `no-transform`, Next's `/api` proxy gzips the stream for browsers and
+every event arrives at once at the end. A ping every 10 s keeps proxies from closing a quiet stream
+while a hire pays. A turn runs to the end even if the reader leaves (no abort signal), because an
+agent may already have been paid; the app fetches the saved reply.
+
 The concierge is **Claude Haiku** (`claude-haiku-5-5`, effort low) in a streaming tool loop
 (`src/concierge`). Its tools: `find_agents` (agents listed on Arkiv) and `get_hotel_quotes` (asks
 each hotel agent's own API, free). A quote only counts if the agent also signed it on Arkiv with
@@ -51,14 +57,16 @@ moves from the app:
 5. **The AI's key signs an x402 payment** (`@app/x402`) the limit allows, held in escrow with at
    least a 30 s undo window; the agent's paywall settles it through our facilitator. The hire
    becomes `held`, and a **hire card** with the undo deadline appears in the chat.
-6. **Undo**: `POST /chats/:id/hires/:hireId/cancel` before the deadline: the limit's owner takes the
-   fee back; the agent sees it and does nothing.
+6. **Undo**: `POST /chats/:id/hires/:hireId/cancel` before the deadline (only for a hire in that
+   chat, by its owner): the limit's owner takes the fee back; the agent sees it and does nothing.
+   The chat gets a line saying so, so the concierge knows when the user writes next.
 7. **The follower** (`follow.ts`) follows every open hire from the database every 5 s: asks the
    agent's job URL, reads the escrow on Hedera, posts the booking reference into the chat, and marks
    it `released` when Hedera pays the agent. After a restart it carries on; a hire still `paying`
    (outcome unknown) is flagged `failed` for a check, never paid twice.
 
-`GET /chats/:id/hires` gives the cards their live status.
+`GET /chats/:id/hires` gives the cards their live status: only what a card shows (status, fee,
+pay transaction, undo deadline, booking reference, note), never the agent's job URL or escrow id.
 
 ## Roles
 

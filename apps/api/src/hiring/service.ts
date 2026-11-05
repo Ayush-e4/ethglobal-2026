@@ -110,11 +110,11 @@ export function hiringService(db: Db, cfg: HiringConfig) {
     },
 
     /** Undo: the limit's owner takes the fee back before the window ends. Nothing is booked. */
-    async cancel(user: User, hireId: string): Promise<Hire> {
+    async cancel(user: User, chatId: string, hireId: string): Promise<Hire> {
       const [hire] = await db
         .select()
         .from(hires)
-        .where(and(eq(hires.id, hireId), eq(hires.userId, user.id)))
+        .where(and(eq(hires.id, hireId), eq(hires.chatId, chatId), eq(hires.userId, user.id)))
         .limit(1);
       if (!hire?.escrowId) throw new HireError("No such hire.");
       if (hire.status !== "held" || !hire.undoUntil || hire.undoUntil <= new Date()) {
