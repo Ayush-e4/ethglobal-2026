@@ -43,3 +43,10 @@ Our facilitator submits x402 payments with the **relayer** key: it pays the fee 
 call, and can't move money itself (it only calls admitted contracts with a call it builds from
 the requirements). The **log writer** adds an `x402.settled` entry for each payment. Details in
 [x402.md](x402.md#who-controls-what).
+
+## Arkiv
+
+Our **Arkiv writer** (`ARKIV_WRITER_PRIVATE_KEY`, its own wallet on Arkiv) records jobs, receipts
+and ratings. Each agent writes its own profile, listings, quotes and deliveries with its own key;
+reads only count a record written by the party it names. Details in
+[arkiv.md](arkiv.md#who-controls-what).
