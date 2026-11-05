@@ -22,6 +22,21 @@ the same key can later control the user's wallet contract.
   stored. A week long.
 - CORS lets only the app's own origin call with cookies.
 
+## Chats and the concierge
+
+| Route | What |
+|---|---|
+| `POST /chats`, `GET /chats`, `GET /chats/:id` | Start a chat, list them, read one with its messages (each user sees only their own) |
+| `POST /chats/:id/messages` `{ text }` | The user's turn is saved first; the reply streams as Server-Sent Events (`text` deltas, `card`, `status`, then `done` or `error`) and is saved with its cards when complete |
+
+The concierge is **Claude Haiku** (`claude-haiku-5-5`, effort low) in a streaming tool loop
+(`src/concierge`). Its tools: `find_agents` (agents listed on Arkiv) and `get_hotel_quotes` (asks
+each hotel agent's own API, free). A quote only counts if the agent also signed it on Arkiv with
+the same key, so an agent's API can't claim a price it didn't commit to. Tool inputs are validated
+before running; a refusal or truncated turn stops the loop. Agent text is third-party data, never
+instructions (the system prompt says so). Earlier cards go back into the history as short notes
+(with quote keys), so "book the first one" works a turn later.
+
 ## Roles
 
 `user` for everyone; `admin` for account ids listed in `ADMIN_USERS` (server settings only, so
@@ -39,7 +54,15 @@ pnpm --filter @app/api db:generate   # after changing src/db/schema.ts
 Tests run on PGlite (Postgres in memory) with the same migrations, and a software passkey that
 signs like a real device; no Docker needed.
 
-## Live check (6 Nov 2026)
+## Live checks (6 Nov 2026)
+
+Concierge: "Find me a hotel in Goa for 2 adults, check in 6 December, 2 nights" → Claude Haiku
+called `get_hotel_quotes` → StayWise quoted Park Inn by Radisson Goa Candolim, INR 20,463
+(refundable), fee 0.02 USDC, confirmed against its Arkiv record → a quotes card and a short reply,
+both saved. The first try found nothing: LiteAPI refused to prebook the cheapest rate (409) and
+StayWise gave up; StayWise now tries the next rooms.
+
+Sign-in:
 
 On Docker Postgres: the API applied its migration on start; "Try the demo" signed in, `/me`
 returned the account with role `user`; after logout `/me` answered 401 and the session row was gone.

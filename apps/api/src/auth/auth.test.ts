@@ -11,6 +11,7 @@ async function setup(adminUsers: string[] = []) {
     appOrigin: ORIGIN,
     db: await testDb(),
     auth: { site, adminUsers: new Set(adminUsers), secureCookies: false },
+    concierge: async () => ({ text: "", cards: [] }),
   });
   const call = (path: string, init: RequestInit & { cookie?: string } = {}) =>
     app.request(path, {
@@ -105,6 +106,7 @@ describe("sign-in", () => {
         appOrigin: ORIGIN,
         db,
         auth: { site, adminUsers: new Set(admins), secureCookies: false },
+        concierge: async () => ({ text: "", cards: [] }),
       });
     const demo = await server([]).request("/auth/demo", { method: "POST" });
     const { id } = await json(demo);

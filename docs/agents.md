@@ -27,6 +27,9 @@ mark failed is finished without booking again.
 
 On start StayWise lists itself on Arkiv (profile + listing) if it isn't already.
 
+A rate can sell out between search and prebook (LiteAPI answers 409); StayWise then tries the next
+cheapest rooms (up to four) before saying there's nothing.
+
 ### Who controls what
 
 | Who | Can | Can't |
