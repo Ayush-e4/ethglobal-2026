@@ -13,7 +13,9 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "setup:testnet": "pnpm --filter @app/hedera run testnet-setup",
-    "status:testnet": "pnpm --filter @app/hedera run testnet-status"
+    "status:testnet": "pnpm --filter @app/hedera run testnet-status",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
