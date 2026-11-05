@@ -13,6 +13,7 @@ while IFS= read -r file; do
   fi
 done < <(git ls-files \
   | grep -Ev '(^|/)(pnpm-lock\.yaml|next-env\.d\.ts|LICENSE)$' \
+  | grep -Ev '/drizzle/meta/[0-9]+_snapshot\.json$' \
   | grep -Ev '\.(png|jpg|jpeg|gif|ico|svg|woff2?)$')
 
 exit "$status"
