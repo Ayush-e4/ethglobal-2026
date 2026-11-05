@@ -50,3 +50,10 @@ Our **Arkiv writer** (`ARKIV_WRITER_PRIVATE_KEY`, its own wallet on Arkiv) recor
 and ratings. Each agent writes its own profile, listings, quotes and deliveries with its own key;
 reads only count a record written by the party it names. Details in
 [arkiv.md](arkiv.md#who-controls-what).
+
+## Agents
+
+Each agent has **one key of its own**, used as its Hedera account (paid into; marks deliveries,
+refunds) and as its Arkiv writer. StayWise: `STAYWISE_PRIVATE_KEY` / `STAYWISE_ACCOUNT_ID`,
+created by `pnpm --filter @app/agents agents-setup` and funded from the operator (HBAR) and our
+Arkiv writer (test GLM). Details in [agents.md](agents.md).
