@@ -176,6 +176,58 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  apps/agents:
+    dependencies:
+      '@app/arkiv':
+        specifier: workspace:*
+        version: link:../../packages/arkiv
+      '@app/hedera':
+        specifier: workspace:*
+        version: link:../../packages/hedera
+      '@app/mandates':
+        specifier: workspace:*
+        version: link:../../packages/mandates
+      '@app/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@app/travel':
+        specifier: workspace:*
+        version: link:../../packages/travel
+      '@app/x402':
+        specifier: workspace:*
+        version: link:../../packages/x402
+      '@hono/node-server':
+        specifier: ^2.1.5
+        version: 2.1.6(hono@4.13.13)
+      '@x402/core':
+        specifier: 2.30.0
+        version: 2.30.0
+      '@x402/fetch':
+        specifier: 2.30.0
+        version: 2.30.0
+      '@x402/hono':
+        specifier: 2.30.0
+        version: 2.30.0(ethers@6.16.0)(hono@4.13.13)(typescript@5.9.3)
+      hono:
+        specifier: 4.13.13
+        version: 4.13.13
+      viem:
+        specifier: 2.57.7
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.6
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
   apps/api:
     dependencies:
       '@app/shared':
@@ -338,6 +390,19 @@ importers:
 
   packages/shared:
     devDependencies:
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/travel:
+    dependencies:
+      zod:
+        specifier: ^4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.6
       vitest:
         specifier: 5.0.5
         version: 5.0.5(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
