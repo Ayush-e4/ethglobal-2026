@@ -4,3 +4,5 @@ packages:
 
 allowBuilds:
   esbuild: true
+  # The Hiero SDK's protobufjs only runs a version check at install; the SDK works without it.
+  protobufjs: false

@@ -1,0 +1,27 @@
+{
+  "name": "@app/hedera",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "testnet-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
+    "testnet-status": "tsx --env-file-if-exists=../../.env scripts/status.ts",
+    "pay-demo": "tsx --env-file-if-exists=../../.env scripts/pay-demo.ts",
+    "log-demo": "tsx --env-file-if-exists=../../.env scripts/log-demo.ts"
+  },
+  "dependencies": {
+    "@app/shared": "workspace:*",
+    "@hiero-ledger/sdk": "2.90.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "vitest": "5.0.5"
+  }
+}
