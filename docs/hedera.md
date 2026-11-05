@@ -38,3 +38,17 @@ The pieces of Hedera we use, in web2 terms, and how to set them up.
 - Use **ECDSA** keys, not ED25519: the same key then signs Hedera transactions and EVM messages.
 - Read balances from the **mirror node**; `AccountBalanceQuery` is deprecated.
 - The mirror node lags consensus by a few seconds, so the demos poll briefly after writing.
+- Don't name a package script `setup`: `pnpm --filter <pkg> setup` runs pnpm's own built-in
+  `setup` (it installs pnpm globally and edits your shell profile). Ours is `testnet-setup`.
+
+## Live test (testnet, 6 Nov 2026)
+
+| Check | Result |
+|---|---|
+| Setup: operator opted in to USDC | [tx](https://hashscan.io/testnet/transaction/0.0.11328004@1793904237.910153621) |
+| Relayer and log writer accounts | [0.0.11328382](https://hashscan.io/testnet/account/0.0.11328382), [0.0.11328384](https://hashscan.io/testnet/account/0.0.11328384) |
+| Public log, no admin key, only the log writer may write | [0.0.11328386](https://hashscan.io/testnet/topic/0.0.11328386) |
+| Log writer writes entry #1, read back from the mirror | [tx](https://hashscan.io/testnet/transaction/0.0.11328384@1793904254.626118567) |
+| Operator tries to write to the log | refused: `INVALID_SIGNATURE` |
+| Operator pays 0.01 USDC to a new account, arrives | [tx](https://hashscan.io/testnet/transaction/0.0.11328004@1793904393.437736251) |
+| Relayer tries to move the operator's USDC | refused: `INVALID_SIGNATURE` |
