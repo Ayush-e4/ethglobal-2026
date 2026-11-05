@@ -39,10 +39,15 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - uses: foundry-rs/foundry-toolchain@v1
+
       - run: pnpm install --frozen-lockfile
 
       - name: Lint & format
         run: pnpm lint
+
+      - name: Solidity format
+        run: pnpm --filter @app/contracts fmt:check
 
       - name: Typecheck
         run: pnpm typecheck
@@ -52,3 +57,7 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Slither (static analysis)
+        working-directory: packages/contracts
+        run: pipx run --spec slither-analyzer==0.11.6 slither .
