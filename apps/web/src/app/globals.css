@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* AgentNet look: calm console, warm cards. */
+@theme inline {
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+
+  --color-ink: #182026;
+  --color-ink-2: #344049;
+  --color-ink-3: #4f5a63;
+  --color-muted: #5e676f;
+  --color-side: #f6f4f0;
+  --color-line: #e7e3dc;
+  --color-line-2: #d6d0c6;
+  --color-bubble: #f1eee8;
+  --color-teal: #0e5a64;
+  --color-teal-dark: #0a4850;
+  --color-teal-soft: #e3f0ef;
+  --color-teal-tint: #f3f8f8;
+  --color-saffron: #f2a33a;
+  --color-saffron-soft: #fff3e2;
+  --color-saffron-ink: #8a5300;
+  --color-warm: #fff9f0;
+  --color-warm-line: #f3d7ae;
+  --color-ok: #11734b;
+  --color-ok-soft: #e7f4ec;
+  --color-bad: #b42318;
+  --color-bad-soft: #fdecea;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+}
+
+/* In the base layer, so a component can swap it for its own focus style (the composer does). */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+  }
+}
+
+/* iPhones zoom into any field under 16px when it's tapped; phones get 16px fields everywhere. */
+@media (max-width: 767px) {
+  input:not([type="radio"]):not([type="checkbox"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
