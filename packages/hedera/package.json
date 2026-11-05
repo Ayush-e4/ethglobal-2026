@@ -9,8 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
-    "status": "tsx --env-file-if-exists=../../.env scripts/status.ts",
+    "testnet-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
+    "testnet-status": "tsx --env-file-if-exists=../../.env scripts/status.ts",
     "pay-demo": "tsx --env-file-if-exists=../../.env scripts/pay-demo.ts",
     "log-demo": "tsx --env-file-if-exists=../../.env scripts/log-demo.ts"
   },

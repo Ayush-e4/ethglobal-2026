@@ -31,7 +31,7 @@ The pieces of Hedera we use, in web2 terms, and how to set them up.
 2. `pnpm setup:testnet`: opts the operator in to USDC, creates the relayer and log writer
    accounts and the public log, and writes them into `.env`. Safe to re-run.
 3. Get test USDC for the operator at faucet.circle.com (Hedera Testnet).
-4. `pnpm --filter @app/hedera status` checks it all.
+4. `pnpm status:testnet` checks it all.
 
 ## Gotchas
 

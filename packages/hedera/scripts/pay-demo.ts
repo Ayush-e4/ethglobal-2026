@@ -1,7 +1,7 @@
 // Pays 0.01 USDC from the operator to a brand-new account and checks it arrived, then shows that
 // the relayer can't move the operator's USDC without the operator's key.
 // Needs test USDC on the operator (faucet.circle.com, Hedera Testnet).
-// Run: pnpm --filter @app/hedera pay-demo
+// Run: pnpm --filter @app/hedera run pay-demo
 import { formatUsdc, parseUsdc } from "@app/shared";
 import {
   account,

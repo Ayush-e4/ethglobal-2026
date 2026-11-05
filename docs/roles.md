@@ -23,7 +23,7 @@ log writer can add to it. Anyone can read it on HashScan or the mirror node.
 
 ## How it's checked
 
-- `pnpm --filter @app/hedera status` prints this table from code (`packages/hedera/src/roles.ts`)
+- `pnpm status:testnet` prints this table from code (`packages/hedera/src/roles.ts`)
   and checks each account, plus that the log has no admin key and only the log writer can write.
 - `log-demo` writes as the log writer, then shows the operator's key is refused.
 - `pay-demo` pays from the operator, then shows the relayer can't move the operator's USDC.

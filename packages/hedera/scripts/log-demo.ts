@@ -1,6 +1,6 @@
 // Writes one entry to the public log as the log writer and reads it back from the mirror node,
 // then shows that the operator's key is refused. Costs a fraction of a cent in HBAR.
-// Run: pnpm --filter @app/hedera log-demo
+// Run: pnpm --filter @app/hedera run log-demo
 import {
   account,
   createClient,

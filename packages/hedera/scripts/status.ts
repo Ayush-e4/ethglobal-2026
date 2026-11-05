@@ -1,5 +1,5 @@
 // Checks every role's account and the public log, read-only. Exits 1 if something's off.
-// Run: pnpm --filter @app/hedera status
+// Run: pnpm status:testnet
 
 import { formatUsdc } from "@app/shared";
 import { PrivateKey } from "@hiero-ledger/sdk";

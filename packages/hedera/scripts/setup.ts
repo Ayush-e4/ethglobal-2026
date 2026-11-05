@@ -68,4 +68,4 @@ try {
 } finally {
   client.close();
 }
-console.log("\nDone. Check everything with: pnpm --filter @app/hedera status");
+console.log("\nDone. Check everything with: pnpm status:testnet");
