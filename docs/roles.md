@@ -34,4 +34,5 @@ The contract has **no admin** and can't be upgraded: nobody, us included, can fr
 its rules or move money in it. Who can do what with a limit and a held payment is in
 [mandates.md](mandates.md#who-controls-what). In short: the owner and the AI can undo a payment
 during its window, only the owner can create or raise a limit, and the merchant can't start until
-the window ends.
+the window ends. The registry also holds a little HBAR that anyone can add to; it can only pay
+the fees of the payouts it schedules on Hedera.

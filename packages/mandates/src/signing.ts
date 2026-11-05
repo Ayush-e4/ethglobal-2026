@@ -107,7 +107,10 @@ export const encodePaymentAuthorization = (a: PaymentAuth, signature: Hex) =>
     [a.mandateId, a.nonce, a.validBefore, signature],
   );
 
-/** x402 `authorization` for `executeEscrowTransfer`: abi.encode(EscrowTerms, sig). */
+/**
+ * x402 `authorization` for `executeEscrowTransfer`: abi.encode(EscrowTerms, sig). x402's `payTo`
+ * is then the registry (the money is held there); the merchant is `payee` in the terms.
+ */
 export const encodeEscrowAuthorization = (a: EscrowAuth, signature: Hex) =>
   encodeAbiParameters(
     [
@@ -115,6 +118,7 @@ export const encodeEscrowAuthorization = (a: EscrowAuth, signature: Hex) =>
         type: "tuple",
         components: [
           { name: "mandateId", type: "uint256" },
+          { name: "payee", type: "address" },
           { name: "nonce", type: "uint256" },
           { name: "validBefore", type: "uint256" },
           { name: "undoSeconds", type: "uint32" },
@@ -124,5 +128,5 @@ export const encodeEscrowAuthorization = (a: EscrowAuth, signature: Hex) =>
       },
       { type: "bytes" },
     ],
-    [a, signature],
+    [{ ...a, payee: a.payTo }, signature],
   );

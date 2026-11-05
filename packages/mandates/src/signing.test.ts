@@ -77,6 +77,7 @@ describe("signing", () => {
           type: "tuple",
           components: [
             { name: "mandateId", type: "uint256" },
+            { name: "payee", type: "address" },
             { name: "nonce", type: "uint256" },
             { name: "validBefore", type: "uint256" },
             { name: "undoSeconds", type: "uint32" },

@@ -13,10 +13,16 @@ import {MandateEscrow} from "./mandate/MandateEscrow.sol";
 ///   payee, or wait in escrow with an undo window until the job is delivered (MandateEscrow).
 /// @dev Money only sits here while held, and only escrow rules move it. No admin and not
 ///   upgradeable: nobody, its authors included, can change the rules or touch the money.
+///   It also holds a little HBAR (anyone can top it up) to pay for its scheduled payouts; that
+///   HBAR can only be spent on network fees.
 ///   Implements the x402 Hedera `transferExecutor` interface (`executeTransfer`, selector
 ///   0xea8f19fd) so an x402 facilitator can settle through it.
+// slither-disable-next-line locked-ether
 contract MandateRegistry is MandateEscrow {
     using SafeERC20 for IERC20;
+
+    /// @notice HBAR for scheduled payouts' fees.
+    receive() external payable {}
 
     /// @notice The owner creates a root mandate for an agent. Funds stay with the owner.
     function createMandate(MandateParams calldata p) external returns (uint256 id) {

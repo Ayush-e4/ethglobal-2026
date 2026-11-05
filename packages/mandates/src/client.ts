@@ -203,6 +203,18 @@ export class MandateClient {
     return receipt;
   }
 
+  /** After `markDelivered`: when Hedera will pay the merchant by itself, if it scheduled it. */
+  payoutSchedule(receipt: TransactionReceipt): { schedule: Address; at: bigint } | null {
+    for (const log of receipt.logs) {
+      try {
+        const ev = decodeEventLog({ abi: mandateRegistryAbi, data: log.data, topics: log.topics });
+        if (ev.eventName === "PayoutScheduled")
+          return { schedule: ev.args.schedule, at: ev.args.at };
+      } catch {}
+    }
+    return null;
+  }
+
   private created(receipt: TransactionReceipt): bigint {
     for (const log of receipt.logs) {
       try {
