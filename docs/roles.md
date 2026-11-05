@@ -57,3 +57,9 @@ Each agent has **one key of its own**, used as its Hedera account (paid into; ma
 refunds) and as its Arkiv writer. StayWise: `STAYWISE_PRIVATE_KEY` / `STAYWISE_ACCOUNT_ID`,
 created by `pnpm --filter @app/agents agents-setup` and funded from the operator (HBAR) and our
 Arkiv writer (test GLM). Details in [agents.md](agents.md).
+
+## App accounts and admins
+
+People sign in with a passkey or "Try the demo". Every account is a `user`; `admin` only for ids in
+`ADMIN_USERS`, a server setting. No app role can move money or change the contracts. See
+[api.md](api.md#roles).

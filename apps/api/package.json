@@ -8,17 +8,24 @@
     "build": "tsdown",
     "start": "node --env-file-if-exists=../../.env dist/index.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
     "@app/shared": "workspace:*",
     "@hono/node-server": "^2.1.5",
-    "hono": "4.13.13"
+    "hono": "4.13.13",
+    "@simplewebauthn/server": "14.0.3",
+    "drizzle-orm": "0.45.4",
+    "postgres": "3.4.9",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "tsdown": "^0.23.1",
     "tsx": "^4.23.15",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "@electric-sql/pglite": "0.5.9",
+    "drizzle-kit": "0.31.11"
   }
 }

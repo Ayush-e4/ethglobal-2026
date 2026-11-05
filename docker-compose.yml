@@ -1,0 +1,22 @@
+# Local development database. Start with `pnpm db:up`.
+# Dev-only credentials: never reuse them for a hosted database.
+name: ethglobal2026
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "127.0.0.1:54339:5432" # 54339: clear of a local Postgres and of the practice project's
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
