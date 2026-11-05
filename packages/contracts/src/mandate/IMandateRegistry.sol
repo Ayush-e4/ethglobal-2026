@@ -53,9 +53,11 @@ interface IMandateRegistry {
         uint32 reviewSeconds; // after delivery, the buyer can dispute for this long
     }
 
-    /// The x402 form of an EscrowAuth (payee and amount come from the call itself).
+    /// The x402 form of an EscrowAuth. x402 pays `amount` to the registry itself (the money is
+    /// held there), so the merchant who gets it on delivery travels in the terms.
     struct EscrowTerms {
         uint256 mandateId;
+        address payee;
         uint256 nonce;
         uint256 validBefore;
         uint32 undoSeconds;
@@ -120,6 +122,11 @@ interface IMandateRegistry {
     event EscrowReleased(bytes32 indexed id, address indexed by);
     event EscrowRefunded(bytes32 indexed id, address indexed by);
     event EscrowDisputed(bytes32 indexed id);
+    /// Hedera will call `claim(id)` at `at` by itself (HIP-1215), paying the merchant on time.
+    event PayoutScheduled(bytes32 indexed id, address schedule, uint256 at);
+    /// The network couldn't schedule it (`code` from Hedera, -1 if unavailable): anyone can still
+    /// call `claim` once the review ends.
+    event PayoutNotScheduled(bytes32 indexed id, int64 code);
 
     error InvalidParams();
     error UnknownMandate();

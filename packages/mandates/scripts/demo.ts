@@ -34,7 +34,7 @@ const refused = async (msg: string, err: Promise<string | null>) => {
 };
 
 const client = createClient(config.network, account(config, "operator"));
-const hotelAccount = await createAccount(client, { initialHbar: 5, memo: "demo hotel" });
+const hotelAccount = await createAccount(client, { initialHbar: 15, memo: "demo hotel" });
 client.close();
 const hotel = privateKeyToAccount(`0x${hotelAccount.key}`);
 step(`hotel account ${hotelAccount.id} (${hotel.address})`);
@@ -56,7 +56,7 @@ const { id, receipt } = await registry.createMandate(owner, {
 });
 step(`limit #${id}: 0.10 USDC, 0.05 per payment, this hotel only`, receipt.transactionHash);
 
-async function hold(amount: string, undoSeconds: number) {
+async function hold(amount: string, undoSeconds: number, reviewSeconds = 120) {
   const auth: EscrowAuth = {
     mandateId: id,
     payTo: hotel.address,
@@ -65,7 +65,7 @@ async function hold(amount: string, undoSeconds: number) {
     validBefore: now() + BigInt(300),
     undoSeconds,
     deliverBy: now() + BigInt(3600),
-    reviewSeconds: 120,
+    reviewSeconds,
   };
   const signature = await signEscrow(agent, registry.domain(), auth);
   return { auth, signature, ...(await registry.payIntoEscrow(relayer, auth, signature)) };
@@ -105,7 +105,29 @@ step(
 );
 console.log(`  escrow: ${(await registry.getEscrow(second.id)).state}`);
 
-// 3. Payments the contract refuses.
+// 3. Delivered, nobody does anything: Hedera pays the merchant when the review ends.
+const third = await hold("0.01", 5, 20);
+step("agent pays 0.01 into escrow, 5 s window, 20 s review", third.receipt.transactionHash);
+await sleep(Number((await registry.getEscrow(third.id)).startsAt - now()) + 5);
+const delivered = await registry.markDelivered(hotel, third.id, keccak256(toHex("booking DEMO-2")));
+const scheduled = registry.payoutSchedule(delivered);
+step(
+  scheduled
+    ? `delivered; the contract scheduled its own payout on Hedera for ${new Date(Number(scheduled.at) * 1000).toISOString()} (schedule ${scheduled.schedule})`
+    : "delivered, but Hedera didn't take the schedule (anyone can still claim)",
+  delivered.transactionHash,
+);
+if (scheduled) {
+  await sleep(Math.max(0, Number(scheduled.at - now())) + 10);
+  for (let i = 0; i < 10 && (await registry.getEscrow(third.id)).state !== "released"; i++) {
+    await sleep(3);
+  }
+  const state = (await registry.getEscrow(third.id)).state;
+  if (state !== "released") throw new Error(`expected Hedera to pay out, escrow is ${state}`);
+  step("nobody called anything: Hedera ran the payout and the hotel was paid");
+}
+
+// 4. Payments the contract refuses.
 const tampered = { ...second.auth, nonce: randomNonce() };
 const sig = await signEscrow(agent, registry.domain(), tampered);
 await refused(

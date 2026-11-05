@@ -26,4 +26,10 @@ depth = 64
 # block-timestamp: Hedera timestamps come from network consensus; windows are minutes or longer.
 # require-revert-in-loop: intended, one bad entry rejects the whole call.
 # reentrancy-events: the only calls before our events are ERC-1271 checks (staticcall).
-exclude_lints = ["block-timestamp", "require-revert-in-loop", "reentrancy-events"]
+# environment-read-across-mutation: tests read block.timestamp after vm.warp on purpose (no via-ir).
+exclude_lints = [
+  "block-timestamp",
+  "require-revert-in-loop",
+  "reentrancy-events",
+  "environment-read-across-mutation",
+]

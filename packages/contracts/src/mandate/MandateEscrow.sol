@@ -10,9 +10,10 @@ import {MandateStore} from "./MandateStore.sol";
 ///   1. Undo window (`undoSeconds`): the buyer (the owner or the mandate's agent) can cancel for
 ///      a full refund, and the payee can't mark anything delivered yet.
 ///   2. The payee delivers by `deliverBy`, with a hash of what it delivered.
-///   3. The buyer releases it, or after `reviewSeconds` anyone can pay it out (so a Hedera
-///      scheduled transaction can, with no server involved). Within the review the buyer can
-///      dispute, which freezes it until the payee refunds or the buyer releases.
+///   3. The buyer releases it, or after `reviewSeconds` anyone can pay it out. On delivery the
+///      registry asks Hedera to call `claim` itself when the review ends (HIP-1215 scheduled
+///      call), so the merchant is paid on time with no server or bot. Within the review the
+///      buyer can dispute, which freezes it until the payee refunds or the buyer releases.
 ///   The payee can refund at any time; if nothing is delivered by `deliverBy`, anyone can send
 ///   it back. Every refund also gives the budget back to the mandate.
 ///   Web2 analogy: Gmail's "Undo send" plus an escrow service, run by code nobody can change.
@@ -24,6 +25,13 @@ abstract contract MandateEscrow is MandateStore {
 
     /// Hedera's token service precompile, and the answers we accept from it.
     address internal constant HTS = address(0x167);
+    /// Hedera's schedule service (HIP-1215): contracts schedule their own future calls.
+    address internal constant HSS = address(0x16b);
+    /// Gas for the scheduled `claim`, paid from the registry's own HBAR.
+    uint256 public constant PAYOUT_GAS = 400_000;
+    /// Inside a contract, Hedera's `block.timestamp` is the start of its ~2 s block, so a call run
+    /// at second X can see X-2. The payout is scheduled this much after the review ends.
+    uint256 public constant PAYOUT_DELAY = 5;
     int64 internal constant HTS_SUCCESS = 22;
     int64 internal constant HTS_ALREADY_ASSOCIATED = 194;
 
@@ -38,9 +46,11 @@ abstract contract MandateEscrow is MandateStore {
         return _escrows[id];
     }
 
-    /// @notice x402 entry point for pay on delivery (like `executeTransfer`).
+    /// @notice x402 entry point for pay on delivery (like `executeTransfer`). x402 checks the
+    ///   money reached `to`, so `to` is this registry (where it's held) and the merchant comes
+    ///   from the terms.
     /// @param authorization abi.encode(EscrowTerms, signature): the agent's EIP-712 EscrowAuth
-    ///   over those terms plus `to` and `amount`.
+    ///   over those terms (payee included) and `amount`.
     function executeEscrowTransfer(
         address from,
         address asset,
@@ -51,11 +61,13 @@ abstract contract MandateEscrow is MandateStore {
         (EscrowTerms memory t, bytes memory signature) =
             abi.decode(authorization, (EscrowTerms, bytes));
         Mandate storage m = _mandates[t.mandateId];
-        if (m.owner != from || m.token != asset) revert WrongOwnerOrAsset();
+        if (m.owner != from || m.token != asset || to != address(this)) {
+            revert WrongOwnerOrAsset();
+        }
         return _escrow(
             EscrowAuth(
                 t.mandateId,
-                to,
+                t.payee,
                 amount,
                 t.nonce,
                 t.validBefore,
@@ -97,6 +109,7 @@ abstract contract MandateEscrow is MandateStore {
         e.deliveredAt = uint64(block.timestamp); // <= deliverBy, a uint64
         e.resultHash = resultHash;
         emit Delivered(id, resultHash);
+        _schedulePayout(id, block.timestamp + e.reviewSeconds + PAYOUT_DELAY);
     }
 
     /// @notice The buyer is happy: pay the payee now.
@@ -186,6 +199,46 @@ abstract contract MandateEscrow is MandateStore {
         IERC20(m.token).safeTransferFrom(m.owner, address(this), a.amount);
         // forge-lint: disable-end(arbitrary-send-erc20)
     }
+
+    /// @dev Asks Hedera to call `claim(id)` at `at` (or the next second with room, up to 5 s
+    ///   later). Never reverts: without a schedule, anyone can still claim after the review.
+    // Events after the call are fine: 0x16b is Hedera's own schedule service, not user code, and
+    // the escrow's state is already final before it.
+    // slither-disable-start reentrancy-events
+    function _schedulePayout(bytes32 id, uint256 at) internal {
+        for (uint256 i; i < 5; ++i) {
+            // A view call to Hedera's schedule service, at most 5 times.
+            // forge-lint: disable-start(calls-loop)
+            // slither-disable-next-line low-level-calls,calls-loop
+            (bool ok, bytes memory res) = HSS.staticcall(
+                abi.encodeWithSignature("hasScheduleCapacity(uint256,uint256)", at, PAYOUT_GAS)
+            );
+            // forge-lint: disable-end(calls-loop)
+            if (!ok || res.length < 32 || abi.decode(res, (bool))) break;
+            ++at;
+        }
+        // slither-disable-next-line low-level-calls
+        (bool sent, bytes memory out) = HSS.call(
+            abi.encodeWithSignature(
+                "scheduleCall(address,uint256,uint256,uint64,bytes)",
+                address(this),
+                at,
+                PAYOUT_GAS,
+                uint64(0),
+                abi.encodeCall(this.claim, (id))
+            )
+        );
+        if (sent && out.length >= 64) {
+            (int64 code, address schedule) = abi.decode(out, (int64, address));
+            // Hedera answers with exact response codes; 22 is SUCCESS.
+            // slither-disable-next-line incorrect-equality
+            if (code == HTS_SUCCESS) emit PayoutScheduled(id, schedule, at);
+            else emit PayoutNotScheduled(id, code);
+        } else {
+            emit PayoutNotScheduled(id, -1);
+        }
+    }
+    // slither-disable-end reentrancy-events
 
     function _refund(Escrow storage e) internal {
         Mandate storage m = _mandates[e.mandateId];
