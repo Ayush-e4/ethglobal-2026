@@ -14,7 +14,6 @@ export const mandateRegistryAbi = parseAbi([
   "function createSubMandate(SubMandateAuth a, address[] payees, bytes signature) returns (uint256 id)",
   "function pay(PaymentAuth a, bytes signature)",
   "function executeTransfer(address from, address asset, address to, uint256 amount, bytes authorization)",
-  "function executeEscrowTransfer(address from, address asset, address to, uint256 amount, bytes authorization) returns (bytes32)",
   "function payIntoEscrow(EscrowAuth a, bytes signature) returns (bytes32)",
   "function revoke(uint256 id)",
   "function cancel(bytes32 id)",

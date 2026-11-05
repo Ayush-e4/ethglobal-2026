@@ -46,25 +46,21 @@ abstract contract MandateEscrow is MandateStore {
         return _escrows[id];
     }
 
-    /// @notice x402 entry point for pay on delivery (like `executeTransfer`). x402 checks the
-    ///   money reached `to`, so `to` is this registry (where it's held) and the merchant comes
-    ///   from the terms.
+    /// @dev x402 pay on delivery, reached through `executeTransfer` with `to` = this registry (x402
+    ///   checks the money reached `to`, and it's held here). The merchant comes from the terms.
     /// @param authorization abi.encode(EscrowTerms, signature): the agent's EIP-712 EscrowAuth
     ///   over those terms (payee included) and `amount`.
-    function executeEscrowTransfer(
+    function _executeEscrow(
         address from,
         address asset,
-        address to,
         uint256 amount,
         bytes calldata authorization
-    ) external returns (bytes32) {
+    ) internal {
         (EscrowTerms memory t, bytes memory signature) =
             abi.decode(authorization, (EscrowTerms, bytes));
         Mandate storage m = _mandates[t.mandateId];
-        if (m.owner != from || m.token != asset || to != address(this)) {
-            revert WrongOwnerOrAsset();
-        }
-        return _escrow(
+        if (m.owner != from || m.token != asset) revert WrongOwnerOrAsset();
+        _escrow(
             EscrowAuth(
                 t.mandateId,
                 t.payee,
