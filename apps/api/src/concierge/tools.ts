@@ -1,7 +1,8 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Card } from "@app/shared";
 import { z } from "zod";
-import type { Market } from "./market";
+import type { User } from "../db/schema";
+import type { HotelQuote, Market } from "./market";
 
 const Day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -20,6 +21,8 @@ const HotelQuotes = z
     adults: z.number().int().min(1).max(4),
   })
   .refine((q) => q.checkout > q.checkin, "checkout must be after checkin");
+
+const BookQuote = z.object({ quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
 
 export const TOOLS: Anthropic.Tool[] = [
   {
@@ -45,7 +48,41 @@ export const TOOLS: Anthropic.Tool[] = [
       required: ["iata", "checkin", "checkout", "adults"],
     },
   },
+  {
+    name: "book_quote",
+    description:
+      "Book a quote shown in this chat, when the user has clearly said which one. Pays the agent's fee from the chat's spending limit into escrow; the user has a short window to undo, then the agent books it. Never call it without the user choosing.",
+    eager_input_streaming: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        quote: { type: "string", description: "The quote's key (0x…) from get_hotel_quotes" },
+      },
+      required: ["quote"],
+    },
+  },
 ];
+
+/** What the tools can reach, and whose chat this is. */
+export interface ToolDeps {
+  market: Market;
+  saveQuotes: (chatId: string, quotes: HotelQuote[]) => Promise<void>;
+  hire: (
+    user: User,
+    chatId: string,
+    quoteKey: string,
+  ) => Promise<{
+    id: string;
+    title: string;
+    feeUnits: bigint;
+    undoUntil: Date | null;
+    payTx: string | null;
+  }>;
+}
+export interface ToolContext {
+  user: User;
+  chatId: string;
+}
 
 const usdc = (units: string) => (Number(units) / 1e6).toFixed(2);
 
@@ -56,7 +93,13 @@ export interface ToolOutcome {
 }
 
 /** Runs one tool call after validating its input (inputs can arrive truncated when streamed). */
-export async function runTool(market: Market, name: string, input: unknown): Promise<ToolOutcome> {
+export async function runTool(
+  deps: ToolDeps,
+  ctx: ToolContext,
+  name: string,
+  input: unknown,
+): Promise<ToolOutcome> {
+  const { market } = deps;
   if (name === "find_agents") {
     const p = FindAgents.safeParse(input);
     if (!p.success) return { result: "invalid input", isError: true };
@@ -97,6 +140,7 @@ export async function runTool(market: Market, name: string, input: unknown): Pro
     if (quotes.length === 0)
       return { result: "No rooms available from the market's hotel agents for those dates." };
     const top = quotes.slice(0, 4);
+    await deps.saveQuotes(ctx.chatId, top); // only quotes shown in this chat can be booked from it
     return {
       result: JSON.stringify(
         top.map((q) => ({
@@ -124,6 +168,30 @@ export async function runTool(market: Market, name: string, input: unknown): Pro
         })),
       },
     };
+  }
+  if (name === "book_quote") {
+    const p = BookQuote.safeParse(input);
+    if (!p.success) return { result: "invalid input: give the quote's 0x key", isError: true };
+    try {
+      const h = await deps.hire(ctx.user, ctx.chatId, p.data.quote);
+      const undo = h.undoUntil ?? new Date();
+      return {
+        result: `Hired. ${usdc(h.feeUnits.toString())} USDC is held in escrow; the user can undo until ${undo.toISOString()} (the app shows a countdown). The agent books after that and the chat gets the booking reference.`,
+        card: {
+          type: "hire",
+          hireId: h.id,
+          title: h.title,
+          feeUnits: h.feeUnits.toString(),
+          undoUntil: undo.toISOString(),
+          payTx: h.payTx ?? "",
+        },
+      };
+    } catch (err) {
+      return {
+        result: err instanceof Error ? err.message : "The booking failed. Nothing was charged.",
+        isError: true,
+      };
+    }
   }
   return { result: `unknown tool ${name}`, isError: true };
 }

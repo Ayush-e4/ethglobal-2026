@@ -56,6 +56,7 @@ export function chatRoutes(db: Db, concierge: Concierge) {
       };
       try {
         const reply = await concierge({
+          context: { user, chatId: chat.id },
           history,
           text: body.data.text,
           emit,

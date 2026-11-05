@@ -37,6 +37,29 @@ before running; a refusal or truncated turn stops the loop. Agent text is third-
 instructions (the system prompt says so). Earlier cards go back into the history as short notes
 (with quote keys), so "book the first one" works a turn later.
 
+## Hiring from chat (one payment path)
+
+The concierge's `book_quote` tool calls the hiring service (`src/hiring`), the only way money
+moves from the app:
+
+1. **Only quotes shown in this chat** can be booked (saved when shown, until they expire).
+2. Demo accounts: **daily caps** (0.06 USDC of fees per account, 0.50 in total), checked first.
+3. **The hire is written down before paying** (`paying`).
+4. The chat's **spending limit** for that agent is found or made on Hedera (0.10 USDC, 0.05 per
+   payment, that agent only, 24 hours), owned by the demo wallet for now; the user's own Face ID
+   wallet replaces it next.
+5. **The AI's key signs an x402 payment** (`@app/x402`) the limit allows, held in escrow with at
+   least a 30 s undo window; the agent's paywall settles it through our facilitator. The hire
+   becomes `held`, and a **hire card** with the undo deadline appears in the chat.
+6. **Undo**: `POST /chats/:id/hires/:hireId/cancel` before the deadline: the limit's owner takes the
+   fee back; the agent sees it and does nothing.
+7. **The follower** (`follow.ts`) follows every open hire from the database every 5 s: asks the
+   agent's job URL, reads the escrow on Hedera, posts the booking reference into the chat, and marks
+   it `released` when Hedera pays the agent. After a restart it carries on; a hire still `paying`
+   (outcome unknown) is flagged `failed` for a check, never paid twice.
+
+`GET /chats/:id/hires` gives the cards their live status.
+
 ## Roles
 
 `user` for everyone; `admin` for account ids listed in `ADMIN_USERS` (server settings only, so
@@ -55,6 +78,15 @@ Tests run on PGlite (Postgres in memory) with the same migrations, and a softwar
 signs like a real device; no Docker needed.
 
 ## Live checks (6 Nov 2026)
+
+Hiring, with the facilitator, StayWise and the API running: "Find me a hotel in Goa for 2 adults,
+check in 10 December, 2 nights" → quote (Park Inn by Radisson Goa Candolim, INR 11,438) → "Book the
+first one" → `book_quote` → 0.02 USDC held ([tx](https://hashscan.io/testnet/transaction/0.0.11328382@1793920154.081520830)),
+hire card with the undo deadline → after the window StayWise booked it → the chat got "Booking
+reference 9-goiQGdF" → Hedera released the fee to StayWise (`released`). A second booking, undone on
+its card inside the window: `cancelled`, the fee back on the limit, StayWise "undone by the buyer:
+nothing booked".
+
 
 Concierge: "Find me a hotel in Goa for 2 adults, check in 6 December, 2 nights" → Claude Haiku
 called `get_hotel_quotes` → StayWise quoted Park Inn by Radisson Goa Candolim, INR 20,463

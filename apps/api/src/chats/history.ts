@@ -14,6 +14,8 @@ export function cardNote(card: Card): string {
     );
     return `[quotes shown]\n${lines.join("\n")}`;
   }
+  if (card.type === "hire")
+    return `[hired: ${card.title}, fee held in escrow, hire ${card.hireId}]`;
   if (card.type === "agents") return `[agents shown: ${card.agents.map((a) => a.name).join(", ")}]`;
   return `[choices shown: ${card.options.map((o) => o.label).join(" / ")}]`;
 }

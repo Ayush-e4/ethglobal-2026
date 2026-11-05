@@ -51,10 +51,24 @@ export const QuotesCardSchema = z.object({
   ),
 });
 
+/**
+ * An agent was hired: its fee is held in escrow. Until `undoUntil` the user can cancel (nothing is
+ * paid); after it the agent works, and the app reads the hire's live status by `hireId`.
+ */
+export const HireCardSchema = z.object({
+  type: z.literal("hire"),
+  hireId: z.string(),
+  title: z.string(),
+  feeUnits: units,
+  undoUntil: z.string(), // ISO
+  payTx: z.string(), // the Hedera transaction that holds the fee
+});
+
 export const CardSchema = z.discriminatedUnion("type", [
   AgentsCardSchema,
   OptionsCardSchema,
   QuotesCardSchema,
+  HireCardSchema,
 ]);
 export type Card = z.infer<typeof CardSchema>;
 

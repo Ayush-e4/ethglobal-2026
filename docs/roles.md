@@ -63,3 +63,11 @@ Arkiv writer (test GLM). Details in [agents.md](agents.md).
 People sign in with a passkey or "Try the demo". Every account is a `user`; `admin` only for ids in
 `ADMIN_USERS`, a server setting. No app role can move money or change the contracts. See
 [api.md](api.md#roles).
+
+## Hiring
+
+- **Concierge key** (`CONCIERGE_PRIVATE_KEY`, `pnpm --filter @app/api hiring-setup`): the AI's key.
+  It only signs payments a spending limit allows; no Hedera account, no HBAR, can't raise a limit.
+- **Demo wallet** (`DEMO_WALLET_*`, a Hedera role made by `pnpm setup:testnet`): holds test USDC for
+  "Try the demo" and owns those chats' limits; it can undo a held payment for its user. Daily caps
+  in the API keep one person from emptying it.
