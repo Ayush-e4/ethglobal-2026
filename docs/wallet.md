@@ -103,18 +103,25 @@ so the first time the concierge books an agent in a chat, it asks for a limit in
 Approvals are kept in the database (`wallet_ops`), work once, and expire after 5 minutes. Undo is
 still one tap: the concierge (the limit's AI key) can cancel during the window, no Face ID needed.
 
+**Your limits** are on the Wallet page: the agent, the chat, what's left, until when. **Cancel**
+is a Face ID approval too: the wallet revokes the limit on Hedera (`revoke` in the registry), and
+the concierge can't pay from it any more. Gas per kind of move: setting a limit 2M (1.2M used),
+cancelling 0.8M (0.3M used); Hedera charges at least 80% of the limit, so each kind has its own.
+
 Live (`pnpm --filter @app/api face-id-hire-demo`, a software passkey through the real API):
 
 ```
-✓ signed up; Face ID wallet 0.0.11332147 holds 0.10 test USDC
+✓ signed up; Face ID wallet 0.0.11332504 holds 0.10 test USDC
 ✓ got live quotes
 ✓ the concierge asks for a limit: up to 0.10 USDC for StayWise
-✓ Face ID approved limit #19  https://hashscan.io/testnet/transaction/0xed5aef6da38cf4983db68af0ffda70eaa346427a6d09542fbb18fe43f1b953a3
-✓ hired; fee held  https://hashscan.io/testnet/transaction/0.0.11328382@1793924919.487715170
+✓ Face ID approved limit #23  https://hashscan.io/testnet/transaction/0xb123d2462521ebebec0bed40a6616c8e29b61d450f6716ada888ab4eecb8082d
+✓ hired; fee held  https://hashscan.io/testnet/transaction/0.0.11328382@1793927315.427308232
   held
-  delivered (booking EkxE6m00a)
-  released (booking EkxE6m00a)
+  delivered (booking y0SRra3_i)
+  released (booking y0SRra3_i)
 ✓ done: released; the wallet now holds 0.08 test USDC
+✓ listed: active, 0.08 USDC left
+✓ Face ID cancelled it: cancelled  https://hashscan.io/testnet/transaction/0xa1019a530fda48898dd4d63633287c5cb4c4d82ad1899e9b1d57c1c2b16b8337
 ```
 
 ## Gotchas

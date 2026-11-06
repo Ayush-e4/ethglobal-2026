@@ -25,6 +25,7 @@ export interface WalletChain {
     calls: WalletCall[],
     deadline: bigint,
     sig: KeySig,
+    gas: bigint,
   ): Promise<{ hash: Hex; mandateId?: bigint }>;
 }
 
@@ -67,7 +68,7 @@ export function hederaWalletChain(cfg: WalletConfig): WalletChain {
         args: [owner, spender],
       }),
     digest: (wallet, calls, deadline) => client.digest(wallet, calls, deadline),
-    execute: (wallet, calls, deadline, sig) =>
-      client.execute(sponsor, wallet, calls, deadline, sig),
+    execute: (wallet, calls, deadline, sig, gas) =>
+      client.execute(sponsor, wallet, calls, deadline, sig, gas),
   };
 }

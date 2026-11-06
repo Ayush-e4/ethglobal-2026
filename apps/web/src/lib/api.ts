@@ -48,6 +48,19 @@ export interface WalletInfo {
   };
 }
 
+/** GET /wallet/limits: what the concierge may spend from your wallet, and where. */
+export interface WalletLimit {
+  id: string;
+  chatId: string;
+  chatTitle: string;
+  agentName: string | null;
+  mandateId: string;
+  budgetUnits: string;
+  remainingUnits: string | null;
+  expiresAt: string;
+  status: "active" | "expired" | "cancelled";
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,

@@ -8,6 +8,7 @@ import { limitRoutes } from "./hiring/limit-routes";
 import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
 import type { WalletChain } from "./wallet/chain";
+import { walletLimitRoutes } from "./wallet/limits-routes";
 import type { WalletApprovals } from "./wallet/ops";
 import { walletRoutes } from "./wallet/routes";
 import type { WalletService } from "./wallet/service";
@@ -33,7 +34,10 @@ export function createApp(o: AppOptions) {
   app.route("/", chatRoutes(db, concierge));
   if (hiring) app.route("/", hireRoutes(db, hiring));
   if (wallets) app.route("/", walletRoutes(db, wallets));
-  if (hiring && wallets && o.walletChain && o.approvals)
+  if (hiring && wallets && o.walletChain && o.approvals) {
     app.route("/", limitRoutes(db, hiring, wallets, o.walletChain, o.approvals));
+    const registry = hiring.registry;
+    app.route("/", walletLimitRoutes(db, { wallets, approvals: o.approvals, registry }));
+  }
   return app;
 }

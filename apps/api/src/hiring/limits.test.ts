@@ -37,6 +37,7 @@ async function setup() {
   const hiring = {
     newLimit: (payee: `0x${string}`) => limitParams(CONCIERGE, USDC, payee),
     registryAddress: REGISTRY,
+    registry: { registry: REGISTRY, remaining: async () => 80_000n },
   } as unknown as HiringService;
   const app = createApp({
     appOrigin: ORIGIN,
@@ -151,5 +152,33 @@ describe("Face ID spending limits", () => {
     expect(
       (await call(`/chats/${chat.id}/limits/face-id`, demoCookie, { payee: PAYEE })).status,
     ).toBe(404);
+  });
+
+  it("your limits are listed, and Face ID cancels one on Hedera", async () => {
+    const { call, me, chat, device, ran } = await setup();
+    const approve = async (prepare: string, body: unknown, run: string) => {
+      const { opId, options } = (await (await call(prepare, me, body)).json()) as Prepared;
+      return call(run, me, { opId, response: device.signIn(options.challenge) });
+    };
+    await approve(`/chats/${chat.id}/limits/face-id`, { payee: PAYEE }, `/chats/${chat.id}/limits`);
+    type Row = { id: string; status: string; agentName: string; remainingUnits: string | null };
+    const [limit] = (await (await call("/wallet/limits", me)).json()) as Row[];
+    expect(limit).toMatchObject({
+      status: "active",
+      agentName: "StayWise",
+      remainingUnits: "80000",
+    });
+
+    const path = `/wallet/limits/${limit?.id}/revoke`;
+    expect((await approve(`${path}/face-id`, {}, path)).status).toBe(200);
+    expect(ran).toHaveLength(2); // the limit, then the cancel, both run by the wallet
+    const [after] = (await (await call("/wallet/limits", me)).json()) as Row[];
+    expect(after?.status).toBe("cancelled");
+    expect((await call(`${path}/face-id`, me, {})).status).toBe(409); // already cancelled
+
+    const demo = await call("/auth/demo", "", {});
+    const someoneElse = demo.headers.get("set-cookie")?.split(";")[0] ?? "";
+    expect((await call(`${path}/face-id`, someoneElse, {})).status).toBe(404);
+    expect(await (await call("/wallet/limits", someoneElse)).json()).toEqual([]);
   });
 });

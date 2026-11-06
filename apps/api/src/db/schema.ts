@@ -57,13 +57,15 @@ export const passkeys = pgTable(
 export type WalletStatus = "creating" | "ready" | "failed";
 
 /** What a prepared Face ID approval is for, so its second step can be checked against it. */
-export type WalletOpMeta = {
-  kind: "limit";
-  chatId: string;
-  payee: string;
-  budgetUnits: string;
-  expiresAt: string; // ISO, the limit's
-};
+export type WalletOpMeta =
+  | {
+      kind: "limit";
+      chatId: string;
+      payee: string;
+      budgetUnits: string;
+      expiresAt: string; // ISO, the limit's
+    }
+  | { kind: "revoke"; limitId: string };
 
 /**
  * A move a Face ID wallet is about to make: the batch, and the digest its passkey signs. Kept
@@ -158,6 +160,7 @@ export const limits = pgTable(
     budgetUnits: bigint("budget_units", { mode: "bigint" }).notNull(),
     demo: boolean("demo").notNull().default(false),
     expiresAt: at("expires_at").notNull(),
+    revokedAt: at("revoked_at"), // cancelled by its owner (with Face ID)
     createdAt: at("created_at").notNull().defaultNow(),
   },
   (t) => [index("limits_chat_idx").on(t.chatId)],
