@@ -1,16 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, hashscanAccount, shortAddress, usdc, type WalletInfo } from "@/lib/api";
-import { PasskeyIcon } from "../icons";
-import { Alerts } from "./Alerts";
-import { ConnectedApps } from "./ConnectedApps";
+import { PasskeyIcon, SettingsIcon } from "../icons";
 import { DealDrop } from "./DealDrop";
-import { Devices } from "./Devices";
-import { EmailSettings } from "./EmailSettings";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
-import { Travellers } from "./Travellers";
 import { WorldBonus } from "./WorldBonus";
 
 /**
@@ -50,7 +46,15 @@ export function WalletView() {
   return (
     <main className="mx-auto flex w-full max-w-[800px] flex-col gap-6 px-4 pt-6 pb-14 sm:px-6 sm:pt-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-[28px] font-bold tracking-tight sm:text-[32px]">Wallet</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-[28px] font-bold tracking-tight sm:text-[32px]">Wallet</h1>
+          <Link
+            href="/settings"
+            className="flex min-h-10 items-center gap-2 rounded-xl border border-line-2 bg-white px-3.5 text-sm font-semibold"
+          >
+            <SettingsIcon size={16} /> Settings
+          </Link>
+        </div>
         <p className="text-[15px] leading-relaxed text-ink-3">
           {info.demo
             ? "This demo account spends from a shared test wallet, with a small daily allowance."
@@ -59,17 +63,11 @@ export function WalletView() {
       </div>
 
       {info.demo ? (
-        <>
-          <section className="flex flex-col gap-2 rounded-2xl border border-line p-4 text-sm leading-relaxed text-ink-3">
-            <span className="font-semibold text-ink">Want your own wallet?</span>
-            Sign out and create an account with a passkey (Face ID, a fingerprint or your phone).
-            You get a wallet only you control, with a little test USDC to start.
-          </section>
-          <Alerts />
-          <EmailSettings />
-          <Travellers />
-          <ConnectedApps />
-        </>
+        <section className="flex flex-col gap-2 rounded-2xl border border-line p-4 text-sm leading-relaxed text-ink-3">
+          <span className="font-semibold text-ink">Want your own wallet?</span>
+          Sign out and create an account with a passkey (Face ID, a fingerprint or your phone). You
+          get a wallet only you control, with a little test USDC to start.
+        </section>
       ) : !w || w.status === "creating" ? (
         <p
           role="status"
@@ -137,12 +135,7 @@ export function WalletView() {
           )}
           <WorldBonus onBonus={load} />
           <DealDrop />
-          <Alerts />
-          <EmailSettings />
-          <Travellers />
-          <ConnectedApps />
           <Limits />
-          <Devices />
           <TopUp address={w.address} />
         </>
       )}

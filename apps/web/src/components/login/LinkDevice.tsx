@@ -57,7 +57,7 @@ export function LinkDevice() {
     setError(null);
     try {
       await linkThisDevice(found.code, found.options);
-      router.replace("/wallet?device=added#devices");
+      router.replace("/settings?device=added#devices");
     } catch (err) {
       setError(
         cancelled(err)
@@ -83,7 +83,7 @@ export function LinkDevice() {
         <p className="text-[15px] leading-relaxed text-ink-3">
           {found
             ? `This device will get its own passkey for ${found.name ? `${found.name}'s` : "your"} account, and you'll be signed in.`
-            : "On a device where you're signed in, open Wallet → Your devices → Add another device. Scan its QR code, or type the code here."}
+            : "On a device where you're signed in, open Settings → Your devices → Add another device. Scan its QR code, or type the code here."}
         </p>
       </div>
       {found ? (

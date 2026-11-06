@@ -150,7 +150,7 @@ describe("the guest's confirmations", () => {
       subject: "Claude was connected to your Shikigami account",
     });
     expect(sent.at(-1)?.text).toMatch(
-      /If this wasn't you, disconnect it in Wallet → Connected apps/,
+      /If this wasn't you, disconnect it in Settings → Connected apps/,
     );
     expect(sent.at(-1)?.text).not.toMatch(/travel sandbox/);
   });

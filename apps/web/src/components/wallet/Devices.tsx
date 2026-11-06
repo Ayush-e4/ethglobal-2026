@@ -44,7 +44,7 @@ export function Devices() {
     me.current = thisDevice();
     if (new URLSearchParams(window.location.search).get("device") === "added")
       setNote(
-        "This device is signed in. To approve payments from it, let it in on your other device: Wallet → Your devices.",
+        "This device is signed in. To approve payments from it, let it in on your other device: Settings → Your devices.",
       );
     void load();
   }, [load]);

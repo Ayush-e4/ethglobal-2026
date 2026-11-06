@@ -92,7 +92,7 @@ export function TravellerCard({ card, ctx }: { card: TravellerCardData; ctx: Car
           )}
           {list && list.length >= max && (
             <span className="text-xs text-muted">
-              Up to {max} travellers: remove one on the Wallet page.
+              Up to {max} travellers: remove one in Settings.
             </span>
           )}
           {adding && (
