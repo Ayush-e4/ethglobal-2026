@@ -1,13 +1,14 @@
 "use client";
 
-import type { Card } from "@app/shared";
-import { useRef, useState } from "react";
+import { type Card, decodeRequest, toHex } from "@app/shared";
+import { useEffect, useRef, useState } from "react";
 import { hashscanTx } from "@/lib/api";
 import { LimitCard } from "../chat/LimitCard";
 import { CheckIcon } from "../icons";
 import { Camera } from "./Camera";
 import { Shell } from "./GetPaid";
 import type { createScanner } from "./scanner";
+import { listen, preloadSound } from "./sound";
 
 type Seen = {
   merchant: { name: string; account: string; verified: boolean };
@@ -38,6 +39,12 @@ async function post<T>(path: string, body: unknown) {
  */
 export function PayInPerson() {
   const [step, setStep] = useState<"idle" | "scan" | "paying" | "paid">("idle");
+  const [via, setVia] = useState<"qr" | "sound">("qr");
+  const ears = useRef<{ stop: () => void } | null>(null);
+  useEffect(() => {
+    preloadSound();
+    return () => ears.current?.stop();
+  }, []);
   const [frame, setFrame] = useState<string | null>(null);
   const [seen, setSeen] = useState<Seen | null>(null);
   const [live, setLive] = useState<string | null>(null);
@@ -71,7 +78,7 @@ export function PayInPerson() {
     const r = await post<{ payTx: string; card?: LimitData; chatId?: string }>("/pay", {
       frame,
       live: live ?? undefined,
-      how: "qr",
+      how: via,
     });
     if (r.ok) {
       setTx(r.data.payTx);
@@ -85,6 +92,8 @@ export function PayInPerson() {
     }
   };
   const reset = () => {
+    ears.current?.stop();
+    ears.current = null;
     setFrame(null);
     setSeen(null);
     setLive(null);
@@ -92,6 +101,26 @@ export function PayInPerson() {
     setTx(null);
     setError(null);
     setStep("scan");
+  };
+
+  // Listening starts in the tap itself (iPhones); the mic stops once a request is heard.
+  const startListening = async () => {
+    setError(null);
+    setVia("sound");
+    setStep("scan");
+    try {
+      ears.current = await listen((bytes) => {
+        if (!decodeRequest(bytes).ok) return; // noise, or someone else's chirp format
+        ears.current?.stop();
+        ears.current = null;
+        void onRequest(toHex(bytes), false);
+      });
+    } catch {
+      setError(
+        "Allow the microphone to listen (it needs the app's https address), then try again.",
+      );
+      setStep("idle");
+    }
   };
 
   if (step === "paid" && seen)
@@ -134,18 +163,34 @@ export function PayInPerson() {
         </p>
         <button
           type="button"
-          onClick={() => setStep("scan")}
+          onClick={() => {
+            setVia("qr");
+            setStep("scan");
+          }}
           className={`${btn} bg-teal text-white`}
         >
           Scan to pay
         </button>
+        <button
+          type="button"
+          onClick={() => void startListening()}
+          className={`${btn} border border-line-2 bg-white`}
+        >
+          Listen to pay
+        </button>
+        <p className="text-xs text-muted">
+          Listen: the shop&apos;s device plays the request as a short chirp. Hold your phone 20–50
+          cm from it, still.
+        </p>
+        {error && <p className="text-sm text-bad">{error}</p>}
       </Shell>
     );
 
   // One camera for the whole scan: it keeps reading the live layer while the sheet is up.
-  const watching = !seen || (!live && !plain && seen.status === "open");
+  const watching = via === "qr" && (!seen || (!live && !plain && seen.status === "open"));
   return (
-    <Shell title="Scan to pay">
+    <Shell title={via === "qr" ? "Scan to pay" : "Listen to pay"}>
+      {via === "sound" && !seen && <Listening />}
       {watching && (
         <div className={seen ? "max-h-32 overflow-hidden rounded-2xl opacity-80" : ""}>
           <Camera scanner={scanner} onRequest={onRequest} onLive={onLive} onError={setError} />
@@ -162,7 +207,7 @@ export function PayInPerson() {
           <span className="text-[34px] font-bold tracking-tight">
             ₹{seen.inr.toLocaleString("en-IN")}
           </span>
-          <LiveLine live={live} plain={plain} />
+          <LiveLine live={live} plain={plain} heard={via === "sound"} />
           {seen.status !== "open" ? (
             <p className="text-sm text-bad">
               {seen.status === "paid" ? "Already paid." : "Expired: ask the shop for a new one."}
@@ -177,11 +222,11 @@ export function PayInPerson() {
               type="button"
               onClick={pay}
               disabled={step === "paying"}
-              className={`${btn} ${live ? "bg-teal text-white" : "border border-line-2 bg-white"} disabled:opacity-60`}
+              className={`${btn} ${live || via === "sound" ? "bg-teal text-white" : "border border-line-2 bg-white"} disabled:opacity-60`}
             >
               {step === "paying"
                 ? "Paying…"
-                : live
+                : live || via === "sound"
                   ? `Pay ₹${seen.inr.toLocaleString("en-IN")}`
                   : "Pay anyway"}
             </button>
@@ -200,7 +245,12 @@ export function PayInPerson() {
   );
 }
 
-function LiveLine({ live, plain }: { live: string | null; plain: boolean }) {
+function LiveLine(p: { live: string | null; plain: boolean; heard: boolean }) {
+  const { live, plain } = p;
+  if (p.heard)
+    return (
+      <p className="text-sm font-semibold text-ok">✓ Heard from the shop&apos;s device just now</p>
+    );
   if (live) return <p className="text-sm font-semibold text-ok">✓ Live screen confirmed</p>;
   if (plain)
     return (
@@ -210,5 +260,18 @@ function LiveLine({ live, plain }: { live: string | null; plain: boolean }) {
     <p className="text-sm text-ink-2">
       Checking it&apos;s a live screen… keep the camera on the QR
     </p>
+  );
+}
+
+function Listening() {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-line bg-white p-8 text-center">
+      <span
+        aria-hidden
+        className="size-16 animate-pulse rounded-full bg-teal-soft ring-8 ring-teal-soft/50"
+      />
+      <span className="text-[15px] font-semibold">Listening for the shop&apos;s chirp…</span>
+      <span className="text-xs text-muted">Hold your phone 20–50 cm from their device, still.</span>
+    </div>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { fromHex } from "@app/shared";
+import { useEffect, useRef, useState } from "react";
 import { ApiError, api, hashscanTx } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { CheckIcon } from "../icons";
 import { LiveQr } from "./LiveQr";
+import { chirp, preloadSound } from "./sound";
 
 type Merchant = { name: string; account: string; verified: boolean };
 type Req = { id: string; frame: string; liveKey: string; inr: number; expiresAt: string };
@@ -29,6 +31,35 @@ export function GetPaid() {
   const [req, setReq] = useState<Req | null>(null);
   const [status, setStatus] = useState<Status | null>(null);
   const [left, setLeft] = useState(0);
+  const [chirping, setChirping] = useState(false);
+  const speaker = useRef<{ stop: () => void } | null>(null);
+  const quiet = () => {
+    speaker.current?.stop();
+    speaker.current = null;
+    setChirping(false);
+  };
+  useEffect(() => {
+    preloadSound();
+    return () => speaker.current?.stop();
+  }, []);
+  // Paid, expired or a new request: the chirp stops.
+  useEffect(() => {
+    if (req && status?.status !== "paid" && status?.status !== "expired" && left !== 0) return;
+    speaker.current?.stop();
+    speaker.current = null;
+    setChirping(false);
+  }, [req, status?.status, left]);
+  /** The request as sound too, for a payer who'd rather listen (started from this tap). */
+  const toggleChirp = async () => {
+    if (speaker.current) return quiet();
+    if (!req) return;
+    try {
+      speaker.current = await chirp(fromHex(req.frame));
+      setChirping(true);
+    } catch {
+      setError("The sound didn't start. Check the volume and try again.");
+    }
+  };
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -146,12 +177,23 @@ export function GetPaid() {
                 This QR proves it&apos;s live on this screen: a sticker or a screenshot of it
                 won&apos;t pass.
               </p>
+              <button
+                type="button"
+                onClick={() => void toggleChirp()}
+                aria-pressed={chirping}
+                className={`min-h-11 rounded-full px-4 text-sm font-semibold ${chirping ? "bg-teal text-white" : "border border-line-2 bg-white text-teal"}`}
+              >
+                {chirping ? "Chirping… tap to stop" : "Play the chirp too"}
+              </button>
             </>
           )}
         </div>
         <button
           type="button"
-          onClick={() => setReq(null)}
+          onClick={() => {
+            quiet();
+            setReq(null);
+          }}
           className={`${btn} border border-line-2 bg-white`}
         >
           {paid || left === 0 ? "New request" : "Cancel"}

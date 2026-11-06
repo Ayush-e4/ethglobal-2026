@@ -1,7 +1,8 @@
-# Paying in person (Live QR)
+# Paying in person (Live QR and Chirp to Pay)
 
 The last 30 cm, when the payer and the shop stand in front of each other. From the Live QR and
-Chirp to Pay labs (built and tested on two devices before they came here); sound comes next.
+Chirp to Pay labs (built and tested on two devices before they came here). Two ways to carry the
+same signed request: a **Live QR** on the shop's screen, or a **chirp** from its speaker.
 
 ## The flow
 
@@ -14,6 +15,18 @@ Chirp to Pay labs (built and tested on two devices before they came here); sound
 3. The money moves on Hedera: an x402 payment through our facilitator and MandateRegistry,
    straight to the shop's account, within the payer's limit for that shop (Face ID once), or from
    the demo wallet for demo accounts. The shop's screen turns **Paid** by itself.
+
+## Chirp to Pay (sound)
+
+Next to the QR, **Play the chirp too** plays the same 24-byte request as sound with
+[ggwave](https://github.com/ggerganov/ggwave) (MIT: tones between 1.9 and 6.4 kHz with
+Reed-Solomon error correction, WebAssembly, served from `public/vendor/ggwave.js`). It alternates
+a fast chirp (0.7 s) and an echo-proof one (2.1 s), with gaps, until it's paid or expires.
+On the phone, **Listen to pay** opens the microphone with calls' echo and noise cancelling off
+(they erase steady tones), listens for both speeds, stops at the first request it hears, and
+shows the same checked sheet: who, how much, "heard from the shop's device just now". Hold the
+phone 20–50 cm away and still: the lab's maths and ~2,900 simulated rooms say audible chirps
+survive a hand moving up to ~1.3 m/s, and that close range beats echo.
 
 ## Why a scanned QR can't be faked
 
@@ -36,7 +49,8 @@ Chirp to Pay labs (built and tested on two devices before they came here); sound
 | `packages/shared/src/inperson.ts` | The 24-byte request, its tag, the live code (shared by the app and the server) |
 | `apps/api/src/inperson` | Merchants and requests (`merchants.ts`), checking and paying (`pay.ts`), the x402 settle (`settle.ts`), routes |
 | `apps/web/src/lib/inperson` | The lab's QR drawing, hidden layer and camera geometry |
-| `apps/web/src/components/inperson` | The Live QR canvas, the scanner, the two screens |
+| `apps/web/src/lib/inperson` (`modem.js`, `audio.js`) | The lab's ggwave wrapper and browser audio |
+| `apps/web/src/components/inperson` | The Live QR canvas, the scanner, the chirp and listener, the two screens |
 
 Routes: `GET/POST /merchant`, `POST /merchant/requests { inr }`, `GET /merchant/requests/:id`,
 `POST /pay/check { frame, live? }`, `POST /pay { frame, live?, how }` (409 `needs_limit` with the
@@ -47,7 +61,9 @@ Face ID limit card first).
 - Tests: the request reads back and a forged or changed one fails; a live code is good for a
   few seconds and a screenshot's isn't; your own request and a demo merchant are refused; a
   passkey payer approves a limit first. **Screen to scanner**: the Live QR's frames, drawn at
-  60 fps and read at 30, give a live code the server accepts.
+  60 fps and read at 30, give a live code the server accepts. **Speaker to mic**: a request
+  played in both speeds through our modem is heard back exactly. In the app's page, ggwave loads
+  from `/vendor` and round-trips a request in 0.70 s of sound.
 - Live against the API: a merchant on a real Face ID wallet (0.0.11341027), a ₹40 request, the
   payer's check (live ✓, a screenshot's code refused, your own request refused). The payment
   itself waits for Hedera's RPC (Hashio was down when this was built): it then says nothing was
