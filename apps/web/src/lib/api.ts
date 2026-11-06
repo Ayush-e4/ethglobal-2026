@@ -47,6 +47,34 @@ export interface HireView {
   canSimulateDrop?: boolean; // demo only
   reviewUntil: string | null; // after delivery: a problem can be reported until then
   canReport: boolean;
+  bookingCancelledAt: string | null; // the guest cancelled the stay afterwards
+  canCancelBooking: boolean;
+  guestName: string | null;
+  chatId: string;
+  createdAt: string;
+}
+
+/** GET /trips: a booking, with the chat it was made in. */
+export type Trip = HireView & { chatTitle: string };
+
+/** GET /receipts/:id: a booking's public proof. */
+export interface Receipt {
+  title: string;
+  agentName: string;
+  feeUnits: string;
+  status: HireView["status"];
+  bookedAt: string;
+  guest: string; // initials
+  bookingRef: string | null; // only in part
+  bookingCancelled: boolean;
+  note: string | null;
+  escrow: {
+    state: string;
+    amountUnits: string;
+    deliveredAt: string | null;
+    reviewSeconds: number;
+  } | null;
+  links: { label: string; url: string }[];
 }
 
 /** GET /wallet: a passkey account's Face ID wallet. Demo accounts have none. */

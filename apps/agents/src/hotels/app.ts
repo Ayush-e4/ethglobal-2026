@@ -139,6 +139,17 @@ export function hotelAgentApp(d: {
     return c.json(shown);
   });
 
+  // The buyer cancels the stay after it was booked, with a signature only the buyer can make.
+  app.post("/jobs/:id/cancel-booking", async (c) => {
+    const body = z
+      .object({ signature: z.string().regex(/^0x[0-9a-fA-F]+$/) })
+      .safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ error: "bad_request" }, 400);
+    const r = await d.worker.cancelBooking(c.req.param("id"), body.data.signature as `0x${string}`);
+    const status = { not_found: 404, not_the_buyer: 403, cancelled: 200 }[r.outcome];
+    return c.json(r, status as 200);
+  });
+
   // The buyer reported a problem (and disputed the escrow on Hedera, which we check first).
   app.post("/jobs/:id/dispute", async (c) => {
     const body = z

@@ -13,6 +13,7 @@ import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
 import { travellerRoutes } from "./travellers/routes";
 import type { TravellerService } from "./travellers/service";
+import { tripRoutes } from "./trips/routes";
 import type { WalletChain } from "./wallet/chain";
 import { walletLimitRoutes } from "./wallet/limits-routes";
 import type { WalletApprovals } from "./wallet/ops";
@@ -56,6 +57,7 @@ export function createApp(o: AppOptions) {
   app.route("/", authRoutes(db, auth, onSignUp, links));
   app.route("/", chatRoutes(db, concierge));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
+  if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.alerts) app.route("/", alertRoutes(db, o.alerts));
   if (o.travellers) app.route("/", travellerRoutes(db, o.travellers));
   if (wallets) app.route("/", walletRoutes(db, wallets));

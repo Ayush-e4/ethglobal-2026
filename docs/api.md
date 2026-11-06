@@ -72,6 +72,17 @@ moves from the app:
    so, and the agent is told. Our agents settle it by cancelling the hotel booking and refunding
    their fee; the follower then says so in the chat. An agent that ignores it is never paid. In
    Telegram, the hire's live message has **⚠️ Report a problem** for the same thing.
+9. **Cancel a booked stay**: `POST /chats/:id/hires/:hireId/cancel-booking`, after the undo
+   window, for a booked stay not cancelled yet (`canCancelBooking` on the hire). We sign
+   `AgentNet: cancel the booking for job <escrowId>` with the concierge's key and send it to the
+   agent, which checks the signer against Hedera (the limit's owner or its AI key) before
+   cancelling at the hotel. The agent's fee stays paid: it booked as promised. The chat says so.
+
+**Trips and receipts.** `GET /trips` lists your bookings from every chat, newest first, with the
+chat's title. `GET /receipts/:id` is public, by the hire's unguessable id: what was booked, the
+fee's escrow as Hedera holds it now, and links to the payment, the escrow contract, the agent's
+signed offer and any verified rating on Arkiv. The guest shows as initials and the booking
+reference only in part. The app shows them at `/trips` and `/receipts/:id` (no sign-in).
 
 `GET /chats/:id/hires` gives the cards their live status: only what a card shows (status, fee,
 pay transaction, undo deadline, booking reference, note), never the agent's job URL or escrow id.

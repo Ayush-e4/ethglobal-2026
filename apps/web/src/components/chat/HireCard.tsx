@@ -4,6 +4,7 @@ import type { Card } from "@app/shared";
 import { useEffect, useState } from "react";
 import { ApiError, api, type HireView, hashscanTx, usdc } from "@/lib/api";
 import { UndoIcon } from "../icons";
+import { CancelBooking } from "../trips/CancelBooking";
 import type { CardCtx } from "./Cards";
 import { RateAgent } from "./RateAgent";
 import { ReportProblem } from "./ReportProblem";
@@ -150,6 +151,8 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
     );
   }
 
+  if (hire?.bookingCancelledAt)
+    steps.push({ id: "cancelled", label: "You cancelled the stay at the hotel", done: true });
   if (hire?.watchNote)
     steps.push({ id: "watch", label: `${name}: ${hire.watchNote}`, done: !hire.watching });
 
@@ -232,6 +235,23 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
           reviewUntil={hire.reviewUntil}
           onReported={setHire}
         />
+      )}
+      {hire?.canCancelBooking && (
+        <CancelBooking
+          path={`/chats/${ctx.chatId}/hires/${card.hireId}`}
+          agentName={name}
+          onCancelled={setHire}
+        />
+      )}
+      {(status === "delivered" || status === "released") && (
+        <a
+          href={`/receipts/${card.hireId}`}
+          target="_blank"
+          rel="noreferrer"
+          className="self-start text-xs font-semibold text-teal underline underline-offset-2"
+        >
+          Receipt anyone can check
+        </a>
       )}
       {(status === "delivered" || status === "released") && (
         <RateAgent path={`/chats/${ctx.chatId}/hires/${card.hireId}/rating`} agentName={name} />

@@ -148,3 +148,10 @@ export function stay(checkin: string, checkout: string) {
   const [d2, m2] = b.split(" ");
   return m1 === m2 ? `${d1}–${d2} ${m2}` : `${a} – ${b}`;
 }
+
+/**
+ * What the buyer signs to cancel a booked stay (with the limit's owner or AI key): the agent
+ * checks the signer against the limit Hedera records for the job's escrow.
+ */
+export const cancelBookingMessage = (escrowId: string) =>
+  `AgentNet: cancel the booking for job ${escrowId}`;
