@@ -1,6 +1,6 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { encodeRequest, fromHex, inrToTestUnits, newNonce, toHex } from "@app/shared";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { merchants, payRequests, type User, worldChecks } from "../db/schema";
 import { HireError } from "../hiring/errors";
@@ -45,11 +45,29 @@ export function merchantService(db: Db, ownWallet: OwnWallet) {
     async become(user: User, name: string) {
       if (user.isDemo)
         throw new HireError("Getting paid needs your own Face ID wallet: sign in with a passkey.");
+      // One real person per shop: so nobody can set up a look-alike "Chai Point" to be paid.
+      if (!(await worldVerified(db, user.id)))
+        throw new HireError(
+          "Verify you're a real person with World ID first (Wallet → World ID), then set up your shop.",
+        );
       const w = await ownWallet(user.id);
       if (w?.status !== "ready" || !w.hederaId)
         throw new HireError("Your Face ID wallet is still being set up. Try again in a moment.");
+      const clean = name.trim().replace(/\s+/g, " ").slice(0, 40);
+      const [taken] = await db
+        .select({ id: merchants.userId })
+        .from(merchants)
+        .where(
+          and(
+            sql`lower(${merchants.name}) = ${clean.toLowerCase()}`,
+            ne(merchants.userId, user.id),
+          ),
+        )
+        .limit(1);
+      if (taken)
+        throw new HireError("That shop name is taken. Add your area, like “Chai Point, Bandra”.");
       const values = {
-        name: name.trim().slice(0, 40),
+        name: clean,
         account: w.hederaId,
         address: w.address.toLowerCase(),
       };

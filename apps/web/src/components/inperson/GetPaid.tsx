@@ -117,7 +117,8 @@ export function GetPaid() {
           >
             <p className="text-sm text-ink-2">
               Customers pay you by scanning a QR on this screen. The money goes to your Face ID
-              wallet on Hedera.
+              wallet on Hedera. One real person per shop: you verify with World ID once, and your
+              shop&apos;s name is yours alone.
             </p>
             <label className="flex flex-col gap-1 text-sm font-semibold">
               The name customers see
@@ -139,6 +140,11 @@ export function GetPaid() {
           </form>
         )}
         {error && <p className="text-sm text-bad">{error}</p>}
+        {error?.includes("World ID") && (
+          <a href="/wallet" className={`${btn} border border-line-2 bg-white text-teal`}>
+            Verify with World ID in Wallet
+          </a>
+        )}
       </Shell>
     );
 

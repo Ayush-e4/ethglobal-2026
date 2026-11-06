@@ -51,6 +51,12 @@ Checks are kept in the database; after a restart the server picks up the ones st
 4. The approval is used up only when the payment goes ahead, so a Face ID limit step in between
    doesn't cost a second World ID check; two hires at once can't both use it.
 
+**What counts as larger:** the whole payment into escrow, the agent's fee plus the trip price
+(`hireTotal`), not the fee alone: a cheap agent booking an expensive stay asks too.
+
+**Shops** (paying in person): becoming a shop needs a verified person, so one person can't set up
+look-alike shops. See [in-person.md](in-person.md).
+
 ## Rating an agent
 
 1. Once the job is done (`delivered` or `released`), the hire card shows 1–5 stars
@@ -155,7 +161,7 @@ passkey", but only for a World ID that already has a passkey; it doesn't make a 
 | `WORLD_ID_CLIENT_ID`, `WORLD_ID_CLIENT_SECRET` | From World's developer portal (Agent Pass app). Without them, World ID is off and the page doesn't show it |
 | `WORLD_BONUS_USDC` | The bonus (default 0.20) |
 | `WORLD_BONUSES_PER_DAY` | Across everyone (default 20) |
-| `WORLD_CHECK_FEE_USDC` | A hire's fee from which a person approves it with World ID (default 0.05) |
+| `WORLD_CHECK_FEE_USDC` | A hire's payment into escrow (the agent's fee plus the trip price, at testnet scale) from which a person approves it with World ID (default 0.05, about a ₹30,000 stay with a 0.02 fee) |
 | `RATINGS_SECRET` | Makes raters' pseudonyms (any long random string; keep it, or old ratings stop matching). Without it, rating is off |
 
 ## Live checks (6 Nov 2026)

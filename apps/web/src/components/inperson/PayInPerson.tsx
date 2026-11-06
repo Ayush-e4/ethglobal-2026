@@ -218,17 +218,20 @@ export function PayInPerson() {
               ctx={{ chatId: limit.chatId, isDemo: false, onReply: () => void pay() }}
             />
           ) : (
+            // A QR pays only once it proved it's the shop's live screen (the server checks too).
             <button
               type="button"
               onClick={pay}
-              disabled={step === "paying"}
-              className={`${btn} ${live || via === "sound" ? "bg-teal text-white" : "border border-line-2 bg-white"} disabled:opacity-60`}
+              disabled={step === "paying" || (via === "qr" && !live)}
+              className={`${btn} bg-teal text-white disabled:opacity-50`}
             >
               {step === "paying"
                 ? "Paying…"
-                : live || via === "sound"
-                  ? `Pay ₹${seen.inr.toLocaleString("en-IN")}`
-                  : "Pay anyway"}
+                : via === "qr" && !live
+                  ? plain
+                    ? "Can't pay a QR that isn't live"
+                    : "Waiting for the live check…"
+                  : `Pay ₹${seen.inr.toLocaleString("en-IN")}`}
             </button>
           )}
           <button

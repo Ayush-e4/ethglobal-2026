@@ -3,7 +3,7 @@ import { counterAt, encodeRequest, fromHex, liveCode, toHex } from "@app/shared"
 import type { HederaIds } from "@app/x402";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { describe, expect, it } from "vitest";
-import { users } from "../db/schema";
+import { users, worldChecks } from "../db/schema";
 import { NeedsLimit } from "../hiring/limits";
 import { testDb } from "../test/db";
 import { liveKeyFor, merchantService } from "./merchants";
@@ -18,7 +18,29 @@ async function setup() {
     .values([{ displayName: "Shop" }, { displayName: "Payer" }, { isDemo: true }])
     .returning();
   if (!shop || !payer || !demo) throw new Error("no users");
-  const wallet = async () => ({ status: "ready", address: WALLET, hederaId: "0.0.4242" });
+  // Each person's own Face ID wallet: the shop's is 0.0.4242.
+  const wallet = async (id: string) =>
+    id === shop.id
+      ? { status: "ready", address: WALLET, hederaId: "0.0.4242" }
+      : {
+          status: "ready",
+          address: `0x${id.replace(/-/g, "").slice(0, 32).padStart(40, "0")}`,
+          hederaId: "0.0.5151",
+        };
+  /** This person proved they're real with World ID (here: a passed check on record). */
+  const verify = (userId: string) =>
+    db.insert(worldChecks).values({
+      userId,
+      purpose: "bonus",
+      userCode: "ABCD-1234",
+      link: "https://world.example",
+      deviceCode: "dc",
+      intervalS: 5,
+      startedAtS: 0,
+      expiresAt: new Date(),
+      status: "verified",
+    });
+  await verify(shop.id);
   const merchants = merchantService(db, wallet);
   const key = privateKeyToAccount(generatePrivateKey());
   const payers = inPersonPayer({
@@ -30,7 +52,7 @@ async function setup() {
     demo: { owner: key, accountId: "0.0.1", caps: { perUser: 1n, total: 1n } },
     ownWallet: wallet,
   });
-  return { db, shop, payer, demo, merchants, payers };
+  return { db, shop, payer, demo, merchants, payers, verify };
 }
 
 describe("paying in person", () => {
@@ -74,9 +96,32 @@ describe("paying in person", () => {
     const { shop, payer, merchants, payers } = await setup();
     await merchants.become(shop, "Chai Point");
     const r = await merchants.request(shop, 40);
-    const err = await payers.pay(payer, r.frame, { how: "qr" }).catch((e) => e);
+    const live = toHex(await liveCode(fromHex(r.liveKey), fromHex(r.frame), counterAt()));
+    const err = await payers.pay(payer, r.frame, { how: "qr", live }).catch((e) => e);
     expect(err).toBeInstanceOf(NeedsLimit);
     expect((err as NeedsLimit).card).toMatchObject({ agentName: "Chai Point", payee: WALLET });
     expect((await merchants.status(shop, r.id))?.status).toBe("open");
+  });
+
+  it("one real person per shop: World ID first, and a name nobody else has", async () => {
+    const { payer, shop, merchants, verify } = await setup();
+    await expect(merchants.become(payer, "Chai Point")).rejects.toThrow(/World ID first/);
+    await merchants.become(shop, "Chai Point");
+    await verify(payer.id);
+    await expect(merchants.become(payer, "chai  point")).rejects.toThrow(/name is taken/);
+    expect(await merchants.become(payer, "Chai Point, Bandra")).toMatchObject({
+      name: "Chai Point, Bandra",
+    });
+  });
+
+  it("a scanned QR pays only once its live layer checked out: no paying a sticker or a screenshot", async () => {
+    const { shop, payer, merchants, payers } = await setup();
+    await merchants.become(shop, "Chai Point");
+    const r = await merchants.request(shop, 40);
+    await expect(payers.pay(payer, r.frame, { how: "qr" })).rejects.toThrow(/live screen/);
+    const old = toHex(await liveCode(fromHex(r.liveKey), fromHex(r.frame), counterAt() - 200));
+    await expect(payers.pay(payer, r.frame, { how: "qr", live: old })).rejects.toThrow(
+      /live screen/,
+    );
   });
 });

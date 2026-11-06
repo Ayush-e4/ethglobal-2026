@@ -5,7 +5,7 @@ import { currentUser } from "../auth/current";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
 import { quotes } from "../db/schema";
-import { spendRef } from "./checkpoint";
+import { hireTotal, spendRef } from "./checkpoint";
 import { checkView as view, type WorldCheck, type WorldChecks } from "./checks";
 
 const Start = z.object({ quoteKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
@@ -33,9 +33,9 @@ export async function startSpendApproval(
         .where(and(eq(quotes.key, quoteKey), eq(quotes.chatId, chat.id)))
     : [];
   if (!chat || !quote) return { error: "No such quote in this chat", status: 404 };
-  if (quote.feeUnits < minFeeUnits)
+  if (hireTotal(quote) < minFeeUnits)
     return { error: "This booking doesn't need a World ID approval", status: 409 };
-  const ref = spendRef(chat.id, quote.agentAddress, quote.feeUnits);
+  const ref = spendRef(chat.id, quote.agentAddress, hireTotal(quote));
   const latest = await checks.latest(userId, "spend", ref);
   if (latest?.status === "waiting" && latest.expiresAt > Date.now())
     return { check: latest, started: false }; // one at a time
@@ -83,7 +83,7 @@ export function approvalRoutes(db: Db, checks: WorldChecks | null, minFeeUnits: 
           .where(and(eq(quotes.key, c.req.param("quoteKey")), eq(quotes.chatId, chat.id)))
       : [];
     if (!chat || !quote) return c.json({ error: "not found" }, 404);
-    const ref = spendRef(chat.id, quote.agentAddress, quote.feeUnits);
+    const ref = spendRef(chat.id, quote.agentAddress, hireTotal(quote));
     const check = await checks?.latest(user.id, "spend", ref);
     return c.json({ check: check ? view(check) : null });
   });
