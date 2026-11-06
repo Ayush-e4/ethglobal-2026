@@ -12,7 +12,7 @@ import { escrowIdFromHeader } from "../escrow-id";
 import type { JsonStore } from "../store";
 import type { StayWiseConfig } from "./config";
 import { HOTEL_FORM } from "./form";
-import { makeQuote, toOffer } from "./quotes";
+import { makeQuotes, toOffer } from "./quotes";
 import type { Job, StoredQuote } from "./types";
 import type { StayWiseWorker } from "./worker";
 
@@ -54,21 +54,23 @@ export function stayWiseApp(d: {
     const filled = checkForm(HOTEL_FORM, c.req.query(), { coerce: true });
     if (!task.success || !filled.ok)
       return c.json({ error: "bad_request", issues: filled.ok ? ["task"] : filled.problems }, 400);
-    const v = filled.values as { iata: string; checkin: string; checkout: string; adults: number };
+    const v = filled.values as {
+      iata: string;
+      checkin: string;
+      checkout: string;
+      adults: number;
+      area?: string;
+      maxTotal?: number;
+      minStars?: number;
+    };
     if (v.checkout <= v.checkin)
       return c.json({ error: "bad_request", issues: ["checkout must be after checkin"] }, 400);
-    const quote = await makeQuote(
+    const quotes = await makeQuotes(
       { ...d, feeUsd: d.config.feeUsd },
-      {
-        task: task.data,
-        iataCode: v.iata,
-        checkin: v.checkin,
-        checkout: v.checkout,
-        adults: v.adults,
-      },
+      { ...v, task: task.data, iataCode: v.iata },
     );
-    if (!quote) return c.json({ error: "no_rooms" }, 404);
-    return c.json({ offers: [toOffer(quote)] });
+    if (quotes.length === 0) return c.json({ error: "no_rooms" }, 404);
+    return c.json({ offers: quotes.map(toOffer) });
   });
 
   // Checked before anything is paid: a bad or expired quote never takes money.

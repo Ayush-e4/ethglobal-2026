@@ -4,6 +4,7 @@ import type { Card } from "@app/shared";
 import { shortAddress, usdc } from "@/lib/api";
 import { HireCard } from "./HireCard";
 import { LimitCard } from "./LimitCard";
+import { QuotesCard } from "./QuotesCard";
 
 /** What a card can do: send a reply as the user, and know whether it's the latest one. */
 export interface CardCtx {
@@ -19,12 +20,6 @@ const SKILL_TONE: Record<string, string> = {
   flights: "bg-[#EEEAF8] text-[#4E3D8F]",
   hotels: "bg-teal-soft text-teal",
 };
-const btn =
-  "flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold disabled:opacity-50";
-const money = (n: number, currency?: string) =>
-  currency === "INR" || !currency
-    ? `₹${Math.round(n).toLocaleString("en-IN")}`
-    : `${Math.round(n).toLocaleString()} ${currency}`;
 const initials = (name: string) =>
   name
     .split(/[\s·]+/)
@@ -40,7 +35,7 @@ export function CardView({ card, ctx }: { card: Card; ctx: CardCtx }) {
     case "options":
       return <Options card={card} ctx={ctx} />;
     case "quotes":
-      return <Quotes card={card} ctx={ctx} />;
+      return <QuotesCard card={card} ctx={ctx} />;
     case "hire":
       return <HireCard card={card} ctx={ctx} />;
     case "limit":
@@ -111,49 +106,3 @@ function Options({ card, ctx }: { card: Of<"options">; ctx: CardCtx }) {
 }
 
 /** Live, firm quotes; choosing one tells the concierge which to book. */
-function Quotes({ card, ctx }: { card: Of<"quotes">; ctx: CardCtx }) {
-  return (
-    <section aria-label={`${card.skill} quotes`} className="flex flex-col gap-3">
-      <span className="text-[13px] text-ink-3">
-        <span className="font-semibold text-ink">Quotes for {card.skill}</span> · {card.reason}
-      </span>
-      <div className="flex flex-wrap gap-3">
-        {card.quotes.map((q, i) => (
-          <article
-            key={q.key}
-            className={`flex flex-[1_1_260px] flex-col gap-3 rounded-2xl bg-white p-4 ${i === 0 ? "border-2 border-teal" : "border border-line"}`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-semibold">{q.title}</span>
-              {i === 0 && card.quotes.length > 1 && (
-                <span className="ml-auto rounded-full bg-saffron-soft px-2.5 py-0.5 text-xs font-bold text-saffron-ink">
-                  Best value
-                </span>
-              )}
-            </div>
-            <p className="text-[13px] leading-relaxed text-ink-3">{q.note}</p>
-            <div className="mt-auto flex items-end justify-between gap-3 border-t border-[#F1EEE8] pt-3">
-              <span className="flex flex-col">
-                <span className="text-xl font-bold">
-                  {q.itemTotal ? money(q.itemTotal, q.itemCurrency) : "—"}
-                </span>
-                <span className="text-xs text-muted">
-                  agent fee <span className="font-mono">{usdc(q.feeUnits)} USDC</span>, paid on
-                  delivery
-                </span>
-              </span>
-              <button
-                type="button"
-                disabled={ctx.busy}
-                onClick={() => ctx.onReply(q.reply)}
-                className={`${btn} flex-none whitespace-nowrap ${i === 0 ? "bg-teal text-white" : "border border-line-2 bg-white"}`}
-              >
-                Choose
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}

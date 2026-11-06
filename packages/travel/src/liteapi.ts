@@ -29,7 +29,29 @@ const RatesResponse = z.object({
       }),
     )
     .default([]),
-  hotels: z.array(z.object({ id: z.string(), name: z.string() })).optional(),
+  hotels: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        main_photo: z.string().nullish(),
+        city_name: z.string().nullish(),
+        address: z.string().nullish(),
+        rating: z.number().nullish(), // guests' score out of 10
+        stars: z.number().nullish(),
+        review_count: z.number().nullish(),
+      }),
+    )
+    .optional(),
+});
+const PlacesResponse = z.object({
+  data: z.array(z.object({ placeId: z.string(), displayName: z.string().optional() })).default([]),
+});
+const DetailsResponse = z.object({
+  data: z.object({
+    hotelImages: z.array(z.object({ url: z.string() })).default([]),
+    hotelFacilities: z.array(z.string()).default([]),
+  }),
 });
 const PrebookResponse = z.object({
   data: z.object({
@@ -68,7 +90,15 @@ export interface HotelOffer {
   board?: string;
   total: number;
   currency: string;
+  photo?: string; // https
+  area?: string; // e.g. Candolim
+  address?: string;
+  score?: number; // guests' score out of 10
+  stars?: number;
+  reviews?: number;
 }
+
+const httpsOnly = (u: string | null | undefined) => (u?.startsWith("https://") ? u : undefined);
 
 export interface HotelPrebook {
   prebookId: string;
@@ -113,17 +143,43 @@ export class LiteApiClient {
     return res.json();
   }
 
-  /** Hotels near an airport (IATA code), cheapest offer per hotel, cheapest first. */
+  private async get(path: string): Promise<unknown> {
+    const res = await this.fetchImpl(`${API}${path}`, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`LiteAPI ${path.split("?")[0]}: HTTP ${res.status}`);
+    return res.json();
+  }
+
+  /** A neighbourhood or landmark ("Baga Beach, Goa") as a place to search around, if found. */
+  async findPlace(text: string): Promise<string | null> {
+    const json = await this.get(`/data/places?textQuery=${encodeURIComponent(text)}`);
+    return PlacesResponse.parse(json).data[0]?.placeId ?? null;
+  }
+
+  /** A hotel's photos (https) and facilities, for showing it. */
+  async hotelDetails(hotelId: string, photos = 4) {
+    const { data } = DetailsResponse.parse(
+      await this.get(`/data/hotel?hotelId=${encodeURIComponent(hotelId)}`),
+    );
+    const images = data.hotelImages.map((i) => httpsOnly(i.url)).filter((u) => u !== undefined);
+    return { images: images.slice(0, photos), facilities: data.hotelFacilities };
+  }
+
+  /**
+   * Hotels near an airport (IATA code) or a place (from findPlace), cheapest offer per hotel,
+   * cheapest first, with what's needed to show each: photo, area, score, stars.
+   */
   async searchHotels(q: {
-    iataCode: string;
+    iataCode?: string;
+    placeId?: string;
     checkin: string; // YYYY-MM-DD
     checkout: string;
     adults: number;
     refundableOnly?: boolean;
     limit?: number;
   }): Promise<HotelOffer[]> {
+    if (!q.iataCode && !q.placeId) throw new Error("LiteAPI: search needs an airport or a place");
     const json = await this.post(`${API}/hotels/rates`, {
-      iataCode: q.iataCode,
+      ...(q.placeId ? { placeId: q.placeId } : { iataCode: q.iataCode }),
       checkin: q.checkin,
       checkout: q.checkout,
       occupancies: [{ adults: q.adults }],
@@ -138,7 +194,7 @@ export class LiteApiClient {
     if (parsed.error && parsed.error.code !== 2001) {
       throw new Error(`LiteAPI /hotels/rates: error ${parsed.error.code}`);
     }
-    const names = new Map((parsed.hotels ?? []).map((h) => [h.id, h.name]));
+    const hotels = new Map((parsed.hotels ?? []).map((h) => [h.id, h]));
     return parsed.data
       .flatMap((h) => {
         const rt = h.roomTypes[0];
@@ -146,11 +202,18 @@ export class LiteApiClient {
           ? rt.offerRetailRate[0]
           : rt?.offerRetailRate;
         if (!rt || !price) return [];
+        const info = hotels.get(h.hotelId);
         return [
           {
             offerId: rt.offerId,
             hotelId: h.hotelId,
-            hotelName: names.get(h.hotelId) ?? h.hotelId,
+            hotelName: info?.name ?? h.hotelId,
+            photo: httpsOnly(info?.main_photo),
+            area: info?.city_name ?? undefined,
+            address: info?.address ?? undefined,
+            score: info?.rating ?? undefined,
+            stars: info?.stars ?? undefined,
+            reviews: info?.review_count ?? undefined,
             roomName: rt.rates?.[0]?.name ?? rt.name ?? "Room",
             board: rt.rates?.[0]?.boardName,
             total: price.amount,

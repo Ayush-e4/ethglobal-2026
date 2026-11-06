@@ -12,10 +12,19 @@ const usdc = (units: string) => `${(Number(units) / 1e6).toFixed(2)} USDC`;
 export function cardNote(card: Card): string {
   switch (card.type) {
     case "quotes": {
-      const lines = card.quotes.map(
-        (q, i) =>
-          `${i + 1}. ${q.title}: ${q.note}, ${q.itemCurrency ?? ""} ${q.itemTotal ?? ""}, agent fee ${usdc(q.feeUnits)} (quote ${q.key})`,
-      );
+      const lines = card.quotes.map((q, i) => {
+        const r = q.rating;
+        const facts = [
+          q.note,
+          `${q.itemCurrency ?? ""} ${q.itemTotal ?? ""}`.trim(),
+          q.refundable ? "free cancellation" : null,
+          r?.stars ? `${r.stars} stars` : null,
+          r?.score ? `guests ${r.score}/10${r.reviews ? ` (${r.reviews} reviews)` : ""}` : null,
+          q.location,
+          `agent fee ${usdc(q.feeUnits)}`,
+        ];
+        return `${i + 1}. ${q.title}${q.tag ? ` [${q.tag}]` : ""}: ${facts.filter(Boolean).join(", ")} (quote ${q.key})`;
+      });
       return `[quotes shown]\n${lines.join("\n")}`;
     }
     case "hire":

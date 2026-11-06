@@ -47,6 +47,19 @@ export const QuotesCardSchema = z.object({
       itemTotal: z.number().optional(), // what the room / ticket costs
       itemCurrency: z.string().optional(),
       reply: z.string(),
+      // The offer at a glance (from the agent; images are https only).
+      tag: z.string().optional(), // why it's here: "Cheapest", "Best rated"
+      images: z.array(z.string().startsWith("https://")).max(4).optional(),
+      rating: z
+        .object({
+          stars: z.number().optional(),
+          score: z.number().optional(),
+          reviews: z.number().optional(),
+        })
+        .optional(),
+      location: z.string().optional(),
+      details: z.array(z.string()).max(6).optional(),
+      refundable: z.boolean().optional(),
     }),
   ),
 });

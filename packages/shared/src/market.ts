@@ -97,6 +97,7 @@ const https = z.url().refine((u) => u.startsWith("https://"), "https only");
 export const OfferSchema = z.object({
   key: z.string().regex(/^0x[0-9a-fA-F]{64}$/), // the agent's quote on Arkiv
   title: z.string().min(1).max(120), // e.g. the hotel
+  tag: z.string().max(40).optional(), // why it's here: "Cheapest", "Best rated"
   subtitle: z.string().max(160).optional(), // e.g. the room
   summary: z.string().min(1).max(300), // one line, also the hire's title
   feeUnits: z.string().regex(/^\d+$/), // the agent's fee in USDC units, held until delivered
