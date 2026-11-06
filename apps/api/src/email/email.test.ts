@@ -46,9 +46,11 @@ describe("Resend", () => {
     expect(await send({ to: "asha.test@example.com", subject: "s", html: "h", text: "t" })).toBe(
       true,
     );
-    expect(calls[0]?.url).toBe("https://api.resend.com/emails");
-    expect((calls[0]?.init.headers as Record<string, string>).authorization).toBe("Bearer re_test");
-    expect(JSON.parse(String(calls[0]?.init.body))).toMatchObject({
+    const [first] = calls;
+    if (!first) throw new Error("nothing sent");
+    expect(first.url).toBe("https://api.resend.com/emails");
+    expect((first.init.headers as Record<string, string>).authorization).toBe("Bearer re_test");
+    expect(JSON.parse(String(first.init.body))).toMatchObject({
       from: "AgentNet <onboarding@resend.dev>",
       to: ["asha.test@example.com"],
     });
