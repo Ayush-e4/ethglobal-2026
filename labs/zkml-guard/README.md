@@ -39,6 +39,34 @@ skipped, or computed with a different model, without trusting us.
 The model is trained on a synthetic "teacher" rule (97.8% agreement). It's a demo model, not a
 real fraud model: the point is the pipeline.
 
+## Bigger models (`scale.py`, on a Mac; the 2-core VM is about 2.5× slower)
+
+| Model | Parameters | logrows | Prove | Proving key |
+|---|---|---|---|---|
+| Guard, today (6-12-8-1) | 197 | 15 | 0.68 s | 138 MB |
+| Wider guard (16-64-64-1) | 5,313 | 15 | 0.72 s | 138 MB |
+| Big MLP (32-256-256-1) | 74,497 | 16 | 1.6 s | 277 MB |
+| Tiny CNN (28×28 image) | 3,226 | 16 | 1.7 s | 277 MB |
+
+Anything that exports to ONNX works the same way. Cost grows with the number of operations,
+roughly doubling per logrow. Models up to ~100k parameters are fine for a live demo; LLMs (billions
+of parameters) are far out of reach for EZKL on this hardware.
+
+## Retraining and fine-tuning (`finetune.py`)
+
+Two ways to tie a proof to a model:
+
+| Weights | What the proof shows | Change the model | Proving key |
+|---|---|---|---|
+| `fixed` (`build.py`, deployed now) | "this exact model" (the weights are in the keys) | New keys and a new verifier contract | 138 MB |
+| `hashed` (`finetune.py`) | "a model whose weights hash to H" (H is the first public value) | Same keys and verifier; approve the new H on chain | 329 MB |
+
+Checked: model A trained, keys made from A; then fine-tuned to model B (disputes count for much
+more: the sample's logit went from 8.5 to 31.2). B's proof, made with A's keys, **verifies with
+A's verification key**, and its weights hash is different (`ca666d10…` vs `9a6633ce…`). So with
+`hashed`, the verifier stays and a list of approved model hashes says which models count. The
+model's shape (layers and sizes) must stay the same; a new shape needs new keys.
+
 ## Files
 
 | File | What |
