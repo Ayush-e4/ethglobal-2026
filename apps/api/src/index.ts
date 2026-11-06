@@ -1,5 +1,7 @@
 import { arkivReader, rateAgent, SafeArkivWriter } from "@app/arkiv";
 import { serve } from "@hono/node-server";
+import { alertingChats } from "./alerts/routes";
+import { startTelegramBot, telegramAlerts } from "./alerts/telegram";
 import { createApp } from "./app";
 import { chatStore } from "./chats/store";
 import { claudeConcierge } from "./concierge/concierge";
@@ -56,6 +58,9 @@ const concierge = claudeConcierge({
   saveQuotes: (chatId, shown) => saveQuotes(db, chatId, shown),
   hire: (user, chatId, quoteKey) => hiring.hire(user, chatId, quoteKey),
 });
+// Phone alerts in Telegram (our own bot; off without TELEGRAM_BOT_TOKEN).
+const alerts = telegramAlerts(db, process.env.TELEGRAM_BOT_TOKEN || undefined);
+startTelegramBot(alerts, (line) => console.error(line));
 const app = createApp({
   appOrigin: config.appOrigin,
   db,
@@ -67,10 +72,15 @@ const app = createApp({
   approvals,
   demoToken: process.env.DEMO_TOKEN || undefined,
   world: { checks, bonus, minFeeUnits, ratings },
+  alerts,
 });
 await checks?.resume(); // World ID checks a restart interrupted
 // Follows every open hire to the end, from the database: restarts lose nothing.
-await hireFollower(db, hiring.registry, chatStore(db)).start();
+await hireFollower(
+  db,
+  hiring.registry,
+  alertingChats(db, chatStore(db), alerts, config.appOrigin),
+).start();
 serve({ fetch: app.fetch, port: config.port }, () =>
   console.log(`api on http://localhost:${config.port}`),
 );

@@ -71,6 +71,13 @@
       "when": 1793936941897,
       "tag": "0009_next_wind_dancer",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793938278765,
+      "tag": "0010_mighty_franklin_richards",
+      "breakpoints": true
     }
   ]
 }
