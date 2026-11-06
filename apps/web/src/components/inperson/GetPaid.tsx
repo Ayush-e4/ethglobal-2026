@@ -171,7 +171,7 @@ export function GetPaid() {
                 </a>
               )}
             </div>
-          ) : status?.status === "expired" || left === 0 ? (
+          ) : status?.status === "expired" || (left === 0 && status?.status !== "paying") ? (
             <p className="py-10 text-sm text-muted">This request expired. Ask again.</p>
           ) : (
             <>
@@ -202,7 +202,7 @@ export function GetPaid() {
           }}
           className={`${btn} border border-line-2 bg-white`}
         >
-          {paid || left === 0 ? "New request" : "Cancel"}
+          {paid || (left === 0 && status?.status !== "paying") ? "New request" : "Cancel"}
         </button>
       </Shell>
     );
