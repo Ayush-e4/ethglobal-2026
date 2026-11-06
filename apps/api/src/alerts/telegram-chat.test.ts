@@ -9,7 +9,7 @@ import { travellerService } from "../travellers/service";
 import type { WorldCheck } from "../world/checks";
 import { telegramAlerts } from "./telegram";
 import { telegramChat } from "./telegram-chat";
-import { cardMessages, chunks, html, quoteButton, slide } from "./telegram-format";
+import { quoteButton, slide } from "./telegram-format";
 
 type Call = { method: string; body: Record<string, unknown> };
 const KEY_A = `0x${"a1".repeat(32)}`;
