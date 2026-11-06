@@ -11,6 +11,7 @@ export interface FlightQuote {
   legs: FlightLeg[];
   total: number; // the fare, paid to the airline (from Duffel's test balance)
   currency: string;
+  inr?: number; // the same fare in rupees at today's rate, for showing it
   refundable: boolean;
   changeable: boolean;
   emissionsKg?: number;

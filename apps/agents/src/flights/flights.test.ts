@@ -1,5 +1,6 @@
 import type { FlightOffer } from "@app/travel";
 import { describe, expect, it, vi } from "vitest";
+import { inrRates } from "./fx";
 import { pickThree, toFlightOffer } from "./quotes";
 import { flightSupplier, passengerProblem } from "./supplier";
 import type { FlightQuote } from "./types";
@@ -82,6 +83,36 @@ describe("SkyHop", () => {
       price: { amount: 78.57, currency: "GBP" },
     });
     expect(o.details).toContain("Changes allowed");
+  });
+
+  it("shows the fare in rupees at today's rate, and says what it's charged in", () => {
+    const o = toFlightOffer({
+      key: `0x${"ab".repeat(32)}`,
+      airline: "Air India",
+      legs: [leg("AI 2505", 75)],
+      total: 45,
+      currency: "GBP",
+      inr: 5724,
+      changeable: false,
+      tag: "Cheapest",
+    } as FlightQuote);
+    expect(o.price).toEqual({ amount: 5724, currency: "INR" });
+    expect(o.details).toContain("Fare GBP 45.00, about ₹5,724 today");
+  });
+
+  it("keeps today's rate for a while, and shows the fare as it is without one", async () => {
+    const fetchImpl = vi.fn(async () =>
+      Response.json({ result: "success", rates: { INR: 127.2 } }),
+    );
+    const rate = inrRates(fetchImpl as never);
+    expect(await rate("GBP")).toBe(127.2);
+    expect(await rate("GBP")).toBe(127.2);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(await rate("INR")).toBe(1);
+    const down = inrRates((async () => {
+      throw new Error("offline");
+    }) as never);
+    expect(await down("GBP")).toBeNull();
   });
 
   it("asks for the date of birth and gender before anything is paid", () => {

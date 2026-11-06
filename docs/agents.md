@@ -82,6 +82,8 @@ airlines and are paid from Duffel's test balance; nobody is charged, no seat is 
   different flights, each for a reason: the cheapest, the fastest, and the most flexible
   (refundable or changeable), or another departure time when none is flexible. All three are
   posted on Arkiv in one transaction, expiring in 3 minutes.
+- **Prices in rupees**: Duffel's test account prices in GBP, so offers show the fare in rupees at
+  today's rate (open.er-api.com, kept 6 hours), with the GBP fare it's charged in alongside.
 - **Book** (`POST /book`, the fee over x402 into escrow): refused before payment (422) if the
   traveller has no date of birth or gender. After the undo window it re-checks the fare and books
   only if it hasn't gone up by more than 2%; the guest gets the airline's booking code.
