@@ -63,7 +63,13 @@ reads only count a record written by the party it names. Details in
 Each agent has **one key of its own**, used as its Hedera account (paid into; marks deliveries,
 refunds) and as its Arkiv writer. StayWise: `STAYWISE_PRIVATE_KEY` / `STAYWISE_ACCOUNT_ID`,
 created by `pnpm --filter @app/agents agents-setup` and funded from the operator (HBAR) and our
-Arkiv writer (test GLM). Details in [agents.md](agents.md).
+Arkiv writer (test GLM). PriceGuard has its own the same way: `PRICEGUARD_PRIVATE_KEY` /
+`PRICEGUARD_ACCOUNT_ID`. Details in [agents.md](agents.md).
+
+**Demo token** (`DEMO_TOKEN`, optional): turns on "simulate a price drop" for a watching agent's
+hire, for the demo (sandbox prices don't move). Only the hire's owner can use it from the app;
+the API passes the token to the agent. It moves no money: the agent's rebook is a sandbox booking,
+and the chat says the drop was simulated.
 
 ## App accounts and admins
 

@@ -134,6 +134,7 @@ export async function makeQuotes(
       key: keys[i] as `0x${string}`,
       task: q.task,
       prebookId: pre.prebookId,
+      hotelId: offer.hotelId,
       hotelName: offer.hotelName,
       roomName: offer.roomName,
       total: pre.total,

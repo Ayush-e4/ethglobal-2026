@@ -37,6 +37,7 @@ const app = createApp({
   wallets,
   walletChain,
   approvals,
+  demoToken: process.env.DEMO_TOKEN || undefined,
 });
 // Follows every open hire to the end, from the database: restarts lose nothing.
 await hireFollower(db, hiring.registry, chatStore(db)).start();

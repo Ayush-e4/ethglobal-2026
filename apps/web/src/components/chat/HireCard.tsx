@@ -26,7 +26,8 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, tick] = useState(0);
-  const done = gone || (!!hire && FINAL.includes(hire.status));
+  // A watching agent keeps working after it's paid: keep following it while it watches.
+  const done = gone || (!!hire && FINAL.includes(hire.status) && !hire.watching);
 
   useEffect(() => {
     if (done) return; // a finished hire never changes: stop polling and ticking
@@ -74,6 +75,24 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
   const secs = left(hire?.undoUntil ?? card.undoUntil);
   const canUndo = status === "held" && secs > 0 && !gone;
 
+  const [demo, setDemo] = useState<string | null>(null);
+  const simulateDrop = async () => {
+    setDemo("Telling the agent the price dropped…");
+    try {
+      const r = await api<{ rebook: unknown | null }>(
+        `/chats/${ctx.chatId}/hires/${card.hireId}/demo-drop`,
+        { method: "POST" },
+      );
+      setDemo(
+        r.rebook
+          ? "The agent rebooked it cheaper. The chat says so in a moment."
+          : "The agent checked: not cheaper enough to rebook this time.",
+      );
+    } catch (err) {
+      setDemo(err instanceof ApiError ? err.message : "That didn't work.");
+    }
+  };
+
   const steps: Step[] = [
     {
       id: "held",
@@ -113,6 +132,9 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
         : { id: "pay", label: `Hedera pays ${name} when the review window ends`, done: false },
     );
   }
+
+  if (hire?.watchNote)
+    steps.push({ id: "watch", label: `${name}: ${hire.watchNote}`, done: !hire.watching });
 
   const [pill, tone] = gone
     ? ["see Hedera for the outcome", "bg-side text-ink-3"]
@@ -171,6 +193,20 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
           <UndoIcon size={16} />
           {cancelling ? "Undoing…" : `Undo · ${clock(secs)} left`}
         </button>
+      )}
+      {hire?.canSimulateDrop && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-line-2 px-3 py-2">
+          <button
+            type="button"
+            onClick={simulateDrop}
+            className="flex min-h-9 items-center rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold"
+          >
+            Simulate a price drop (demo)
+          </button>
+          <span className="text-xs text-muted">
+            {demo ?? "Sandbox prices don't move: this pretends the room got ₹800 cheaper."}
+          </span>
+        </div>
       )}
       {error && <p className="text-xs text-bad">{error}</p>}
     </section>

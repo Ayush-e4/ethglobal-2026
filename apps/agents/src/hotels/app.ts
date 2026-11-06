@@ -10,11 +10,12 @@ import type { Hex } from "viem";
 import { z } from "zod";
 import { escrowIdFromHeader } from "../escrow-id";
 import type { JsonStore } from "../store";
-import type { StayWiseConfig } from "./config";
+import type { HotelAgentConfig } from "./config";
 import { HOTEL_FORM } from "./form";
 import { makeQuotes, toOffer } from "./quotes";
 import type { Job, StoredQuote } from "./types";
-import type { StayWiseWorker } from "./worker";
+import type { PriceWatcher } from "./watch";
+import type { HotelWorker } from "./worker";
 
 const Task = z.string().regex(/^[a-z0-9_.-]{1,64}$/);
 /** Test travellers only. */
@@ -29,17 +30,19 @@ const BookBody = z.object({
 });
 
 /**
- * StayWise's API. GET /quote is free; POST /book costs the fee, paid over x402 into escrow with
- * an undo window (StayWise only books after it). GET /jobs/:id says how it went.
+ * A hotel agent's API. GET /quote is free; POST /book costs the fee, paid over x402 into escrow
+ * with an undo window (it only books after it). GET /jobs/:id says how it went, and for a
+ * watching agent, how its watch over the room's price is going.
  */
-export function stayWiseApp(d: {
-  config: StayWiseConfig;
+export function hotelAgentApp(d: {
+  config: HotelAgentConfig;
   registry: MandateClient;
   lite: LiteApiClient;
   arkiv: SafeArkivWriter;
   quotes: JsonStore<StoredQuote>;
   jobs: JsonStore<Job>;
-  worker: StayWiseWorker;
+  worker: HotelWorker;
+  watcher?: PriceWatcher | null;
 }) {
   const app = new Hono();
   const resource = new x402ResourceServer(
@@ -136,8 +139,23 @@ export function stayWiseApp(d: {
     return c.json(shown);
   });
 
+  // Demo only, and only with the demo token: the next price check sees the room this much
+  // cheaper. The rebook that follows is real (in the sandbox) and labelled as simulated.
+  app.post("/jobs/:id/demo-drop", async (c) => {
+    if (!d.watcher || !d.config.demoToken || c.req.header("x-demo-token") !== d.config.demoToken)
+      return c.json({ error: "not_found" }, 404);
+    const body = z
+      .object({ inr: z.number().int().min(200).max(20000) })
+      .safeParse(await c.req.json().catch(() => null));
+    if (!body.success) return c.json({ error: "bad_request" }, 400);
+    if (!d.watcher.simulateDrop(c.req.param("id"), body.data.inr))
+      return c.json({ error: "not_watching" }, 409);
+    const rebook = await d.watcher.check(c.req.param("id"));
+    return c.json({ rebook });
+  });
+
   app.onError((err, c) => {
-    console.error(`staywise: ${err.message}`);
+    console.error(`${d.config.id}: ${err.message}`);
     return c.json({ error: "internal" }, 500);
   });
   return app;

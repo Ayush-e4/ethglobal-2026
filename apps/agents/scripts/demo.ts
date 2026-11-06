@@ -17,12 +17,12 @@ import { serve } from "@hono/node-server";
 import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
 import type { Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { loadStayWiseConfig } from "../src/staywise/config";
-import { startStayWise } from "../src/staywise/service";
+import { loadHotelAgentConfig } from "../src/hotels/config";
+import { startHotelAgent } from "../src/hotels/service";
 
 const hedera = loadConfig();
 const net = NETWORKS[hedera.network];
-const sw = loadStayWiseConfig();
+const sw = loadHotelAgentConfig("staywise");
 const registry = new MandateClient(registryAddress());
 const owner = privateKeyToAccount(`0x${account(hedera, "operator").key}`);
 const ai = privateKeyToAccount(generatePrivateKey());
@@ -32,7 +32,7 @@ const day = (offset: number) =>
 const base = `http://localhost:${sw.port}`;
 
 serve({ fetch: facilitatorApp(createFacilitator(hedera, sw.registryId)).fetch, port: 8790 });
-const { app, agent, listed } = await startStayWise(sw);
+const { app, agent, listed } = await startHotelAgent(sw);
 serve({ fetch: app.fetch, port: sw.port });
 console.log(
   `✓ StayWise ${agent.address} running (${listed ? "already listed" : "listed now"} on Arkiv)`,

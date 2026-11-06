@@ -26,6 +26,9 @@ function fakeHiring(late = false) {
     jobUrl: "http://localhost:8801/jobs/secret",
     bookingRef: null,
     note: null,
+    watching: false,
+    rebooksSeen: 0,
+    watchNote: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   });

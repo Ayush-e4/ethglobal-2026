@@ -34,6 +34,9 @@ export interface HireView {
   undoUntil: string | null;
   bookingRef: string | null;
   note: string | null;
+  watching: boolean; // a watching agent still at work after it's paid
+  watchNote: string | null; // e.g. "Saved ₹800 · 1 rebook · watching the price until 20 Dec"
+  canSimulateDrop?: boolean; // demo only
 }
 
 /** GET /wallet: a passkey account's Face ID wallet. Demo accounts have none. */

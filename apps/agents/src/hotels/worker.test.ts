@@ -6,7 +6,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { describe, expect, it, vi } from "vitest";
 import { JsonStore } from "../store";
 import type { Job, StoredQuote } from "./types";
-import { StayWiseWorker } from "./worker";
+import { HotelWorker } from "./worker";
 
 const ESCROW = `0x${"ab".repeat(32)}` as Hex;
 const QUOTE = `0x${"cd".repeat(32)}` as Hex;
@@ -38,11 +38,11 @@ function setup(state: string, book: () => Promise<unknown>) {
   };
   const lite = { book: vi.fn(book) };
   const arkiv = { address: agent.address, run: vi.fn(async () => ({ txHash: "0x1" })) };
-  const worker = new StayWiseWorker({ registry, agent, lite, arkiv, jobs, quotes } as never);
+  const worker = new HotelWorker({ registry, agent, lite, arkiv, jobs, quotes } as never);
   return { worker, jobs, registry, lite };
 }
 
-describe("StayWiseWorker", () => {
+describe("HotelWorker", () => {
   it("books after the window, then marks it delivered", async () => {
     const t = setup("held", async () => ({ bookingId: "B1", status: "CONFIRMED" }));
     await t.worker.process(ESCROW);

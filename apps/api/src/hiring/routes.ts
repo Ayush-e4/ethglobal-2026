@@ -20,10 +20,12 @@ const show = (h: Hire) => ({
   undoUntil: h.undoUntil?.toISOString() ?? null,
   bookingRef: h.bookingRef,
   note: h.note,
+  watching: h.watching, // a watching agent still at work after it's paid
+  watchNote: h.watchNote,
 });
 
 /** GET /chats/:id/hires (live status for the cards), POST /chats/:id/hires/:hireId/cancel (undo). */
-export function hireRoutes(db: Db, hiring: HiringService) {
+export function hireRoutes(db: Db, hiring: HiringService, demoToken?: string) {
   const store = chatStore(db);
   const app = new Hono();
 
@@ -32,7 +34,11 @@ export function hireRoutes(db: Db, hiring: HiringService) {
     if (!user) return c.json({ error: "signed_out" }, 401);
     const chat = await store.get(user.id, c.req.param("id"));
     if (!chat) return c.json({ error: "not_found" }, 404);
-    return c.json((await hiring.list(chat.id)).map(show));
+    // With the demo on, a watching hire's card can simulate a price drop.
+    const canDemo = (h: Hire) => !!demoToken && h.watching;
+    return c.json(
+      (await hiring.list(chat.id)).map((h) => ({ ...show(h), canSimulateDrop: canDemo(h) })),
+    );
   });
 
   app.post("/chats/:id/hires/:hireId/cancel", async (c) => {
@@ -55,6 +61,25 @@ export function hireRoutes(db: Db, hiring: HiringService) {
         return c.json({ error: "cannot_cancel", message: err.message }, 409);
       throw err;
     }
+  });
+  // Demo only (needs DEMO_TOKEN set): tell a watching agent the room got cheaper. The agent's
+  // rebook is real (in the sandbox), and the chat says the drop was simulated.
+  app.post("/chats/:id/hires/:hireId/demo-drop", async (c) => {
+    const user = await currentUser(db, c);
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const chat = await store.get(user.id, c.req.param("id"));
+    const hireId = Id.safeParse(c.req.param("hireId"));
+    if (!demoToken || !chat || !hireId.success) return c.json({ error: "not_found" }, 404);
+    const hire = (await hiring.list(chat.id)).find((h) => h.id === hireId.data);
+    if (!hire?.watching || !hire.jobUrl) return c.json({ error: "not_watching" }, 409);
+    const res = await fetch(`${hire.jobUrl}/demo-drop`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-demo-token": demoToken },
+      body: JSON.stringify({ inr: 800 }),
+      signal: AbortSignal.timeout(60_000),
+    }).catch(() => null);
+    if (!res?.ok) return c.json({ error: "failed", message: "The agent didn't take it." }, 502);
+    return c.json(await res.json());
   });
   return app;
 }

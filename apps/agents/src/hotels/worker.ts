@@ -11,7 +11,7 @@ import type { Job, StoredQuote } from "./types";
  * payout) and on Arkiv. If the booking fails, it refunds. Jobs live in a file, so a restart picks
  * them up again; a booking whose outcome is unknown is flagged, never booked twice.
  */
-export class StayWiseWorker {
+export class HotelWorker {
   constructor(
     private readonly d: {
       registry: MandateClient;
@@ -20,6 +20,7 @@ export class StayWiseWorker {
       arkiv: SafeArkivWriter;
       jobs: JsonStore<Job>;
       quotes: JsonStore<StoredQuote>;
+      watches?: boolean; // keeps watching the room's price after delivery (PriceGuard)
     },
   ) {}
 
@@ -81,7 +82,27 @@ export class StayWiseWorker {
       escrowId,
       keccak256(toHex(bookingId)),
     );
-    job = this.save(job, { status: "delivered", deliveredTx: r.transactionHash });
+    job = this.save(job, {
+      status: "delivered",
+      deliveredTx: r.transactionHash,
+      // A watching agent's work goes on: re-check this room's price until check-in.
+      ...(this.d.watches && quote.hotelId
+        ? {
+            watch: {
+              active: true,
+              hotelId: quote.hotelId,
+              roomName: quote.roomName,
+              checkin: quote.checkin,
+              checkout: quote.checkout,
+              adults: quote.adults,
+              paid: quote.total,
+              currency: quote.currency,
+              checks: 0,
+              rebooks: [],
+            },
+          }
+        : {}),
+    });
     await recordDelivery(this.d.arkiv, {
       task: job.task,
       agent: this.d.arkiv.address,

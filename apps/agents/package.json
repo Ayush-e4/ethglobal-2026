@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch --env-file-if-exists=../../.env src/staywise/main.ts",
-    "start": "tsx --env-file-if-exists=../../.env src/staywise/main.ts",
+    "dev": "tsx watch --env-file-if-exists=../../.env src/hotels/main.ts staywise",
+    "start": "tsx --env-file-if-exists=../../.env src/hotels/main.ts staywise",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "agents-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
-    "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts"
+    "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts",
+    "priceguard": "tsx --env-file-if-exists=../../.env src/hotels/main.ts priceguard"
   },
   "dependencies": {
     "@app/arkiv": "workspace:*",

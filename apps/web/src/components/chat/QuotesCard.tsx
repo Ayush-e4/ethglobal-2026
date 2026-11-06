@@ -56,7 +56,7 @@ function Offer({ q, first, ctx }: { q: Quote; first: boolean; ctx: CardCtx }) {
   const hasPhotos = (q.images?.length ?? 0) > 0;
   return (
     <article
-      className={`flex w-[85%] flex-none snap-start flex-col overflow-hidden rounded-2xl bg-white sm:w-auto sm:flex-1 ${first ? "border-2 border-teal" : "border border-line"}`}
+      className={`flex w-[85%] flex-none snap-start flex-col overflow-hidden rounded-2xl bg-white sm:w-auto ${first ? "border-2 border-teal" : "border border-line"}`}
     >
       <Photos q={q} />
       <div className="flex flex-1 flex-col gap-2 p-3.5">
@@ -142,7 +142,8 @@ export function QuotesCard({ card, ctx }: { card: QuotesCardData; ctx: CardCtx }
       <span className="text-[13px] text-ink-3">
         <span className="font-semibold text-ink">Offers for {card.skill}</span> · {card.reason}
       </span>
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+      {/* A swipeable row on phones; rows of three on wider screens, however many offers. */}
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 [scrollbar-width:none]">
         {card.quotes.map((q, i) => (
           <Offer key={q.key} q={q} first={i === 0} ctx={ctx} />
         ))}
