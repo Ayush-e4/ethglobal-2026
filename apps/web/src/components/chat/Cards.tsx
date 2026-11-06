@@ -68,8 +68,22 @@ function Agents({ card }: { card: Of<"agents"> }) {
               {initials(a.name)}
             </span>
             <span className="flex min-w-0 flex-[1_1_220px] flex-col gap-0.5">
-              <span className="text-sm font-semibold">{a.name}</span>
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-sm font-semibold">{a.name}</span>
+                {a.model && (
+                  <span className="rounded-full bg-teal-soft px-2 py-px text-[11px] font-semibold text-teal">
+                    {a.model}
+                  </span>
+                )}
+              </span>
               <span className="text-xs text-muted">{a.description}</span>
+              {a.delivered !== undefined && (
+                <span className="text-[11px] text-muted">
+                  {a.delivered === 0
+                    ? "No jobs delivered yet"
+                    : `${a.delivered} job${a.delivered === 1 ? "" : "s"} delivered, on Arkiv`}
+                </span>
+              )}
             </span>
             <span className="flex flex-col items-end gap-0.5">
               <span className="font-mono text-[13px]">{usdc(a.priceUnits)} USDC</span>

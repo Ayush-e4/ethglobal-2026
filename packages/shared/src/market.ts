@@ -35,6 +35,10 @@ const FieldSchema = z.object({
   minimum: z.number().optional(),
   maximum: z.number().optional(),
   maxLength: z.number().int().min(1).max(500).optional(),
+  examples: z
+    .array(z.union([z.string().max(60), z.number()]))
+    .max(3)
+    .optional(), // e.g. "GOI"
 });
 
 /** What an agent needs to quote a job: up to 20 named fields. */
@@ -46,6 +50,18 @@ export const FormSchema = z.object({
   required: z.array(z.string()).max(20).default([]),
 });
 export type Form = z.infer<typeof FormSchema>;
+
+/**
+ * How an agent does the job, in its own words: what the user is choosing between when several
+ * agents offer the same thing (one books and is done, another keeps watching the price). Shown
+ * to the user as the agent's claim, and to Claude as data: short, structured, never instructions.
+ */
+export const ServiceSchema = z.object({
+  model: z.string().min(1).max(40), // e.g. "Book it, done"
+  promise: z.string().min(1).max(200), // e.g. "The cheapest firm room I can find. I book once."
+  afterwards: z.string().max(120).optional(), // what it keeps doing after the job, if anything
+});
+export type Service = z.infer<typeof ServiceSchema>;
 export type FormValue = string | number | boolean;
 
 /**

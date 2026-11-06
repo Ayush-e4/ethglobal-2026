@@ -1,5 +1,11 @@
-import { type ArkivReader, findAgents, findListings, liveQuotes } from "@app/arkiv";
-import { checkForm, type Form, type Offer, QuoteReplySchema } from "@app/shared";
+import {
+  type ArkivReader,
+  findAgents,
+  findListings,
+  liveQuotes,
+  recentDeliveries,
+} from "@app/arkiv";
+import { checkForm, type Form, type Offer, QuoteReplySchema, type Service } from "@app/shared";
 
 export interface MarketAgent {
   name: string;
@@ -9,7 +15,13 @@ export interface MarketAgent {
   endpoint: string;
   feeUnits: string; // its listed fee
   form?: Form; // what it needs filled to quote
+  service?: Service; // how it does the job, in its own words
+  title?: string; // its listing's title
+  delivered: number; // jobs it completed recently, by its own Arkiv records
 }
+
+/** At most this many agents are asked for one job: the most reliable first, then the cheapest. */
+export const MAX_ASKED = 10;
 
 /** A firm offer, with the agent that made it (and signed it on Arkiv). */
 export type MarketOffer = Offer & { key: `0x${string}`; agent: MarketAgent };
@@ -34,6 +46,33 @@ function newestByAgent<T extends { expiresAt: bigint; record: { agent: string } 
   return best;
 }
 
+/** Most delivered jobs first, then the lower fee: who gets asked when there are many. */
+export const rankAgents = (agents: MarketAgent[]) =>
+  [...agents].sort(
+    (a, b) => b.delivered - a.delivered || Number(BigInt(a.feeUnits) - BigInt(b.feeUnits)),
+  );
+
+const words = (s: string) => s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+/**
+ * How well an agent matches a need in plain words: its skill counts most, then its listing and
+ * how it works, then its description. Plain word overlap: enough for a market of hundreds.
+ */
+export function matchScore(a: MarketAgent, need: string) {
+  const want = new Set(words(need).filter((w) => w.length > 2));
+  const hits = (text: string | undefined, weight: number) =>
+    words(text ?? "").filter(
+      (w) => want.has(w) || want.has(`${w}s`) || want.has(w.replace(/s$/, "")),
+    ).length * weight;
+  return (
+    hits(a.skill, 5) +
+    hits(a.title, 2) +
+    hits(a.service?.model, 2) +
+    hits(a.service?.promise, 1) +
+    hits(a.description, 1) +
+    hits(a.name, 1)
+  );
+}
+
 /**
  * Cheapest first, then the lower fee. (Where reliability comes in later: how often each agent
  * delivered, from its Arkiv record.)
@@ -53,11 +92,24 @@ export const rankOffers = (offers: MarketOffer[]) =>
  */
 export function arkivMarket(reader: ArkivReader, fetchImpl: typeof fetch = fetch) {
   async function agents(skill?: string): Promise<MarketAgent[]> {
-    const profiles = newestByAgent(await findAgents(reader, skill));
+    const [found, done] = await Promise.all([
+      findAgents(reader, skill),
+      // Reliability is a ranking hint: without it, the market still works.
+      recentDeliveries(reader).catch((err) => {
+        console.error(`market: deliveries unavailable: ${String(err).slice(0, 120)}`);
+        return [];
+      }),
+    ]);
+    const profiles = newestByAgent(found);
     const skills = [...new Set([...profiles.values()].map((p) => p.record.skill))];
     const listings = newestByAgent(
       (await Promise.all(skills.map((s) => findListings(reader, s)))).flat(),
     );
+    const delivered = new Map<string, number>();
+    for (const d of done) {
+      const id = d.record.agent.toLowerCase();
+      delivered.set(id, (delivered.get(id) ?? 0) + 1);
+    }
     return [...profiles.values()].map(({ record: a }) => {
       const l = listings.get(a.agent.toLowerCase())?.record;
       return {
@@ -68,12 +120,30 @@ export function arkivMarket(reader: ArkivReader, fetchImpl: typeof fetch = fetch
         endpoint: a.endpoint,
         feeUnits: l?.feeUnits ?? "0",
         form: l?.input,
+        service: l?.service,
+        title: l?.title,
+        delivered: delivered.get(a.agent.toLowerCase()) ?? 0,
       };
     });
   }
 
   return {
     agents,
+
+    /**
+     * Agents that can quote, best match for a need in plain words first (all of them, most
+     * reliable first, when there's no need or nothing matches).
+     */
+    async search(need?: string, limit = 8) {
+      const quoting = (await agents()).filter((a) => a.form);
+      const scored = need
+        ? quoting.map((a) => ({ a, score: matchScore(a, need) })).filter((x) => x.score > 0)
+        : [];
+      const found = scored.length
+        ? scored.sort((x, y) => y.score - x.score).map((x) => x.a)
+        : rankAgents(quoting);
+      return { agents: found.slice(0, limit), matched: scored.length > 0, total: quoting.length };
+    },
 
     /** What the agents with this skill need filled to quote it. */
     async forms(skill: string) {
@@ -86,7 +156,7 @@ export function arkivMarket(reader: ArkivReader, fetchImpl: typeof fetch = fetch
      */
     async quotes(skill: string, input: unknown) {
       const task = `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-      const quoting = (await agents(skill)).filter((a) => a.form);
+      const quoting = rankAgents((await agents(skill)).filter((a) => a.form)).slice(0, MAX_ASKED);
       const problems: string[] = [];
       if (quoting.length === 0) problems.push(`No agent on the market quotes "${skill}" yet.`);
       const replies = await Promise.all(

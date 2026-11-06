@@ -19,6 +19,8 @@ export const AgentsCardSchema = z.object({
       priceUnits: units,
       agent: z.string(), // EVM address that signs its Arkiv records
       endpoint: z.string(),
+      model: z.string().optional(), // how it does the job, e.g. "Book and keep watching"
+      delivered: z.number().optional(), // jobs it completed recently (its Arkiv records)
     }),
   ),
 });
@@ -60,6 +62,8 @@ export const QuotesCardSchema = z.object({
       location: z.string().optional(),
       details: z.array(z.string()).max(6).optional(),
       refundable: z.boolean().optional(),
+      model: z.string().optional(), // its agent's way of doing the job
+      promise: z.string().optional(), // in the agent's own words
     }),
   ),
 });

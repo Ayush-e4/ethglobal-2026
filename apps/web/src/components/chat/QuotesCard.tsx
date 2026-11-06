@@ -81,9 +81,21 @@ function Offer({ q, first, ctx }: { q: Quote; first: boolean; ctx: CardCtx }) {
                 {r.reviews ? ` ${r.reviews.toLocaleString("en-IN")} reviews` : ""}
               </span>
             ) : null}
-            {agent && <span>by {agent}</span>}
           </span>
         </div>
+        {agent && (
+          <span
+            className="flex flex-wrap items-center gap-1.5 text-xs text-ink-3"
+            title={q.promise}
+          >
+            by {agent}
+            {q.model && (
+              <span className="rounded-full bg-teal-soft px-2 py-px text-[11px] font-semibold text-teal">
+                {q.model}
+              </span>
+            )}
+          </span>
+        )}
         {q.location && (
           <span className="flex items-start gap-1 text-xs text-ink-3">
             <PinIcon size={13} className="mt-px flex-none" /> {q.location}

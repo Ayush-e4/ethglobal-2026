@@ -25,6 +25,13 @@ for things; only our code and Hedera move money.
 | Prompt caching on the instructions | Later steps and replies read them from cache (most input tokens are cached) |
 | Usage → a cost line per reply in the log | `concierge reply: 4 steps, in 8205 (+20032 cached), out 687, ≈ $0.0014` |
 
+## No domain knowledge in the prompt
+
+The instructions are about working with the market, not about hotels: which skill fits a need,
+what a field means, examples and how each agent works all come from the agents' own listings on
+Arkiv, as tool results ([agents.md](agents.md#the-markets-protocol-any-agent)). New kinds of
+agents need no prompt change.
+
 ## Rules we added
 
 - **A reply that read the web can't hire.** Web pages are third-party text that can carry

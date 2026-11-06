@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type MarketOffer, rankOffers } from "./market";
+import { type MarketAgent, type MarketOffer, matchScore, rankAgents, rankOffers } from "./market";
 
 const offer = (title: string, amount: number | null, feeUnits = "20000") =>
   ({
@@ -20,5 +20,43 @@ describe("rankOffers", () => {
       offer("cheap", 9000, "10000"),
     ]);
     expect(ranked.map((o) => o.title)).toEqual(["cheap", "cheap, dearer fee", "dear", "no price"]);
+  });
+});
+
+const agent = (name: string, over: Partial<MarketAgent> = {}): MarketAgent => ({
+  name,
+  skill: "hotels",
+  description: "",
+  agent: "0x00000000000000000000000000000000000000a1",
+  endpoint: "http://x",
+  feeUnits: "20000",
+  delivered: 0,
+  ...over,
+});
+
+describe("finding agents by need", () => {
+  it("matches the skill first, then the listing and how the agent works", () => {
+    const stay = agent("StayWise", {
+      title: "Book a room",
+      service: { model: "Book it, done", promise: "Cheapest rooms" },
+    });
+    const guard = agent("PriceGuard", {
+      service: { model: "Book and keep watching", promise: "I watch the price and rebook cheaper" },
+    });
+    const fly = agent("SkyHop", { skill: "flights", description: "Books flights" });
+    const need = "a hotel room in Goa, and keep watching the price";
+    expect(matchScore(stay, need)).toBeGreaterThan(matchScore(fly, need));
+    expect(matchScore(guard, need)).toBeGreaterThan(matchScore(stay, need));
+    expect(matchScore(fly, "cheap flights to Delhi")).toBeGreaterThan(0);
+    expect(matchScore(stay, "cheap flights to Delhi")).toBe(0);
+  });
+
+  it("asks the most reliable agents first, then the cheaper", () => {
+    const ranked = rankAgents([
+      agent("new", { delivered: 0, feeUnits: "10000" }),
+      agent("proven", { delivered: 12, feeUnits: "50000" }),
+      agent("proven, cheaper", { delivered: 12, feeUnits: "20000" }),
+    ]);
+    expect(ranked.map((a) => a.name)).toEqual(["proven, cheaper", "proven", "new"]);
   });
 });
