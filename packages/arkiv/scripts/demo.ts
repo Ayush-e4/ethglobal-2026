@@ -3,7 +3,14 @@
 // everything is read back through the trust rules, including a forged quote that must be ignored.
 // Needs ARKIV_ACCESS_KEY and a funded ARKIV_WRITER_PRIVATE_KEY (pnpm --filter @app/arkiv arkiv-setup).
 // Run: pnpm --filter @app/arkiv demo
-import { createPublicClient, createWalletClient, type Hex, parseEther } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  type Hex,
+  keccak256,
+  parseEther,
+  toHex,
+} from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import {
   ARKIV_CHAIN,
@@ -18,7 +25,6 @@ import {
   postQuote,
   publishAgent,
   rateAgent,
-  ratingsFor,
   receiptsForJob,
   recordDelivery,
   recordReceipt,
@@ -26,6 +32,7 @@ import {
   SCHEMAS,
   setJobStatus,
   valuesFor,
+  verifiedRatings,
 } from "../src";
 import { arkivTransport } from "../src/config";
 
@@ -127,13 +134,14 @@ ok(
   (await setJobStatus(platform, job.entityKey, "delivered")).txHash,
 );
 ok(
-  "platform rated the agent 5/5",
+  "platform recorded a verified person's 5/5 rating",
   (
     await rateAgent(platform, {
       agent: agent.address,
       job: job.entityKey,
-      rater: platform.address,
+      rater: keccak256(toHex("demo person")), // a pseudonym, as the API makes them
       score: 5,
+      verified: "world-id",
     })
   ).txHash,
 );
@@ -154,8 +162,10 @@ console.log(
   `  receipts from our writer: ${(await receiptsForJob(r, job.entityKey, platform.address)).length}`,
 );
 console.log(`  deliveries by StayWise: ${(await deliveriesBy(r, agent.address)).length}`);
-const { average } = await ratingsFor(r, agent.address);
-console.log(`  StayWise rating: ${average}`);
+const rating = (await verifiedRatings(r, platform.address, agent.address)).get(
+  agent.address.toLowerCase(),
+);
+console.log(`  StayWise rating: ${rating?.average} from ${rating?.count} verified people`);
 const forgedShown = quotes.some((q) => q.record.summary === "forged");
 console.log(`${forgedShown ? "✗" : "✓"} the forged quote is ${forgedShown ? "SHOWN" : "ignored"}`);
 console.log(`  entity: ${ARKIV_EXPLORER.entity(profile.profile)}`);

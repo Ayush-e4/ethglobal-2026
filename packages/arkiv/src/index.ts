@@ -1,4 +1,5 @@
 export { ARKIV_CHAIN, ARKIV_EXPLORER, type ArkivReader, arkivReader, PROJECT } from "./config";
+export type { AgentRating } from "./read";
 export {
   decodeRow,
   deliveriesBy,
@@ -7,9 +8,9 @@ export {
   findListings,
   jobsForTask,
   liveQuotes,
-  ratingsFor,
   receiptsForJob,
   recentDeliveries,
+  verifiedRatings,
 } from "./read";
 export * from "./records";
 export { ArkivWriteError, policyGas, SafeArkivWriter } from "./safe-writer";

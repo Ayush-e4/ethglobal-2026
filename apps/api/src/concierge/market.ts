@@ -4,6 +4,7 @@ import {
   findListings,
   liveQuotes,
   recentDeliveries,
+  verifiedRatings,
 } from "@app/arkiv";
 import { checkForm, type Form, type Offer, QuoteReplySchema, type Service } from "@app/shared";
 
@@ -18,9 +19,10 @@ export interface MarketAgent {
   service?: Service; // how it does the job, in its own words
   title?: string; // its listing's title
   delivered: number; // jobs it completed recently, by its own Arkiv records
+  rating?: { average: number; count: number }; // from verified people (World ID), on Arkiv
 }
 
-/** At most this many agents are asked for one job: the most reliable first, then the cheapest. */
+/** At most this many agents are asked for one job: the best rated and most reliable first. */
 export const MAX_ASKED = 10;
 
 /** A firm offer, with the agent that made it (and signed it on Arkiv). */
@@ -46,10 +48,20 @@ function newestByAgent<T extends { expiresAt: bigint; record: { agent: string } 
   return best;
 }
 
-/** Most delivered jobs first, then the lower fee: who gets asked when there are many. */
+/**
+ * A rating's weight in ranking: the average, pulled towards neutral (3 stars) as if two more
+ * people had given 3, so one 5-star rating can't top the market. Unrated agents count as 3.
+ */
+export const ratingScore = (r?: { average: number; count: number }) =>
+  r ? (r.average * r.count + 3 * 2) / (r.count + 2) : 3;
+
+/** Best rated by verified people first, then most delivered, then the lower fee. */
 export const rankAgents = (agents: MarketAgent[]) =>
   [...agents].sort(
-    (a, b) => b.delivered - a.delivered || Number(BigInt(a.feeUnits) - BigInt(b.feeUnits)),
+    (a, b) =>
+      ratingScore(b.rating) - ratingScore(a.rating) ||
+      b.delivered - a.delivered ||
+      Number(BigInt(a.feeUnits) - BigInt(b.feeUnits)),
   );
 
 const words = (s: string) => s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
@@ -90,15 +102,25 @@ export const rankOffers = (offers: MarketOffer[]) =>
  * live offers from their own APIs. An offer only counts if the agent also signed it on Arkiv
  * (same key, written by that agent), so an agent's API can't claim a price it didn't commit to.
  */
-export function arkivMarket(reader: ArkivReader, fetchImpl: typeof fetch = fetch) {
+export function arkivMarket(
+  reader: ArkivReader,
+  fetchImpl: typeof fetch = fetch,
+  platform?: `0x${string}`, // our Arkiv writer: the only one whose ratings count
+) {
   async function agents(skill?: string): Promise<MarketAgent[]> {
-    const [found, done] = await Promise.all([
+    const [found, done, rated] = await Promise.all([
       findAgents(reader, skill),
-      // Reliability is a ranking hint: without it, the market still works.
+      // Reliability and ratings are ranking hints: without them, the market still works.
       recentDeliveries(reader).catch((err) => {
         console.error(`market: deliveries unavailable: ${String(err).slice(0, 120)}`);
         return [];
       }),
+      platform
+        ? verifiedRatings(reader, platform).catch((err) => {
+            console.error(`market: ratings unavailable: ${String(err).slice(0, 120)}`);
+            return new Map<string, { average: number; count: number }>();
+          })
+        : new Map<string, { average: number; count: number }>(),
     ]);
     const profiles = newestByAgent(found);
     const skills = [...new Set([...profiles.values()].map((p) => p.record.skill))];
@@ -123,6 +145,7 @@ export function arkivMarket(reader: ArkivReader, fetchImpl: typeof fetch = fetch
         service: l?.service,
         title: l?.title,
         delivered: delivered.get(a.agent.toLowerCase()) ?? 0,
+        rating: rated.get(a.agent.toLowerCase()),
       };
     });
   }

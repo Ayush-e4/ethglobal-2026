@@ -78,13 +78,18 @@ export const DeliverySchema = z.object({
     .optional(),
 });
 
-/** A rating after a job, by the buyer. One per job per rater. */
+/**
+ * A verified person's rating of an agent after a paid job. Written by the platform once a World
+ * ID check passed, so it only counts from the platform's writer. `rater` is that person's
+ * pseudonym for this one agent: the same each time they rate it (the newest counts), and
+ * different for every agent, so one person's ratings can't be linked across agents.
+ */
 export const RatingSchema = z.object({
   agent: address,
-  job: entityKey,
-  rater: address,
+  job: entityKey, // the paid job (its escrow id on Hedera)
+  rater: entityKey,
   score: z.number().int().min(1).max(5),
-  comment: z.string().max(500).optional(),
+  verified: z.literal("world-id"),
 });
 
 export const RECORDS = {

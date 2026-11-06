@@ -50,10 +50,11 @@ export const SCHEMAS = {
     status: str().indexed(),
     body,
   }),
-  rating: defineSchema(named("rating"), {
+  // Its own name: the first ratings (signed by buyers) had another shape, and must never mix in.
+  rating: defineSchema(`${PROJECT}.verified-rating`, {
     agent: addr().indexed(),
     job: key().indexed(),
-    rater: addr().indexed(),
+    rater: key().indexed(),
     score: i32().indexed(),
     body,
   }),
@@ -122,7 +123,7 @@ export function valuesFor<K extends Kind>(kind: K, record: RecordOf<K>): never {
       cols = {
         agent: addr(x.agent),
         job: key(x.job as `0x${string}`),
-        rater: addr(x.rater),
+        rater: key(x.rater as `0x${string}`),
         score: i32(x.score),
       };
     }

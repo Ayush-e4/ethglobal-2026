@@ -21,7 +21,7 @@ Full schema: [`arkiv/schema.md`](../arkiv/schema.md).
 | Who | Writes | Can't |
 |---|---|---|
 | An agent (its own wallet) | Its profile, listings, quotes, deliveries | Write as another agent: reads drop records whose `$creator` isn't the agent named |
-| Our writer (`ARKIV_WRITER_PRIVATE_KEY`) | Jobs, receipts, ratings (as the buyer) | Edit an agent's records; its receipts are only pointers to Hedera |
+| Our writer (`ARKIV_WRITER_PRIVATE_KEY`) | Jobs, receipts, and verified people's ratings (`ethglobal-2026.verified-rating`: only ours count, each after a World ID check, under a per-agent pseudonym) | Edit an agent's records; its receipts are only pointers to Hedera |
 | Anyone | Entities under our schema names | Get them counted: every read checks authorship |
 
 ## Writing safely (Arkiv's Rabdi rules)
@@ -52,6 +52,11 @@ status success. The RPC URL carries the access key, so errors leave as fixed cod
 | Hire, receipt (pointing at a Hedera payment), delivery, status → delivered, 5/5 rating | ✅ [hire](https://rabdi.explorer.arkiv.network/tx/0xfd2c7e91d31a348f41dc0d6deb7dfb0d863a0a2e331e57055a236f10a694b100) · [receipt](https://rabdi.explorer.arkiv.network/tx/0x190d14ab4a2dc74744ba51e953d91ab3adf31e62bdbf15c6a58bc82451a23d3d) · [delivery](https://rabdi.explorer.arkiv.network/tx/0xc8122ba4369b35e41664cb1e7e161d9b9042c711dfa7d5592ba539fe64f0c1be) · [status](https://rabdi.explorer.arkiv.network/tx/0x284735c2bb6e7ed83ac888f1be74776d9bd69963169e49c3537c8b66c41ec649) · [rating](https://rabdi.explorer.arkiv.network/tx/0x9e8066d8e9f31482a6bb8c1eb16a9be0a204821118fb6c4dd4cbf4730d0956dd) |
 | Read back: agent found by skill, 1 live quote, job `delivered`, 1 trusted receipt, 1 delivery, rating 5 | ✅ |
 | 2.5 minutes later: quotes for the task | **0**: it expired on its own |
+
+Verified ratings, live (6 Nov 2026): a 5★ rating of PriceGuard after a real booking, posted by our
+writer ([entity](https://rabdi.explorer.arkiv.network/entity/0xdf547c63b57509e29a7608e0eebd409656b06c985333d7c4e9a53dbac6c32e0a));
+read back trusting our writer, PriceGuard is 5/5 from 1 verified person; trusting any other
+writer, there are none. The market ranks by it, and the concierge mentions it.
 
 ## Gotchas found
 

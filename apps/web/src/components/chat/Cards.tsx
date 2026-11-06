@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card } from "@app/shared";
-import { shortAddress, usdc } from "@/lib/api";
+import { shortAddress, usdc, verifiedRating } from "@/lib/api";
 import { HireCard } from "./HireCard";
 import { HumanCard } from "./HumanCard";
 import { LimitCard } from "./LimitCard";
@@ -85,6 +85,7 @@ function Agents({ card }: { card: Of<"agents"> }) {
                   {a.delivered === 0
                     ? "No jobs delivered yet"
                     : `${a.delivered} job${a.delivered === 1 ? "" : "s"} delivered, on Arkiv`}
+                  {a.rating && ` · ${verifiedRating(a.rating)}`}
                 </span>
               )}
             </span>

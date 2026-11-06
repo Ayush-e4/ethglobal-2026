@@ -12,6 +12,9 @@ We use World's **Agent Pass** (OpenID Connect, device flow) for:
   (PriceGuard) needs a fresh approval in the World ID app, so a bot, a stolen session or a
   confused model can't make larger payments alone. Declined or timed out: nothing is paid.
   Smaller hires (StayWise, 0.02) go ahead as before, so nobody without World ID is stuck.
+- **Ratings only from verified people.** After a job, the hire card asks "How did PriceGuard
+  do?" A rating counts only after World ID, one per person per agent, and it's posted on Arkiv,
+  where it ranks the market.
 
 ## How a check works
 
@@ -48,6 +51,24 @@ Checks are kept in the database; after a restart the server picks up the ones st
 4. The approval is used up only when the payment goes ahead, so a Face ID limit step in between
    doesn't cost a second World ID check; two hires at once can't both use it.
 
+## Rating an agent
+
+1. Once the job is done (`delivered` or `released`), the hire card shows 1–5 stars
+   (`POST /chats/:id/hires/:hireId/rating`). A passkey account with a linked World ID rates at
+   once; any other account approves a World ID check first (purpose `rate`), and the rating is
+   posted when it passes. Declined: nothing is posted.
+2. Our server posts it on Arkiv (`ethglobal-2026.verified-rating`) with **our** writer: anyone can
+   write under that name, but readers count only ratings our writer made.
+3. Who rated is a **pseudonym for that one agent**: an HMAC of the World ID and the agent with
+   `RATINGS_SECRET`. The same person rating the same agent again gets the same pseudonym (the
+   newest counts, so one per person per agent, from any account); for another agent it's a
+   different one, so a person's ratings can't be linked across agents. The World ID, the account
+   and the hire never go on Arkiv.
+4. The market reads them back and ranks agents by them, the average pulled towards 3 stars as if
+   two more people had given 3 (one 5★ can't beat many good ratings), then by deliveries, then
+   fee. The concierge sees "5.0/5 from 1 verified person"; the cards show "★ 5.0 · 1 verified
+   person".
+
 ## What people need
 
 Our hackathon build uses World's **sandbox** (`WORLD_ID_ISSUER=https://sandbox.auth.world.org`;
@@ -73,6 +94,7 @@ passkey", but only for a World ID that already has a passkey; it doesn't make a 
 | `WORLD_BONUS_USDC` | The bonus (default 0.20) |
 | `WORLD_BONUSES_PER_DAY` | Across everyone (default 20) |
 | `WORLD_CHECK_FEE_USDC` | A hire's fee from which a person approves it with World ID (default 0.05) |
+| `RATINGS_SECRET` | Makes raters' pseudonyms (any long random string; keep it, or old ratings stop matching). Without it, rating is off |
 
 ## Live checks (6 Nov 2026)
 
@@ -93,6 +115,9 @@ passkey", but only for a World ID that already has a passkey; it doesn't make a 
   decline-and-retry (fixed: agent and fee); approvals reached our server only once World's page
   was opened again (now said on the card); a passed payment approval ran the bonus code (no
   bonus was sent, since it had been had; fixed and tested).
+- A verified rating: on that hire's card (done · paid), 5★ → posted on Arkiv at once (the account
+  has a linked World ID) under a pseudonym → read back, trusting our writer: PriceGuard 5/5 from 1
+  verified person → the concierge said so, and the agents card showed "★ 5.0 · 1 verified person".
 - Token from the sandbox: `acr` = Orb, `amr` = `["pop"]`.
 - On an iPhone simulator (no app installed): World's page offers "Continue with a passkey",
   "Continue with World ID" and "Deny connection". "Continue with World ID" leads to **Open World

@@ -20,7 +20,7 @@ export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
   {
     name: "find_agents",
     description:
-      "Search the open market (Arkiv) for agents that can do a job, by what the user needs in plain words, or list one skill's agents. Returns each agent's skill, fee, how it does the job (its service model and promise, in its own words) and how many jobs it has delivered. Use it to learn which skill to quote, and to explain the agents' different ways of working.",
+      "Search the open market (Arkiv) for agents that can do a job, by what the user needs in plain words, or list one skill's agents. Returns each agent's skill, fee, how it does the job (its service model and promise, in its own words) how many jobs it has delivered, and its rating by verified people (World ID, on Arkiv; one per person). Use it to learn which skill to quote, and to explain the agents' different ways of working.",
     eager_input_streaming: true,
     input_schema: {
       type: "object",
@@ -106,6 +106,12 @@ const invalid = (what: string): ToolOutcome => ({
 });
 
 /** Runs one tool call after validating its input (inputs can arrive truncated when streamed). */
+/** An agent's rating by verified people, for Claude to read. */
+const rated = (r?: { average: number; count: number }) =>
+  r
+    ? `${r.average.toFixed(1)}/5 from ${r.count} verified ${r.count === 1 ? "person" : "people"}`
+    : "no verified ratings yet";
+
 export async function runTool(
   deps: ToolDeps,
   ctx: ToolContext,
@@ -140,6 +146,7 @@ export async function runTool(
             promise: a.service?.promise,
             afterwards: a.service?.afterwards,
             delivered: a.delivered,
+            verifiedRating: rated(a.rating),
             about: a.description,
           })),
         ),
@@ -158,6 +165,7 @@ export async function runTool(
           endpoint: a.endpoint,
           model: a.service?.model,
           delivered: a.delivered,
+          rating: a.rating,
         })),
       },
     };
@@ -205,6 +213,7 @@ export async function runTool(
           fee: `${usdc(o.feeUnits)} USDC`,
           agentModel: o.agent.service?.model,
           agentPromise: o.agent.service?.promise,
+          agentRating: rated(o.agent.rating),
         })),
       ),
       card: {
@@ -227,6 +236,7 @@ export async function runTool(
           refundable: o.refundable,
           model: o.agent.service?.model,
           promise: o.agent.service?.promise,
+          agentRating: o.agent.rating,
         })),
       },
     };

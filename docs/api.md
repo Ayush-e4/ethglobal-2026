@@ -105,6 +105,8 @@ goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
 | `POST /chats/:id/human-checks` `{ quoteKey }` | Start a World ID approval for a larger hire (fee from `WORLD_CHECK_FEE_USDC`): one payment to that quote's agent, at its fee, in this chat, within 10 minutes. The quote may have expired. 404 for a quote that isn't in your chat, 409 for one that needs no approval |
 | `GET /chats/:id/human-checks/:quoteKey` | The newest approval check for that agent and fee in this chat (a reopened card) |
 | `GET /world/checks/:id` | One of your checks: `waiting` / `verified` / `denied` / `expired` / `failed` / `mismatch`, and `used` |
+| `GET /chats/:id/hires/:hireId/rating` | Can this hire's agent be rated (job done), is the account verified, and its rating of that agent (`score`, `posting` / `posted` / `failed`, its Arkiv entity) |
+| `POST /chats/:id/hires/:hireId/rating` `{ score }` | Rate 1–5: posted at once for an account with a linked World ID (`{ rating }`), otherwise a World ID check starts and the rating is posted when it passes (`{ check }`)|
 
 How a check is judged, and what's stored: [world-id.md](world-id.md).
 

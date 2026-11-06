@@ -8,9 +8,10 @@ import { testDb } from "../test/db";
 import { fakeWorld, token } from "../test/world";
 import type { WalletChain } from "../wallet/chain";
 import { walletService } from "../wallet/service";
-import { bonusOnVerified, worldBonus } from "./bonus";
+import { worldBonus } from "./bonus";
 import { worldChecks } from "./checks";
 import type { Poll } from "./oidc";
+import { onWorldVerified } from "./on-verified";
 
 const ORIGIN = "http://localhost:3000";
 type World = {
@@ -36,7 +37,13 @@ async function setup(o: { perDay?: number; giftFails?: boolean; noWorld?: boolea
   const tick = () => new Promise<void>((r) => setTimeout(r, 2));
   const checks = o.noWorld
     ? null
-    : worldChecks(db, await fakeWorld(async () => answer), bonusOnVerified(bonus), tick, () => {});
+    : worldChecks(
+        db,
+        await fakeWorld(async () => answer),
+        onWorldVerified({ bonus, ratings: null }),
+        tick,
+        () => {},
+      );
   const app = createApp({
     appOrigin: ORIGIN,
     db,
