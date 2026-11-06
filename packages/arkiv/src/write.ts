@@ -49,6 +49,25 @@ export async function publishAgent(w: SafeArkivWriter, agent: Agent, listings: L
   return { profile: profile as Hex, listings: listingKeys, txHash: r.txHash };
 }
 
+/** New listings for an agent already on the market (say, with a new form); the newest counts. */
+export async function publishListings(w: SafeArkivWriter, listings: Listing[]) {
+  const ls = listings.map((l) => ListingSchema.parse(l));
+  for (const l of ls) self(w, l.agent, "publishListings");
+  const r = await w.run(ls.length, (tx) =>
+    w.client.executeBatch(
+      {
+        creates: ls.map((l) => ({
+          schema: SCHEMAS.listing,
+          values: valuesFor("listing", l),
+          expiration: LIFETIME.listing(),
+        })) as never,
+      },
+      tx,
+    ),
+  );
+  return { listings: r.createdEntities as Hex[], txHash: r.txHash };
+}
+
 /** An agent quotes a task; the quote vanishes from every query after `ttlSeconds`. */
 export function postQuote(w: SafeArkivWriter, quote: Quote, ttlSeconds = 180) {
   const q = QuoteSchema.parse(quote);

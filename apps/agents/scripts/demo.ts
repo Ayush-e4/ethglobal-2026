@@ -4,7 +4,7 @@
 // Run: pnpm --filter @app/agents demo
 import { account, loadConfig, NETWORKS } from "@app/hedera";
 import { MandateClient, registryAddress, tokenIdToEvmAddress } from "@app/mandates";
-import { formatUsdc, parseUsdc } from "@app/shared";
+import { formatUsdc, type Offer, parseUsdc } from "@app/shared";
 import {
   createFacilitator,
   facilitatorApp,
@@ -78,16 +78,11 @@ async function quoteAndBook(task: string) {
   const qr = await fetch(
     `${base}/quote?task=${task}&iata=GOI&checkin=${day(30)}&checkout=${day(32)}&adults=2`,
   );
-  const quote = (await qr.json()) as {
-    key: Hex;
-    hotelName: string;
-    total: number;
-    currency: string;
-    feeUnits: string;
-  };
-  if (!qr.ok) throw new Error(`quote failed: ${qr.status} ${JSON.stringify(quote)}`);
+  const reply = (await qr.json()) as { offers?: Offer[] };
+  const quote = reply.offers?.[0];
+  if (!qr.ok || !quote) throw new Error(`quote failed: ${qr.status} ${JSON.stringify(reply)}`);
   console.log(
-    `✓ quote: ${quote.hotelName}, ${quote.currency} ${Math.round(quote.total)} (fee ${formatUsdc(BigInt(quote.feeUnits))} USDC), on Arkiv ${quote.key.slice(0, 10)}…`,
+    `✓ quote: ${quote.title}, ${quote.price?.currency} ${Math.round(quote.price?.amount ?? 0)} (fee ${formatUsdc(BigInt(quote.feeUnits))} USDC), on Arkiv ${quote.key.slice(0, 10)}…`,
   );
   const res = await pay(`${base}/book`, {
     method: "POST",

@@ -1,3 +1,4 @@
+import { FormSchema } from "@app/shared";
 import { z } from "zod";
 
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/);
@@ -18,12 +19,16 @@ export const AgentSchema = z.object({
   erc8004Id: units.optional(),
 });
 
-/** Something an agent sells, at a listed fee. */
+/**
+ * Something an agent sells, at a listed fee, and the form it needs filled to quote it (what the
+ * concierge asks the user for). Agents with the same skill usually share a form.
+ */
 export const ListingSchema = z.object({
   agent: address,
   skill: slug,
   title: short,
   feeUnits: units,
+  input: FormSchema.optional(),
 });
 
 /** A firm price for one task; it disappears from every query when it expires. */

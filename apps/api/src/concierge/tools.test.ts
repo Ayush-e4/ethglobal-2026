@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { NeedsLimit } from "../hiring/limits";
 import type { Market } from "./market";
-import { stay } from "./quote-store";
 import { runTool } from "./tools";
 
+const form = {
+  type: "object" as const,
+  properties: { iata: { type: "string" as const, format: "iata" as const } },
+  required: ["iata"],
+};
 const agent = {
   name: "StayWise",
   skill: "hotels",
@@ -11,26 +15,31 @@ const agent = {
   agent: "0x00000000000000000000000000000000000000a1" as const,
   endpoint: "http://x",
   feeUnits: "20000",
+  form,
 };
+const offer = {
+  key: `0x${"cd".repeat(32)}` as `0x${string}`,
+  agent,
+  title: "Sea Breeze",
+  subtitle: "Deluxe",
+  summary: "Sea Breeze · 6–8 Dec",
+  price: { amount: 8400.4, currency: "INR" },
+  refundable: true,
+  feeUnits: "20000",
+};
+const asked: unknown[] = [];
 const market = {
   agents: async () => [agent],
-  hotelQuotes: async () => ({
-    task: "t1",
-    quotes: [
-      {
-        key: `0x${"cd".repeat(32)}` as `0x${string}`,
-        agent,
-        hotelName: "Sea Breeze",
-        roomName: "Deluxe",
-        total: 8400.4,
-        currency: "INR",
-        refundable: true,
-        feeUnits: "20000",
-        checkin: "2026-12-06",
-        checkout: "2026-12-08",
-      },
-    ],
-  }),
+  forms: async () => [
+    { agent, form },
+    { agent: { ...agent, name: "RoomRadar" }, form },
+  ],
+  quotes: async (_skill: string, input: unknown) => {
+    asked.push(input);
+    return (input as { iata?: string }).iata === "GOI"
+      ? { task: "t1", offers: [offer], problems: [] }
+      : { task: "t1", offers: [], problems: ["StayWise: iata must be an airport code like GOI"] };
+  },
 } as unknown as Market;
 
 const saved: unknown[] = [];
@@ -50,23 +59,30 @@ const deps = {
 const ctx = { user: { id: "u1" } as never, chatId: "c1" };
 
 describe("concierge tools", () => {
-  it("quotes become a card and a compact result for Claude", async () => {
-    const out = await runTool(deps, ctx, "get_hotel_quotes", {
-      iata: "GOI",
-      checkin: "2026-12-06",
-      checkout: "2026-12-08",
-      adults: 2,
-    });
-    expect(out.card?.type).toBe("quotes");
-    expect(out.result).toContain("Sea Breeze");
-    expect(out.result).toContain("0.02 USDC");
-    expect(saved).toHaveLength(1); // remembered for booking
+  it("agent_input shows each distinct form once, with who uses it", async () => {
+    const out = await runTool(deps, ctx, "agent_input", { skill: "hotels" });
+    expect(JSON.parse(out.result)).toEqual([{ agents: ["StayWise", "RoomRadar"], form }]);
   });
 
-  it("booking returns a hire card with the undo deadline", async () => {
-    const out = await runTool(deps, ctx, "book_quote", { quote: `0x${"cd".repeat(32)}` });
+  it("offers become a card and a compact result for Claude, and are remembered", async () => {
+    const out = await runTool(deps, ctx, "get_quotes", { skill: "hotels", input: { iata: "GOI" } });
+    expect(out.card).toMatchObject({ type: "quotes", skill: "hotels" });
+    expect(out.result).toContain("Sea Breeze");
+    expect(out.result).toContain("0.02 USDC");
+    expect(out.result).toContain("INR 8400");
+    expect(saved).toHaveLength(1); // only offers shown here can be hired from this chat
+  });
+
+  it("a form filled wrong comes back as what to fix, not an error", async () => {
+    const out = await runTool(deps, ctx, "get_quotes", { skill: "hotels", input: { iata: "Goa" } });
+    expect(out.isError).toBeFalsy();
+    expect(out.result).toMatch(/iata must be an airport code/);
+  });
+
+  it("hiring returns a hire card with the undo deadline", async () => {
+    const out = await runTool(deps, ctx, "hire", { quote: `0x${"cd".repeat(32)}` });
     expect(out.card).toMatchObject({ type: "hire", hireId: "h1", feeUnits: "20000" });
-    expect((await runTool(deps, ctx, "book_quote", { quote: "first one" })).isError).toBe(true);
+    expect((await runTool(deps, ctx, "hire", { quote: "first one" })).isError).toBe(true);
   });
 
   it("from the user's own wallet, with no limit yet: the Face ID limit card, not an error", async () => {
@@ -85,38 +101,23 @@ describe("concierge tools", () => {
         throw new NeedsLimit(card);
       },
     };
-    const out = await runTool(needs, ctx, "book_quote", { quote: `0x${"cd".repeat(32)}` });
+    const out = await runTool(needs, ctx, "hire", { quote: `0x${"cd".repeat(32)}` });
     expect(out.isError).toBeFalsy();
     expect(out.card).toEqual(card);
     expect(out.result).toMatch(/^Not booked yet/);
   });
 
   it("refuses inputs that don't validate (they can arrive truncated)", async () => {
+    expect((await runTool(deps, ctx, "get_quotes", { skill: "Hotels!" })).isError).toBe(true);
     expect(
-      (await runTool(deps, ctx, "get_hotel_quotes", { iata: "Goa", checkin: "x" })).isError,
+      (await runTool(deps, ctx, "get_quotes", { skill: "hotels", input: "GOI" })).isError,
     ).toBe(true);
-    expect(
-      (
-        await runTool(deps, ctx, "get_hotel_quotes", {
-          iata: "GOI",
-          checkin: "2026-12-08",
-          checkout: "2026-12-06",
-          adults: 2,
-        })
-      ).isError,
-    ).toBe(true);
+    expect((await runTool(deps, ctx, "agent_input", {})).isError).toBe(true);
     expect((await runTool(deps, ctx, "nope", {})).isError).toBe(true);
   });
 
   it("lists agents as a card", async () => {
     const out = await runTool(deps, ctx, "find_agents", { skill: "hotels" });
     expect(out.card).toMatchObject({ type: "agents", skill: "hotels" });
-  });
-});
-
-describe("stay", () => {
-  it("reads like a person wrote it", () => {
-    expect(stay("2026-12-14", "2026-12-16")).toBe("14–16 Dec");
-    expect(stay("2026-12-30", "2027-01-02")).toBe("30 Dec – 2 Jan");
   });
 });

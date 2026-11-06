@@ -3,61 +3,60 @@ import type { Card } from "@app/shared";
 import { z } from "zod";
 import type { User } from "../db/schema";
 import { NeedsLimit } from "../hiring/limits";
-import type { HotelQuote, Market } from "./market";
+import type { Market, MarketOffer } from "./market";
 
-const Day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const Skill = z.string().regex(/^[a-z0-9_.-]{1,64}$/);
+const FindAgents = z.object({ skill: Skill.optional() });
+const AgentInput = z.object({ skill: Skill });
+const GetQuotes = z.object({ skill: Skill, input: z.record(z.string(), z.unknown()) });
+const Hire = z.object({ quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
 
-/** Each tool: what Claude sees, how its input is checked, and what running it does. */
-const FindAgents = z.object({
-  skill: z
-    .string()
-    .regex(/^[a-z0-9_.-]{1,64}$/)
-    .optional(),
-});
-const HotelQuotes = z
-  .object({
-    iata: z.string().regex(/^[A-Z]{3}$/),
-    checkin: Day,
-    checkout: Day,
-    adults: z.number().int().min(1).max(4),
-  })
-  .refine((q) => q.checkout > q.checkin, "checkout must be after checkin");
-
-const BookQuote = z.object({ quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
-
+/**
+ * The market, in four generic tools: who does a job, what they need to know, firm offers from
+ * all of them, and hiring one. A new kind of agent needs no new tool: it publishes its form.
+ */
 export const TOOLS: Anthropic.Tool[] = [
   {
     name: "find_agents",
     description:
-      "List agents on the open market (Arkiv) that can do a kind of job, with their fee. Skills: hotels. Omit skill to list everyone.",
+      "List agents on the open market (Arkiv) that do a kind of job (their skill, e.g. hotels), with their fee. Omit skill to list everyone.",
     eager_input_streaming: true,
     input_schema: { type: "object", properties: { skill: { type: "string" } }, required: [] },
   },
   {
-    name: "get_hotel_quotes",
+    name: "agent_input",
     description:
-      "Live, firm hotel quotes from the market's hotel agents (free). Each quote is a refundable room with its price locked for 3 minutes, plus the agent's booking fee.",
+      "The form agents with this skill need filled to quote a job: each field, its type and what it means. Read it before get_quotes, and ask the user for anything required that you don't know yet.",
     eager_input_streaming: true,
     input_schema: {
       type: "object",
-      properties: {
-        iata: { type: "string", description: "Nearest airport, e.g. GOI for Goa" },
-        checkin: { type: "string", description: "YYYY-MM-DD" },
-        checkout: { type: "string", description: "YYYY-MM-DD" },
-        adults: { type: "integer", minimum: 1, maximum: 4 },
-      },
-      required: ["iata", "checkin", "checkout", "adults"],
+      properties: { skill: { type: "string" } },
+      required: ["skill"],
     },
   },
   {
-    name: "book_quote",
+    name: "get_quotes",
     description:
-      "Book a quote shown in this chat, when the user has clearly said which one. Pays the agent's fee from the chat's spending limit into escrow; the user has a short window to undo, then the agent books it. Never call it without the user choosing.",
+      "Firm, live offers (free) from every agent with this skill, ranked cheapest first. `input` is the form from agent_input, filled in. Each offer's price is locked for about 3 minutes and has the agent's booking fee.",
     eager_input_streaming: true,
     input_schema: {
       type: "object",
       properties: {
-        quote: { type: "string", description: "The quote's key (0x…) from get_hotel_quotes" },
+        skill: { type: "string" },
+        input: { type: "object", description: 'The form\'s fields, e.g. {"iata": "GOI"}' },
+      },
+      required: ["skill", "input"],
+    },
+  },
+  {
+    name: "hire",
+    description:
+      "Hire the agent for an offer shown in this chat, once the user has clearly chosen it. Pays the agent's fee from the user's spending limit into escrow; the user has a short window to undo, then the agent does the job. Never call it without the user choosing.",
+    eager_input_streaming: true,
+    input_schema: {
+      type: "object",
+      properties: {
+        quote: { type: "string", description: "The offer's key (0x…) from get_quotes" },
       },
       required: ["quote"],
     },
@@ -67,7 +66,7 @@ export const TOOLS: Anthropic.Tool[] = [
 /** What the tools can reach, and whose chat this is. */
 export interface ToolDeps {
   market: Market;
-  saveQuotes: (chatId: string, quotes: HotelQuote[]) => Promise<void>;
+  saveQuotes: (chatId: string, offers: MarketOffer[]) => Promise<void>;
   hire: (
     user: User,
     chatId: string,
@@ -93,6 +92,11 @@ export interface ToolOutcome {
   isError?: boolean;
 }
 
+const invalid = (what: string): ToolOutcome => ({
+  result: `invalid input: ${what}`,
+  isError: true,
+});
+
 /** Runs one tool call after validating its input (inputs can arrive truncated when streamed). */
 export async function runTool(
   deps: ToolDeps,
@@ -103,7 +107,7 @@ export async function runTool(
   const { market } = deps;
   if (name === "find_agents") {
     const p = FindAgents.safeParse(input);
-    if (!p.success) return { result: "invalid input", isError: true };
+    if (!p.success) return invalid("skill must be a short name like hotels");
     const agents = await market.agents(p.data.skill);
     if (agents.length === 0) return { result: "No agents listed for that yet." };
     return {
@@ -130,54 +134,73 @@ export async function runTool(
       },
     };
   }
-  if (name === "get_hotel_quotes") {
-    const p = HotelQuotes.safeParse(input);
-    if (!p.success)
+  if (name === "agent_input") {
+    const p = AgentInput.safeParse(input);
+    if (!p.success) return invalid("skill must be a short name like hotels");
+    const forms = await market.forms(p.data.skill);
+    if (forms.length === 0)
+      return { result: `No agent on the market quotes "${p.data.skill}" yet.` };
+    // Agents with a skill usually share a form; show each distinct one once.
+    const distinct = new Map<string, { agents: string[]; form: unknown }>();
+    for (const { agent, form } of forms) {
+      const id = JSON.stringify(form);
+      const seen = distinct.get(id) ?? { agents: [], form };
+      seen.agents.push(agent.name);
+      distinct.set(id, seen);
+    }
+    return { result: JSON.stringify([...distinct.values()]) };
+  }
+  if (name === "get_quotes") {
+    const p = GetQuotes.safeParse(input);
+    if (!p.success) return invalid("give the skill and the form's fields as `input`");
+    const { offers, problems } = await market.quotes(p.data.skill, p.data.input);
+    if (offers.length === 0)
       return {
-        result: `invalid input: ${p.error.issues[0]?.message ?? "check the fields"}`,
-        isError: true,
+        result: problems.length
+          ? `No offers. ${problems.join(" ")} Fix the input (agent_input shows the form) or ask the user.`
+          : "No offers from the market's agents for that.",
       };
-    const { quotes } = await market.hotelQuotes(p.data);
-    if (quotes.length === 0)
-      return { result: "No rooms available from the market's hotel agents for those dates." };
-    const top = quotes.slice(0, 4);
-    await deps.saveQuotes(ctx.chatId, top); // only quotes shown in this chat can be booked from it
+    const shown = offers.slice(0, 6);
+    await deps.saveQuotes(ctx.chatId, shown); // only offers shown in this chat can be hired from it
     return {
       result: JSON.stringify(
-        top.map((q) => ({
-          quote: q.key,
-          agent: q.agent.name,
-          hotel: q.hotelName,
-          room: q.roomName,
-          total: `${q.currency} ${Math.round(q.total)}`,
-          refundable: q.refundable ?? null,
-          fee: `${usdc(q.feeUnits)} USDC`,
+        shown.map((o) => ({
+          quote: o.key,
+          agent: o.agent.name,
+          title: o.title,
+          subtitle: o.subtitle,
+          price: o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : undefined,
+          refundable: o.refundable,
+          rating: o.rating,
+          location: o.location,
+          fee: `${usdc(o.feeUnits)} USDC`,
         })),
       ),
       card: {
         type: "quotes",
-        skill: "hotels",
-        reason: "Cheapest refundable room first",
-        quotes: top.map((q) => ({
-          key: q.key,
-          title: `${q.hotelName} · ${q.agent.name}`,
-          note: `${q.roomName}${q.refundable ? ", free cancellation" : ""}`,
-          feeUnits: q.feeUnits,
-          itemTotal: Math.round(q.total),
-          itemCurrency: q.currency,
-          reply: `Book ${q.hotelName} (quote ${q.key.slice(0, 10)})`,
+        skill: p.data.skill,
+        reason: "Cheapest first",
+        quotes: shown.map((o) => ({
+          key: o.key,
+          title: `${o.title} · ${o.agent.name}`,
+          note: [o.subtitle, o.refundable ? "free cancellation" : null].filter(Boolean).join(", "),
+          feeUnits: o.feeUnits,
+          itemTotal: o.price ? Math.round(o.price.amount) : undefined,
+          itemCurrency: o.price?.currency,
+          reply: `Book ${o.title} (quote ${o.key.slice(0, 10)})`,
         })),
       },
     };
   }
-  if (name === "book_quote") {
-    const p = BookQuote.safeParse(input);
-    if (!p.success) return { result: "invalid input: give the quote's 0x key", isError: true };
+  if (name === "hire") {
+    const p = Hire.safeParse(input);
+    if (!p.success) return invalid("give the offer's 0x key");
     try {
       const h = await deps.hire(ctx.user, ctx.chatId, p.data.quote);
       const undo = h.undoUntil ?? new Date();
+      const secs = Math.max(0, Math.round((undo.getTime() - Date.now()) / 1000));
       return {
-        result: `The agent is hired to book it, but it is NOT booked yet: its ${usdc(h.feeUnits.toString())} USDC fee is held in escrow, and for about ${Math.max(0, Math.round((undo.getTime() - Date.now()) / 1000))} more seconds the user can undo with the card's Undo button (the card counts down; don't give a clock time). After that the agent books it and the chat gets the booking reference. Say this plainly; don't call it booked.`,
+        result: `The agent is hired, but the job is NOT done yet: its ${usdc(h.feeUnits.toString())} USDC fee is held in escrow, and for about ${secs} more seconds the user can undo with the card's Undo button (the card counts down; don't give a clock time). After that the agent does the job and the chat gets the result (e.g. a booking reference). Say this plainly; don't call it booked.`,
         card: {
           type: "hire",
           hireId: h.id,
@@ -190,7 +213,7 @@ export async function runTool(
     } catch (err) {
       if (err instanceof NeedsLimit)
         return {
-          result: `Not booked yet: ${err.card.agentName} is paid from the user's own wallet, so they first approve a spending limit for it with Face ID (the card shows it: up to ${usdc(err.card.budgetUnits)} USDC in this chat for ${err.card.hours} hours). Ask them to approve it on the card; once they do, the app sends the booking again. Don't call book_quote again until then.`,
+          result: `Not booked yet: ${err.card.agentName} is paid from the user's own wallet, so they first approve a spending limit for it with Face ID (the card shows it: up to ${usdc(err.card.budgetUnits)} USDC in this chat for ${err.card.hours} hours). Ask them to approve it on the card; once they do, the app sends the booking again. Don't call hire again until then.`,
           card: err.card,
         };
       return {
