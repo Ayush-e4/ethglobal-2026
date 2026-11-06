@@ -103,7 +103,7 @@ describe("Telegram alerts", () => {
     expect(sent.at(-1)).toEqual({
       chat_id: "42",
       text: `Booked: Park Inn. Booking reference LiugdfvpL.\n\nhttps://app.example/chat/${chat.id}`,
-      disable_web_page_preview: true,
+      link_preview_options: { is_disabled: true },
     });
     expect(await db.select().from(messages)).toHaveLength(2); // both kept in the chat
   });

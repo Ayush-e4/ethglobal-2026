@@ -6,7 +6,7 @@ import { alertRoutes } from "./alerts/routes";
 import type { TelegramAlerts } from "./alerts/telegram";
 import { deviceLinks } from "./auth/device-links";
 import { type AuthConfig, authRoutes } from "./auth/routes";
-import { chatRoutes } from "./chats/routes";
+import { chatRoutes, type ReplyReady } from "./chats/routes";
 import type { Concierge } from "./concierge/concierge";
 import type { Market } from "./concierge/market";
 import type { ToolDeps } from "./concierge/tools";
@@ -55,6 +55,7 @@ export type AppOptions = {
   onAppConnected?: (userId: string, app: string) => Promise<unknown>; // the security email
   deals?: DealService; // deal drops: one claim per person (World ID)
   email?: { available: boolean; tryEmail: TryEmail; test: (to: string) => Email }; // account email
+  replyReady?: ReplyReady; // a reply finished after its reader left: tell them
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -72,7 +73,7 @@ export function createApp(o: AppOptions) {
   const onSignUp = wallets ? (id: string) => void wallets.ensure(id).catch(() => {}) : undefined;
   const links = deviceLinks(); // "use this account on another device" codes
   app.route("/", authRoutes(db, auth, onSignUp, links));
-  app.route("/", chatRoutes(db, concierge));
+  app.route("/", chatRoutes(db, concierge, o.replyReady));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));

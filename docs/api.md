@@ -189,6 +189,10 @@ concierge's model: the card holds no details, and in Telegram the guest's reply 
 it reaches the concierge. Each hire keeps the guest's name and email for its receipt and
 confirmation.
 
+**Left before the reply was done?** A turn always runs to the end and is saved, even if the reader
+leaves (an agent may already be paid). If they left, they're told when it's saved: on Telegram if
+linked ("Your answer is ready: <chat>", its first line, a link), otherwise at the account's email.
+
 **Emails** (`src/email`, Resend). To the traveller a booking was for:
 - **Booked**: the booking, its reference, the guest, the agent and its fee (with the Hedera
   payment), the chat and the public receipt.
