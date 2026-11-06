@@ -5,7 +5,24 @@ import { useEffect, useState } from "react";
 import { api, type Trip } from "@/lib/api";
 import { TripCard } from "./TripCard";
 
-/** Every booking you've made, from every chat, newest first. */
+/** A trip is one chat: its flight and stay together, the newest trip first. */
+function byTrip(trips: Trip[]) {
+  const groups = new Map<string, { chatId: string; title: string; trips: Trip[] }>();
+  for (const t of trips) {
+    const g = groups.get(t.chatId) ?? { chatId: t.chatId, title: t.chatTitle, trips: [] };
+    g.trips.push(t);
+    groups.set(t.chatId, g);
+  }
+  return [...groups.values()];
+}
+const LIVE: Trip["status"][] = ["delivered", "released", "disputed"];
+/** "2 bookings · 1 booked" */
+function summary(trips: Trip[]) {
+  const booked = trips.filter((t) => LIVE.includes(t.status) && !t.bookingCancelledAt).length;
+  return `${trips.length} booking${trips.length === 1 ? "" : "s"}${booked ? ` · ${booked} booked` : ""}`;
+}
+
+/** Every booking you've made, grouped by trip (the chat it was planned in), newest first. */
 export function TripsView() {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +55,17 @@ export function TripsView() {
           </Link>
         </section>
       ) : (
-        trips.map((t) => <TripCard key={t.id} trip={t} />)
+        byTrip(trips).map((g) => (
+          <section key={g.chatId} aria-label={g.title} className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-[17px] font-bold">{g.title}</h2>
+              <span className="text-xs text-muted">{summary(g.trips)}</span>
+            </div>
+            {g.trips.map((t) => (
+              <TripCard key={t.id} trip={t} />
+            ))}
+          </section>
+        ))
       )}
     </main>
   );
