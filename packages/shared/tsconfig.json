@@ -1,4 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
+  // Web Crypto (the in-person payment tags) runs in browsers and in Node: its types are DOM's.
+  "compilerOptions": { "lib": ["ES2023", "DOM"] },
   "include": ["src"]
 }

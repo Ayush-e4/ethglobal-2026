@@ -340,9 +340,15 @@ importers:
       '@worldcoin/idkit':
         specifier: 4.6.0
         version: 4.6.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      jsqr:
+        specifier: 1.4.0
+        version: 1.4.0
       next:
         specifier: 16.4.2
         version: 16.4.2(@opentelemetry/api@1.10.0)(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      qrcode:
+        specifier: 1.5.4
+        version: 1.5.4
       qrcode.react:
         specifier: 4.2.0
         version: 4.2.0(react@19.3.0)
@@ -359,6 +365,9 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.43
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
       '@types/react':
         specifier: ^19
         version: 19.3.0
@@ -1806,6 +1815,9 @@ packages:
   '@types/node@26.6.6':
     resolution: {integrity: sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==}
 
+  '@types/qrcode@1.5.6':
+    resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
+
   '@types/react-dom@19.3.0':
     resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
     peerDependencies:
@@ -2451,6 +2463,9 @@ packages:
 
   json-schema-typed@8.0.2:
     resolution: {integrity: sha512-fQhoXdcvc3V28x7C7BMs4P5+kNlgUURe2jmUT1T//oBRMDrqy1QPelJimwZGo7Hg9VPV3EQV5Bnq4hbFy2vetA==}
+
+  jsqr@1.4.0:
+    resolution: {integrity: sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==}
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -4166,6 +4181,10 @@ snapshots:
     dependencies:
       undici-types: 8.9.0
 
+  '@types/qrcode@1.5.6':
+    dependencies:
+      '@types/node': 20.19.43
+
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
       '@types/react': 19.3.0
@@ -4771,6 +4790,8 @@ snapshots:
   json-schema-traverse@1.0.0: {}
 
   json-schema-typed@8.0.2: {}
+
+  jsqr@1.4.0: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true

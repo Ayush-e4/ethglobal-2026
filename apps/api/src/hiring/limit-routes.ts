@@ -6,7 +6,7 @@ import { z } from "zod";
 import { currentUser } from "../auth/current";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
-import { limits, lookups, quotes, type User } from "../db/schema";
+import { limits, lookups, merchants, payRequests, quotes, type User } from "../db/schema";
 import type { WalletChain } from "../wallet/chain";
 import { ApprovalSchema, type WalletApprovals, WalletOpError } from "../wallet/ops";
 import type { WalletService } from "../wallet/service";
@@ -80,9 +80,19 @@ export function limitRoutes(
             .from(lookups)
             .where(and(eq(lookups.chatId, chat.id), eq(lookups.agentAddress, payee)))
             .limit(1);
-    if (quoted.length === 0 && asked.length === 0)
+    // Paying a merchant in person: the request this chat is paying, to that merchant's wallet.
+    const paying =
+      quoted.length > 0 || asked.length > 0
+        ? []
+        : await db
+            .select({ id: payRequests.id })
+            .from(payRequests)
+            .innerJoin(merchants, eq(merchants.userId, payRequests.merchantUserId))
+            .where(and(eq(payRequests.payerChatId, chat.id), eq(merchants.address, payee)))
+            .limit(1);
+    if (quoted.length === 0 && asked.length === 0 && paying.length === 0)
       return c.json({ error: "unknown_agent", message: "That agent hasn't quoted here." }, 409);
-    const p = hiring.newLimit(payee as Address, quoted.length > 0 ? undefined : LOOKUP_TERMS);
+    const p = hiring.newLimit(payee as Address, asked.length > 0 ? LOOKUP_TERMS : undefined);
     const registry = hiring.registryAddress;
     const allowance = await chain.allowance(w.address as Address, registry);
     try {

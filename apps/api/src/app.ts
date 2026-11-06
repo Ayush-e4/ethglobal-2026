@@ -18,6 +18,7 @@ import type { Email, TryEmail } from "./email/resend";
 import { limitRoutes } from "./hiring/limit-routes";
 import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
+import { inPersonRoutes } from "./inperson/routes";
 import type { Erc8004Market } from "./market/identity";
 import type { AgentReviewService } from "./market/reviews";
 import { marketRoutes } from "./market/routes";
@@ -95,6 +96,7 @@ export function createApp(o: AppOptions) {
   if (o.world?.ratings) app.route("/", ratingRoutes(db, o.world.ratings, o.world.checks));
   if (wallets && o.approvals)
     app.route("/", deviceRoutes(db, { wallets, approvals: o.approvals, links }));
+  if (hiring && wallets) app.route("/", inPersonRoutes(db, hiring, wallets));
   if (hiring && wallets && o.walletChain && o.approvals) {
     app.route("/", limitRoutes(db, hiring, wallets, o.walletChain, o.approvals));
     const registry = hiring.registry;
