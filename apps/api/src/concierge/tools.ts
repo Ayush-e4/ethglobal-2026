@@ -177,7 +177,7 @@ export async function runTool(
       const h = await deps.hire(ctx.user, ctx.chatId, p.data.quote);
       const undo = h.undoUntil ?? new Date();
       return {
-        result: `The agent is hired to book it, but it is NOT booked yet: its ${usdc(h.feeUnits.toString())} USDC fee is held in escrow, and the user can undo with the card's Undo button until ${undo.toISOString()} (the card counts down). After that the agent books it and the chat gets the booking reference. Say this plainly; don't call it booked.`,
+        result: `The agent is hired to book it, but it is NOT booked yet: its ${usdc(h.feeUnits.toString())} USDC fee is held in escrow, and for about ${Math.max(0, Math.round((undo.getTime() - Date.now()) / 1000))} more seconds the user can undo with the card's Undo button (the card counts down; don't give a clock time). After that the agent books it and the chat gets the booking reference. Say this plainly; don't call it booked.`,
         card: {
           type: "hire",
           hireId: h.id,
