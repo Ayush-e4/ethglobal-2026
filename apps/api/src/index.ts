@@ -180,25 +180,18 @@ const app = createApp({
     const to = (await accountEmail(userId)) ?? me?.email;
     if (to) await confirm.connected(to, me?.firstName ?? "there", app);
   },
-  // Left before a reply was done: Telegram if linked, else the account's email.
-  async replyReady(userId, chatId, title, reply) {
+  // Left before a slow reply was done: a short Telegram nudge (no email: that would be too much).
+  async replyReady(userId, chatId, title) {
     const url = `${config.appOrigin}/chat/${chatId}`;
-    const first =
-      reply
-        .split("\n")
-        .find((l) => l.trim())
-        ?.replace(/[*_#`]/g, "")
-        .slice(0, 200) ?? "";
-    const tg = await alerts.send(userId, {
-      title: `Your answer is ready: ${title}`,
-      text: first,
+    const sent = await alerts.nudge(userId, `✅ Your answer is ready: ${title}`, {
+      label: "Open",
       url,
     });
-    const to = tg ? null : await accountEmail(userId);
-    const mailed = to ? await confirm.replyReady(to, title, first, url) : false;
-    const how = tg ? "Telegram" : mailed ? "email" : "nobody to tell";
-    console.log(`chat ${chatId.slice(0, 8)}: reply ready after its reader left → ${how}`);
+    console.log(
+      `chat ${chatId.slice(0, 8)}: reply ready after its reader left → ${sent ? "Telegram" : "not linked"}`,
+    );
   },
+
   email: {
     available: !!process.env.RESEND_API_KEY,
     tryEmail: resendTry(process.env.RESEND_API_KEY, process.env.RESEND_FROM),

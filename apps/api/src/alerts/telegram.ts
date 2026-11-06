@@ -92,6 +92,27 @@ export function telegramAlerts(db: Db, token: string | undefined, fetchImpl: typ
       return sent.ok;
     },
 
+    /**
+     * A short nudge with one button ("Open"), not a copy of anything. Telegram only takes public
+     * https links on buttons, so on a local address the link goes in the text instead.
+     */
+    async nudge(userId: string, text: string, open: { label: string; url: string }) {
+      const r = await row(userId);
+      if (!token || !r?.telegramChatId) return false;
+      const button = open.url.startsWith("https://");
+      const sent = await tg("sendMessage", {
+        chat_id: r.telegramChatId,
+        text: button ? text : `${text}\n${open.url}`,
+        link_preview_options: { is_disabled: true },
+        ...(button
+          ? { reply_markup: { inline_keyboard: [[{ text: open.label, url: open.url }]] } }
+          : {}),
+      }).catch((err) => ({ ok: false, description: String(err).slice(0, 120) }));
+      if (!sent.ok)
+        console.error(`telegram: nudge not sent: ${sent.description ?? "no reason given"}`);
+      return sent.ok;
+    },
+
     /** A one-time link to the bot; tapping Start there finishes it (`finishLink`). */
     async startLink(userId: string): Promise<string | null> {
       const name = await this.botName();

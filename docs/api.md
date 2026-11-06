@@ -190,8 +190,9 @@ it reaches the concierge. Each hire keeps the guest's name and email for its rec
 confirmation.
 
 **Left before the reply was done?** A turn always runs to the end and is saved, even if the reader
-leaves (an agent may already be paid). If they left, they're told when it's saved: on Telegram if
-linked ("Your answer is ready: <chat>", its first line, a link), otherwise at the account's email.
+leaves (an agent may already be paid). If they left and the reply took 20 seconds or more, they get
+a short Telegram nudge when it's saved ("✅ Your answer is ready: <chat>", with an Open button). It's
+not a copy of the reply, and there's no email: an email for every reply would be too much.
 
 **Emails** (`src/email`, Resend). To the traveller a booking was for:
 - **Booked**: the booking, its reference, the guest, the agent and its fee (with the Hedera
