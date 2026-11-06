@@ -44,21 +44,36 @@ export interface Send {
   body: Record<string, unknown>;
 }
 
-/** "Book 2: Park Inn by Radisson Goa… · PriceGuard": the same hotel can come from two agents. */
-export function bookLabel(i: number, title: string) {
-  const [hotel = title, agent] = title.split(" · ");
-  const cut = hotel.slice(0, 28);
-  const short =
-    hotel.length > 28 ? `${cut.slice(0, cut.lastIndexOf(" ")).trimEnd() || cut}…` : hotel;
-  return `Book ${i + 1}: ${short}${agent ? ` · ${agent}` : ""}`;
+type Offer = Extract<Card, { type: "quotes" }>["quotes"][number];
+
+/** "PriceGuard: Book and keep watching · 0.05 USDC": one button per agent offering a hotel. */
+export function bookLabel(q: Offer, withPrice = false) {
+  const agent = q.title.split(" · ")[1];
+  const price =
+    withPrice && q.itemTotal !== undefined ? ` · ${money(q.itemTotal, q.itemCurrency)}` : "";
+  const who = agent ? (q.model ? `${agent}: ${q.model}` : `Book with ${agent}`) : "Book it";
+  return `${who} · ${usdc(q.feeUnits)}${price}`;
+}
+
+/**
+ * Offers by hotel, in the order shown: the same hotel often comes from several agents (one books,
+ * one keeps watching the price), so each hotel is one message with a button per agent.
+ */
+export function offersByHotel(quotes: Offer[]) {
+  const groups = new Map<string, Offer[]>();
+  for (const q of quotes) {
+    const hotel = q.title.split(" · ")[0] ?? q.title;
+    groups.set(hotel, [...(groups.get(hotel) ?? []), q]);
+  }
+  return [...groups].map(([hotel, offers]) => ({ hotel, offers }));
 }
 
 /** A quote's button data: "b:" and the first 40 hex digits of its key (Telegram allows 64 bytes). */
 export const quoteButton = (key: string) => `b:${key.slice(2, 42)}`;
 
 /**
- * A card as Telegram messages, the way the app shows it: offers as a photo album and a list with
- * Book buttons, choices as buttons. A hire is its own live message (live-hires.ts); a World ID
+ * A card as Telegram messages, the way the app shows it: each hotel as one photo message with its
+ * details and a Book button per agent, choices as buttons. A hire is its own live message (live-hires.ts); a World ID
  * approval is handled by the chat (it starts a check). `appLink` is the chat on the web.
  */
 export function cardMessages(card: Card, appLink: string | null): Send[] {
@@ -75,51 +90,46 @@ export function cardMessages(card: Card, appLink: string | null): Send[] {
     ? [[{ text: "Open in AgentNet", url: appLink }]]
     : undefined;
   switch (card.type) {
-    case "quotes": {
-      const qs = card.quotes.slice(0, 6);
-      const photos = qs
-        .map((q, i) => ({ q, i, img: q.images?.[0] }))
-        .filter((x): x is { q: (typeof qs)[number]; i: number; img: string } => !!x.img);
-      const album: Send[] =
-        photos.length >= 2
-          ? [
-              {
-                method: "sendMediaGroup",
-                body: {
-                  media: photos.map(({ q, i, img }) => ({
-                    type: "photo",
-                    media: img,
-                    caption: `${i + 1}. ${q.title}${q.itemTotal !== undefined ? ` · ${money(q.itemTotal, q.itemCurrency)}` : ""}`,
-                  })),
-                },
-              },
-            ]
-          : [];
-      const lines = qs.map((q, i) => {
+    case "quotes":
+      return offersByHotel(card.quotes.slice(0, 6)).map(({ hotel, offers }) => {
+        const q = offers[0] as Offer;
+        const samePrice = offers.every((o) => o.itemTotal === q.itemTotal);
         const facts = [
-          q.itemTotal !== undefined ? money(q.itemTotal, q.itemCurrency) : null,
+          samePrice && q.itemTotal !== undefined ? money(q.itemTotal, q.itemCurrency) : null,
           q.rating?.stars ? `${q.rating.stars}-star` : null,
           q.rating?.score ? `${q.rating.score}/10` : null,
           q.location ?? null,
           q.refundable ? "free cancellation" : null,
         ].filter(Boolean);
-        const agent = [
-          q.model,
-          `fee ${usdc(q.feeUnits)}`,
-          q.agentRating
-            ? `★ ${q.agentRating.average.toFixed(1)} (${q.agentRating.count} verified)`
-            : null,
-        ].filter(Boolean);
-        return `${i + 1}. <b>${esc(q.title)}</b>${q.tag ? ` · ${esc(q.tag)}` : ""}\n   ${esc(facts.join(" · "))}\n   ${esc(agent.join(" · "))}`;
+        const tags = [...new Set(offers.map((o) => o.tag).filter(Boolean))].join(" · ");
+        const rated = offers
+          .filter((o) => o.agentRating)
+          .map(
+            (o) =>
+              `${o.title.split(" · ")[1]} ★ ${o.agentRating?.average.toFixed(1)} (${o.agentRating?.count} verified)`,
+          );
+        const caption = [
+          `<b>${esc(hotel)}</b>${tags ? ` · ${esc(tags)}` : ""}`,
+          esc(facts.join(" · ")),
+          ...(q.note ? [esc(q.note)] : []),
+          ...(rated.length ? [esc(`Rated by verified people: ${rated.join(", ")}`)] : []),
+        ].join("\n");
+        const rows = offers.map((o) => [
+          { text: bookLabel(o, !samePrice), callback_data: quoteButton(o.key) },
+        ]);
+        const img = offers.map((o) => o.images?.[0]).find(Boolean);
+        return img
+          ? {
+              method: "sendPhoto",
+              body: {
+                photo: img,
+                caption,
+                parse_mode: "HTML",
+                reply_markup: { inline_keyboard: rows },
+              },
+            }
+          : msg(caption, rows);
       });
-      const rows = qs.map((q, i) => [
-        {
-          text: bookLabel(i, q.title),
-          callback_data: quoteButton(q.key),
-        },
-      ]);
-      return [...album, msg(`<b>${esc(card.reason)}</b>\n\n${lines.join("\n\n")}`, rows)];
-    }
     case "options":
       return [
         msg(

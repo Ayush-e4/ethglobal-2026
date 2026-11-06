@@ -8,7 +8,7 @@ import { testDb } from "../test/db";
 import type { WorldCheck } from "../world/checks";
 import { telegramAlerts } from "./telegram";
 import { telegramChat } from "./telegram-chat";
-import { bookLabel, chunks, html, quoteButton } from "./telegram-format";
+import { cardMessages, chunks, html, quoteButton } from "./telegram-format";
 
 type Call = { method: string; body: Record<string, unknown> };
 const KEY_A = `0x${"a1".repeat(32)}`;
@@ -108,16 +108,21 @@ describe("the concierge in Telegram", () => {
     expect(await db.select().from(chats)).toHaveLength(2); // /new: another one
   });
 
-  it("offers come as a photo album and a list with Book buttons that book", async () => {
+  it("each hotel is one photo message with its details and a Book button, which books", async () => {
     const { chat, sent, asked } = await setup({ cards: [QUOTES] });
     await chat.turn("42", "A hotel in Goa");
-    expect(sent("sendMediaGroup")[0]?.body.media).toHaveLength(2);
-    const list = sent("sendMessage").at(-1);
-    if (!list) throw new Error("no list");
-    expect(list.body.text).toMatch(/1\. <b>Park Inn · StayWise<\/b>[\s\S]*★ 5\.0 \(1 verified\)/);
-    const rows = (list.body.reply_markup as { inline_keyboard: { callback_data: string }[][] })
-      .inline_keyboard;
-    expect(rows[1]?.[0]?.callback_data).toBe(quoteButton(KEY_B));
+    const photos = sent("sendPhoto");
+    expect(photos.map((p) => p.body.photo)).toEqual(["https://p/1.jpg", "https://p/2.jpg"]);
+    expect(photos[0]?.body.caption).toMatch(
+      /^<b>Park Inn<\/b>\n₹11,927[\s\S]*StayWise ★ 5\.0 \(1 verified\)/,
+    );
+    const markup = photos[1]?.body.reply_markup as
+      | { inline_keyboard: { callback_data: string }[][] }
+      | undefined;
+    const rows = markup?.inline_keyboard;
+    expect(rows).toEqual([
+      [{ text: "Book with StayWise · 0.02 USDC", callback_data: quoteButton(KEY_B) }],
+    ]);
     await chat.onCallback({
       id: "cb",
       data: quoteButton(KEY_B),
@@ -189,11 +194,25 @@ describe("Telegram formatting", () => {
     );
   });
 
-  it("Book buttons say which agent, as the same hotel can come from two", () => {
-    expect(bookLabel(1, "Park Inn by Radisson Goa Candolim · PriceGuard")).toBe(
-      "Book 2: Park Inn by Radisson Goa… · PriceGuard",
-    );
-    expect(bookLabel(0, "Sea Breeze")).toBe("Book 1: Sea Breeze");
+  it("the same hotel from two agents is one message, with a button for each way of working", () => {
+    const twice: Card = {
+      ...QUOTES,
+      quotes: [
+        { ...offer(KEY_A, "Park Inn · StayWise", "https://p/1.jpg"), model: "Book it, done" },
+        {
+          ...offer(KEY_B, "Park Inn · PriceGuard", "https://p/1.jpg"),
+          model: "Book and keep watching",
+          feeUnits: "50000",
+        },
+      ],
+    };
+    const [one, ...rest] = cardMessages(twice, null);
+    expect(rest).toEqual([]);
+    const markup = one?.body.reply_markup as { inline_keyboard: { text: string }[][] } | undefined;
+    expect(markup?.inline_keyboard.map((r) => r[0]?.text)).toEqual([
+      "StayWise: Book it, done · 0.02 USDC",
+      "PriceGuard: Book and keep watching · 0.05 USDC",
+    ]);
   });
 
   it("splits long replies on paragraph breaks", () => {

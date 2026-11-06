@@ -136,8 +136,9 @@ chat (`src/alerts`). The chat message is the record; the alert is a nudge, sent 
   one AgentNet chat, with the same turns, tools and payments as the web, saved in that chat (so the
   web shows it too; `/new` starts another). The reply streams in as a draft (`sendMessageDraft`:
   "Thinking…", the tool being used, then the text as it's written) and is then sent for good, in
-  Telegram's HTML. Offers come as a photo album and a list with **Book** buttons naming the agent;
-  choices as buttons. A World ID approval opens from a button, and once it passes the booking
+  Telegram's HTML. Each hotel is one message: its photo, the details, and a **Book** button per
+  agent offering it (the same hotel often comes from StayWise and PriceGuard: "StayWise: Book it,
+  done · 0.02 USDC", "PriceGuard: Book and keep watching · 0.05 USDC"); choices as buttons. A World ID approval opens from a button, and once it passes the booking
   carries on in Telegram. A spending limit needs Face ID, so it points to that chat on the web;
   approved there, the booking carries on and its live message arrives in Telegram.
 - **One thread per person.** A Telegram bot has one chat with each Telegram user, so alerts from
