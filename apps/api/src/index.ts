@@ -1,5 +1,6 @@
 import { arkivReader, rateAgent, SafeArkivWriter } from "@app/arkiv";
 import { serve } from "@hono/node-server";
+import { liveHires } from "./alerts/live-hires";
 import { alertingChats } from "./alerts/routes";
 import { startTelegramBot, telegramAlerts } from "./alerts/telegram";
 import { createApp } from "./app";
@@ -53,20 +54,40 @@ const hiring = hiringService(
   (id) => wallets.get(id, false),
   checks ? humanCheckpoint(checks, minFeeUnits) : undefined,
 );
+// Phone alerts in Telegram (our own bot; off without TELEGRAM_BOT_TOKEN): each hire is one live
+// message there, with Undo and ratings, and the chats' own news buzzes as alerts.
+const alerts = telegramAlerts(db, process.env.TELEGRAM_BOT_TOKEN || undefined);
+const live = liveHires({
+  db,
+  t: alerts,
+  appOrigin: config.appOrigin,
+  cancel: (user, chatId, hireId) => hiring.cancel(user, chatId, hireId),
+  ratings,
+});
+startTelegramBot(alerts, (line) => console.error(line), { onCallback: live.onCallback });
+const hiringLive = {
+  ...hiring,
+  async cancel(...a: Parameters<typeof hiring.cancel>) {
+    const h = await hiring.cancel(...a);
+    void live.show(h.id);
+    return h;
+  },
+};
 const concierge = claudeConcierge({
   market: arkivMarket(arkivReader(), fetch, platform?.address),
   saveQuotes: (chatId, shown) => saveQuotes(db, chatId, shown),
-  hire: (user, chatId, quoteKey) => hiring.hire(user, chatId, quoteKey),
+  async hire(user, chatId, quoteKey) {
+    const h = await hiring.hire(user, chatId, quoteKey);
+    void live.show(h.id);
+    return h;
+  },
 });
-// Phone alerts in Telegram (our own bot; off without TELEGRAM_BOT_TOKEN).
-const alerts = telegramAlerts(db, process.env.TELEGRAM_BOT_TOKEN || undefined);
-startTelegramBot(alerts, (line) => console.error(line));
 const app = createApp({
   appOrigin: config.appOrigin,
   db,
   auth: config.auth,
   concierge,
-  hiring,
+  hiring: hiringLive, // undo from the web also updates the Telegram message
   wallets,
   walletChain,
   approvals,
@@ -80,6 +101,8 @@ await hireFollower(
   db,
   hiring.registry,
   alertingChats(db, chatStore(db), alerts, config.appOrigin),
+  5000,
+  live.show,
 ).start();
 serve({ fetch: app.fetch, port: config.port }, () =>
   console.log(`api on http://localhost:${config.port}`),

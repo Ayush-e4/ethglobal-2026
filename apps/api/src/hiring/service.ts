@@ -162,7 +162,13 @@ export function hiringService(
       }
       // The concierge undoes it: it's the AI key on every limit (the escrow lets the owner or the
       // AI cancel during the window), so this works for Face ID wallets' limits too, no Face ID.
-      await registry.cancel(concierge, hire.escrowId as `0x${string}`);
+      // Marked first: the follower may look while Hedera is refunding, and must not take it for
+      // the agent giving up.
+      await save(hire.id, { note: "undoing" });
+      await registry.cancel(concierge, hire.escrowId as `0x${string}`).catch(async (err) => {
+        await save(hire.id, { note: null });
+        throw err;
+      });
       const changes = {
         status: "cancelled" as const,
         note: `undone: ${formatUsdc(hire.feeUnits)} USDC back on the limit`,
