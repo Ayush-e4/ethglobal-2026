@@ -4,7 +4,9 @@ export function LiveLine(p: { live: string | null; plain: boolean; heard: boolea
   const { live, plain } = p;
   if (p.heard)
     return (
-      <p className="text-sm font-semibold text-ok">✓ Heard from the shop&apos;s device just now</p>
+      <p className="text-sm font-semibold text-saffron-ink">
+        Heard nearby: check this name matches the shop&apos;s screen before paying.
+      </p>
     );
   if (live) return <p className="text-sm font-semibold text-ok">✓ Live screen confirmed</p>;
   if (plain)
