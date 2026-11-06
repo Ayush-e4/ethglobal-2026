@@ -6,7 +6,7 @@ import { NeedsLimit } from "../hiring/limits";
 import type { Market, MarketOffer } from "./market";
 
 const Skill = z.string().regex(/^[a-z0-9_.-]{1,64}$/);
-const FindAgents = z.object({ skill: Skill.optional() });
+const FindAgents = z.object({ need: z.string().max(300).optional(), skill: Skill.optional() });
 const AgentInput = z.object({ skill: Skill });
 const GetQuotes = z.object({ skill: Skill, input: z.record(z.string(), z.unknown()) });
 const Hire = z.object({ quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
@@ -19,9 +19,16 @@ export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
   {
     name: "find_agents",
     description:
-      "List agents on the open market (Arkiv) that do a kind of job (their skill, e.g. hotels), with their fee. Omit skill to list everyone.",
+      "Search the open market (Arkiv) for agents that can do a job, by what the user needs in plain words, or list one skill's agents. Returns each agent's skill, fee, how it does the job (its service model and promise, in its own words) and how many jobs it has delivered. Use it to learn which skill to quote, and to explain the agents' different ways of working.",
     eager_input_streaming: true,
-    input_schema: { type: "object", properties: { skill: { type: "string" } }, required: [] },
+    input_schema: {
+      type: "object",
+      properties: {
+        need: { type: "string", description: "What the user wants done, in plain words" },
+        skill: { type: "string", description: "A skill name, if you know it" },
+      },
+      required: [],
+    },
   },
   {
     name: "agent_input",
@@ -43,7 +50,7 @@ export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
       type: "object",
       properties: {
         skill: { type: "string" },
-        input: { type: "object", description: 'The form\'s fields, e.g. {"iata": "GOI"}' },
+        input: { type: "object", description: "The form's fields, filled in" },
       },
       required: ["skill", "input"],
     },
@@ -107,37 +114,56 @@ export async function runTool(
   const { market } = deps;
   if (name === "find_agents") {
     const p = FindAgents.safeParse(input);
-    if (!p.success) return invalid("skill must be a short name like hotels");
-    // Only agents that can quote (they published a form): old or test profiles stay out.
-    const agents = (await market.agents(p.data.skill)).filter((a) => a.form);
-    if (agents.length === 0) return { result: "No agents listed for that yet." };
+    if (!p.success) return invalid("need is plain words; skill is a short name");
+    const found = p.data.skill
+      ? {
+          agents: (await market.agents(p.data.skill)).filter((a) => a.form),
+          matched: true,
+          total: 0,
+        }
+      : await market.search(p.data.need);
+    const agents = found.agents;
+    if (agents.length === 0) return { result: "No agents on the market can do that yet." };
+    const lead = found.matched
+      ? ""
+      : "Nothing matched that need; here is the market, most reliable first. ";
     return {
-      result: JSON.stringify(
-        agents.map((a) => ({
-          name: a.name,
-          skill: a.skill,
-          fee: `${usdc(a.feeUnits)} USDC`,
-          about: a.description,
-        })),
-      ),
+      result:
+        lead +
+        JSON.stringify(
+          agents.map((a) => ({
+            name: a.name,
+            skill: a.skill,
+            fee: `${usdc(a.feeUnits)} USDC`,
+            model: a.service?.model,
+            promise: a.service?.promise,
+            afterwards: a.service?.afterwards,
+            delivered: a.delivered,
+            about: a.description,
+          })),
+        ),
       card: {
         type: "agents",
-        skill: p.data.skill ?? "all",
+        skill:
+          p.data.skill ??
+          (new Set(agents.map((a) => a.skill)).size === 1 ? (agents[0]?.skill ?? "all") : "all"),
         agents: agents.map((a) => ({
           name: a.name,
           skill: a.skill,
           title: a.name,
-          description: a.description,
+          description: a.service?.promise ?? a.description,
           priceUnits: a.feeUnits,
           agent: a.agent,
           endpoint: a.endpoint,
+          model: a.service?.model,
+          delivered: a.delivered,
         })),
       },
     };
   }
   if (name === "agent_input") {
     const p = AgentInput.safeParse(input);
-    if (!p.success) return invalid("skill must be a short name like hotels");
+    if (!p.success) return invalid("skill must be a short name (find_agents gives it)");
     const forms = await market.forms(p.data.skill);
     if (forms.length === 0)
       return { result: `No agent on the market quotes "${p.data.skill}" yet.` };
@@ -176,6 +202,8 @@ export async function runTool(
           rating: o.rating,
           location: o.location,
           fee: `${usdc(o.feeUnits)} USDC`,
+          agentModel: o.agent.service?.model,
+          agentPromise: o.agent.service?.promise,
         })),
       ),
       card: {
@@ -196,6 +224,8 @@ export async function runTool(
           location: o.location,
           details: o.details,
           refundable: o.refundable,
+          model: o.agent.service?.model,
+          promise: o.agent.service?.promise,
         })),
       },
     };

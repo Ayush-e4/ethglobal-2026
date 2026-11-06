@@ -1,4 +1,4 @@
-import { FormSchema } from "@app/shared";
+import { FormSchema, ServiceSchema } from "@app/shared";
 import { z } from "zod";
 
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/);
@@ -29,6 +29,7 @@ export const ListingSchema = z.object({
   title: short,
   feeUnits: units,
   input: FormSchema.optional(),
+  service: ServiceSchema.optional(), // how it does the job, if it says
 });
 
 /** A firm price for one task; it disappears from every query when it expires. */

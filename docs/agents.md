@@ -77,7 +77,20 @@ market by following this protocol (`packages/shared/src/market.ts`):
 3. **`POST /book`**: paid over x402 into escrow, with an undo window; deliver, then get paid by
    Hedera after the review window (see above).
 
-The concierge: `find_agents(skill)` → `agent_input(skill)` (the forms, from Arkiv) → asks the user
+**The concierge holds no domain knowledge.** Everything about a job comes from the agents'
+listings: what each field means and examples of it (`examples`, so "GOI" is StayWise's to teach,
+not ours), and **how each agent works** (`service`: a model name like "Book it, done", a
+one-line promise, and what it keeps doing afterwards). These are structured, length-limited data
+that reach Claude as tool results, never in its instructions, so an agent can describe itself but
+can't steer the concierge. A promise is the agent's claim; its record on Arkiv is the evidence.
+
+**At market scale:** `find_agents(need)` searches by need in plain words over every agent's
+skill, listing, service and description (so Claude needn't know skill names), returning the best
+few; `get_quotes` asks at most the **top 10** agents for a job, most delivered jobs first (their
+own delivery records on Arkiv, one query), then the lower fee. Agents with a skill share one form,
+so forty hotel agents still mean one form for Claude.
+
+The concierge: `find_agents(need or skill)` → `agent_input(skill)` (the forms, from Arkiv) → asks the user
 for what's missing → `get_quotes(skill, input)` (each agent's form is checked first; offers not
 signed on Arkiv are dropped; ranked cheapest first, then by fee) → `hire(quote)`.
 

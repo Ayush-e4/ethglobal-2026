@@ -115,6 +115,12 @@ export const jobsForTask = (r: ArkivReader, task: string) =>
 export const receiptsForJob = (r: ArkivReader, job: Hex, platform: Hex) =>
   find(r, "receipt", [eq("job", key(job))], { createdBy: platform, trustedWriter: platform });
 
+/** The market's recent completed jobs (each written by the agent that did it): reliability. */
+export const recentDeliveries = (
+  r: ArkivReader,
+  limit = 100, // the node's maximum per query
+) => find(r, "delivery", [eq("status", str("delivered"))], { limit });
+
 export const deliveriesBy = (r: ArkivReader, agent: Hex) =>
   find(r, "delivery", [eq("agent", addr(agent))], { createdBy: agent });
 

@@ -7,13 +7,13 @@ import {
   SafeArkivWriter,
 } from "@app/arkiv";
 import { MandateClient, registryAddress } from "@app/mandates";
-import { FormSchema } from "@app/shared";
+import { FormSchema, ServiceSchema } from "@app/shared";
 import { LiteApiClient } from "@app/travel";
 import { privateKeyToAccount } from "viem/accounts";
 import { JsonStore } from "../store";
 import { stayWiseApp } from "./app";
 import type { StayWiseConfig } from "./config";
-import { HOTEL_FORM } from "./form";
+import { HOTEL_FORM, SERVICE } from "./form";
 import type { Job, StoredQuote } from "./types";
 import { StayWiseWorker } from "./worker";
 
@@ -37,6 +37,7 @@ export async function startStayWise(config: StayWiseConfig) {
     title: "Book a room",
     feeUnits: "20000",
     input: HOTEL_FORM,
+    service: SERVICE,
   };
   if (!listed) {
     await publishAgent(
@@ -57,8 +58,10 @@ export async function startStayWise(config: StayWiseConfig) {
       .filter(mine)
       .sort((a, b) => Number(b.expiresAt - a.expiresAt))[0];
     // Compared as read back (the parser orders keys), so an unchanged form isn't republished.
-    if (JSON.stringify(newest?.record.input) !== JSON.stringify(FormSchema.parse(HOTEL_FORM)))
-      await publishListings(arkiv, [listing]);
+    const same =
+      JSON.stringify(newest?.record.input) === JSON.stringify(FormSchema.parse(HOTEL_FORM)) &&
+      JSON.stringify(newest?.record.service) === JSON.stringify(ServiceSchema.parse(SERVICE));
+    if (!same) await publishListings(arkiv, [listing]);
   }
   worker.resume();
   return {

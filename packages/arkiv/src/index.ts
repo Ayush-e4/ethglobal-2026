@@ -9,6 +9,7 @@ export {
   liveQuotes,
   ratingsFor,
   receiptsForJob,
+  recentDeliveries,
 } from "./read";
 export * from "./records";
 export { ArkivWriteError, policyGas, SafeArkivWriter } from "./safe-writer";

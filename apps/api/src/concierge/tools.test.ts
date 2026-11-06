@@ -16,6 +16,7 @@ const agent = {
   endpoint: "http://x",
   feeUnits: "20000",
   form,
+  delivered: 0,
 };
 const offer = {
   key: `0x${"cd".repeat(32)}` as `0x${string}`,
@@ -30,6 +31,11 @@ const offer = {
 const asked: unknown[] = [];
 const market = {
   agents: async () => [agent],
+  search: async (need?: string) => ({
+    agents: need?.includes("hotel") ? [agent] : [],
+    matched: true,
+    total: 1,
+  }),
   forms: async () => [
     { agent, form },
     { agent: { ...agent, name: "RoomRadar" }, form },
@@ -114,6 +120,15 @@ describe("concierge tools", () => {
     ).toBe(true);
     expect((await runTool(deps, ctx, "agent_input", {})).isError).toBe(true);
     expect((await runTool(deps, ctx, "nope", {})).isError).toBe(true);
+  });
+
+  it("finds agents by what the user needs, with how each works", async () => {
+    const out = await runTool(deps, ctx, "find_agents", { need: "a hotel in Goa" });
+    expect(out.card).toMatchObject({ type: "agents", skill: "hotels" });
+    expect(JSON.parse(out.result)[0]).toMatchObject({ name: "StayWise", delivered: 0 });
+    expect((await runTool(deps, ctx, "find_agents", { need: "a haircut" })).result).toMatch(
+      /No agents/,
+    );
   });
 
   it("lists agents as a card", async () => {
