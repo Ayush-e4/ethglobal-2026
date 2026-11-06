@@ -17,6 +17,7 @@ function compose(
   lines: [label: string, value: string][],
   intro: string,
   links: [string, string][],
+  footer = SANDBOX,
 ): Email {
   const text = [
     intro,
@@ -25,20 +26,21 @@ function compose(
     "",
     ...links.map(([k, u]) => `${k}: ${u}`),
     "",
-    SANDBOX,
+    footer,
   ].join("\n");
   const html = `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;color:#182026;max-width:560px">
 <p>${esc(intro)}</p>
 <table style="border-collapse:collapse">${lines.map(([k, v]) => `<tr><td style="padding:4px 16px 4px 0;color:#5e676f">${esc(k)}</td><td style="padding:4px 0"><b>${esc(v)}</b></td></tr>`).join("")}</table>
 <p>${links.map(([k, u]) => `<a href="${esc(u)}" style="color:#0e5a64">${esc(k)}</a>`).join(" · ")}</p>
-<p style="color:#5e676f;font-size:13px">${esc(SANDBOX)}</p>
+<p style="color:#5e676f;font-size:13px">${esc(footer)}</p>
 </div>`;
   return { to, subject, html, text };
 }
 
 /**
- * The guest's confirmation emails: when the hotel confirms the booking, and when a watching agent
- * rebooks it cheaper. To the traveller the booking was for (their email is on the hire).
+ * The emails AgentNet sends. To the traveller a booking was for (their email is on the hire):
+ * booked, rebooked cheaper, refunded, cancelled afterwards. To the account's own traveller ("me"):
+ * security notices, like an app being connected.
  */
 export function confirmations(send: SendEmail, appOrigin: string) {
   const links = (h: Hire): [string, string][] => [
@@ -49,10 +51,74 @@ export function confirmations(send: SendEmail, appOrigin: string) {
         ][])
       : []),
     ["Your chat", `${appOrigin}/chat/${h.chatId}`],
+    ["Receipt anyone can check", `${appOrigin}/receipts/${h.id}`],
   ];
+  const fee = (h: Hire) => `${formatUsdc(h.feeUnits)} USDC`;
   const first = (h: Hire) => h.guestName?.split(" ")[0] ?? "there";
 
+  const guest = (h: Hire, subject: string, rows: [string, string][], intro: string) =>
+    h.guestEmail
+      ? send(compose(h.guestEmail, subject, rows, intro, links(h)))
+      : Promise.resolve(false);
+
   return {
+    /** The agent couldn't book it, or accepted a reported problem: the fee is back. */
+    refunded: (h: Hire, why: "not_booked" | "report") =>
+      guest(
+        h,
+        why === "report" ? `Refunded after your report: ${h.title}` : `Not booked: ${h.title}`,
+        [
+          ["Booking", h.title],
+          ["Agent", h.agentName],
+          ["Fee", `${fee(h)}, refunded on Hedera`],
+          ...(h.note ? ([["What happened", h.note]] as [string, string][]) : []),
+        ],
+        why === "report"
+          ? `Hi ${first(h)}, ${h.agentName} accepted your report: its fee is refunded${h.note?.includes("booking is cancelled") ? " and the booking is cancelled" : ""}.`
+          : `Hi ${first(h)}, ${h.agentName} couldn't book it, so it refunded its fee. Nothing was booked.`,
+      ),
+
+    /** Cancelled after it was booked: the agent cancelled it with the hotel or airline. */
+    cancelled: (h: Hire) =>
+      guest(
+        h,
+        `Cancelled: ${h.title}${h.bookingRef ? ` (ref ${h.bookingRef})` : ""}`,
+        [
+          ["Booking", h.title],
+          ...(h.bookingRef ? ([["Booking reference", h.bookingRef]] as [string, string][]) : []),
+          ["Cancelled by", `${h.agentName}, at your request`],
+          ["Agent's fee", `${fee(h)}, kept: it booked as promised`],
+        ],
+        `Hi ${first(h)}, your booking is cancelled.`,
+      ),
+
+    /** An app (Claude) was connected to the account: who to tell if it wasn't them. */
+    connected: (to: string, name: string, app: string) =>
+      send(
+        compose(
+          to,
+          `${app} was connected to your AgentNet account`,
+          [
+            ["App", app],
+            [
+              "It can",
+              "find agents, get quotes, and hire within the limits you approve with Face ID",
+            ],
+            [
+              "When",
+              new Date().toLocaleString("en-IN", {
+                dateStyle: "medium",
+                timeStyle: "short",
+                timeZone: "Asia/Kolkata",
+              }),
+            ],
+          ],
+          `Hi ${name}, ${app} can now use AgentNet for you. If this wasn't you, disconnect it in Wallet → Connected apps.`,
+          [["Connected apps", `${appOrigin}/wallet`]],
+          "AgentNet runs on test networks: nothing real is booked or paid.",
+        ),
+      ),
+
     booked: async (h: Hire, ref: string) =>
       h.guestEmail
         ? send(

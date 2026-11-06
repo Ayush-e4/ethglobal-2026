@@ -189,11 +189,17 @@ concierge's model: the card holds no details, and in Telegram the guest's reply 
 it reaches the concierge. Each hire keeps the guest's name and email for its receipt and
 confirmation.
 
-**Confirmation emails** (`src/email`, Resend): when the hotel confirms a booking, the guest gets
-an email with the stay, the booking reference, their name, the agent, its fee (with the Hedera
-payment) and a link to the chat; when PriceGuard rebooks it cheaper, another with the new
-reference and what comes back. Both say it's a sandbox booking. Off without `RESEND_API_KEY`;
-until a domain is verified at Resend, it delivers only to the Resend account's own email.
+**Emails** (`src/email`, Resend). To the traveller a booking was for:
+- **Booked**: the booking, its reference, the guest, the agent and its fee (with the Hedera
+  payment), the chat and the public receipt.
+- **Rebooked cheaper** (PriceGuard): the new reference and what comes back.
+- **Refunded**: the agent couldn't book it, or accepted a reported problem.
+- **Cancelled afterwards**: the reference, and that the agent's fee stays paid.
+
+Each says it's a sandbox booking. To the account's own traveller ("This is me"): a **security
+notice** when an app (Claude) is connected, with where to disconnect it. Off without
+`RESEND_API_KEY`; until a domain is verified at Resend, it delivers only to the Resend account's
+own email (and Resend's test address `delivered@resend.dev`).
 
 ## Phone alerts (Telegram)
 

@@ -65,6 +65,7 @@ export function hireFollower(
     onBooked?: (hire: Hire, bookingRef: string) => Promise<unknown>; // the confirmation email
     onRebooked?: (hire: Hire, rebook: Rebook) => Promise<unknown>;
     onDisputeSettled?: (hire: Hire) => Promise<unknown>; // the agent refunded after a report
+    onRefunded?: (hire: Hire, why: "not_booked" | "report") => Promise<unknown>; // the guest's email
   } = {},
 ) {
   const { onChange } = hooks;
@@ -85,12 +86,14 @@ export function hireFollower(
         // "undoing" / "undone": the user undid it (hiring.cancel), not the agent giving up.
         const undone = hire.note?.startsWith("undo") ?? false;
         await set(hire.id, { status: undone ? "cancelled" : "refunded" });
-        if (!undone)
+        if (!undone) {
           await chats.add(
             hire.chatId,
             "assistant",
             `${hire.agentName} couldn't do it and refunded the fee. Nothing was charged.`,
           );
+          await tell("email", hooks.onRefunded?.({ ...hire, status: "refunded" }, "not_booked"));
+        }
         return;
       }
       const res = hire.jobUrl
@@ -133,6 +136,10 @@ export function hireFollower(
         `${hire.agentName} accepted your report on ${hire.title}: the ${formatUsdc(hire.feeUnits)} USDC fee is refunded${note?.includes("booking is cancelled") ? ", and the booking is cancelled" : ""}.`,
       );
       await tell("dispute", hooks.onDisputeSettled?.(hire));
+      await tell(
+        "email",
+        hooks.onRefunded?.({ ...hire, status: "refunded", note: note ?? hire.note }, "report"),
+      );
       return;
     } else if (hire.status === "delivered" && escrow.state === "released") {
       await set(hire.id, { status: "released" });

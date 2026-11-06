@@ -83,6 +83,7 @@ describe("the guest's confirmations", () => {
       "https://hashscan.io/testnet/transaction/0.0.11328382@1793936488.549097829",
     );
     expect(e?.text).toContain("https://app.example/chat/c1");
+    expect(e?.text).toContain("https://app.example/receipts/h1");
     expect(e?.text).toMatch(/test booking in a travel sandbox/);
   });
 
@@ -99,6 +100,44 @@ describe("the guest's confirmations", () => {
       /New booking reference: CMYKh_7JC[\s\S]*₹11,927 → ₹11,127[\s\S]*Back to you: ₹800/,
     );
     expect(sent.at(-1)?.text).toMatch(/simulated for the demo/);
+  });
+
+  it("refunded: why, and that the fee is back", async () => {
+    await c.refunded(
+      {
+        ...hire,
+        note: "Refunded after the buyer's report (not_found); the booking is cancelled",
+      } as Hire,
+      "report",
+    );
+    expect(sent.at(-1)?.subject).toBe(`Refunded after your report: ${hire.title}`);
+    expect(sent.at(-1)?.text).toMatch(
+      /StayWise accepted your report: its fee is refunded and the booking is cancelled/,
+    );
+    await c.refunded({ ...hire, note: null } as Hire, "not_booked");
+    expect(sent.at(-1)?.subject).toBe(`Not booked: ${hire.title}`);
+    expect(sent.at(-1)?.text).toMatch(/couldn't book it, so it refunded its fee/);
+  });
+
+  it("cancelled afterwards: the reference, and that the fee stays paid", async () => {
+    await c.cancelled({ ...hire, bookingRef: "Tb8Y44VaX" } as Hire);
+    expect(sent.at(-1)).toMatchObject({
+      to: "asha.test@example.com",
+      subject: `Cancelled: ${hire.title} (ref Tb8Y44VaX)`,
+    });
+    expect(sent.at(-1)?.text).toMatch(/0\.02 USDC, kept: it booked as promised/);
+  });
+
+  it("an app connected: a security notice to the account's own email, without the sandbox note", async () => {
+    await c.connected("me@example.com", "Asha", "Claude");
+    expect(sent.at(-1)).toMatchObject({
+      to: "me@example.com",
+      subject: "Claude was connected to your AgentNet account",
+    });
+    expect(sent.at(-1)?.text).toMatch(
+      /If this wasn't you, disconnect it in Wallet → Connected apps/,
+    );
+    expect(sent.at(-1)?.text).not.toMatch(/travel sandbox/);
   });
 
   it("escapes what it puts in the HTML, and sends nothing without the guest's email", async () => {

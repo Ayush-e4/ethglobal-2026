@@ -15,6 +15,7 @@ import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
 import type { AgentReviewService } from "./market/reviews";
 import { marketRoutes } from "./market/routes";
+import { grantRoutes } from "./mcp/grants";
 import { oauthRoutes } from "./mcp/oauth";
 import { mcpRoutes } from "./mcp/routes";
 import { travellerRoutes } from "./travellers/routes";
@@ -46,6 +47,7 @@ export type AppOptions = {
   travellers?: TravellerService; // saved travellers: who bookings are for
   tools?: ToolDeps; // the concierge's tools, also offered to connected apps over MCP
   market?: { market: Market; reviews: AgentReviewService }; // agent pages and listing
+  onAppConnected?: (userId: string, app: string) => Promise<unknown>; // the security email
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -68,7 +70,8 @@ export function createApp(o: AppOptions) {
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));
   // Connected apps (Claude): OAuth to connect, and the concierge's tools over MCP.
-  app.route("/", oauthRoutes(db, appOrigin));
+  app.route("/", oauthRoutes(db, appOrigin, o.onAppConnected));
+  app.route("/", grantRoutes(db));
   if (hiring && o.tools) app.route("/", mcpRoutes(db, appOrigin, { tools: o.tools, hiring }));
   if (o.alerts) app.route("/", alertRoutes(db, o.alerts));
   if (o.travellers) app.route("/", travellerRoutes(db, o.travellers));
