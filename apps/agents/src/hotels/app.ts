@@ -139,6 +139,18 @@ export function hotelAgentApp(d: {
     return c.json(shown);
   });
 
+  // The buyer reported a problem (and disputed the escrow on Hedera, which we check first).
+  app.post("/jobs/:id/dispute", async (c) => {
+    const body = z
+      .object({ reason: z.string().max(200).optional() })
+      .safeParse(await c.req.json().catch(() => ({})));
+    const r = await d.worker.onDispute(
+      c.req.param("id"),
+      body.success ? (body.data.reason ?? "no reason given") : "no reason given",
+    );
+    return c.json(r, r.outcome === "not_found" ? 404 : r.outcome === "not_disputed" ? 409 : 200);
+  });
+
   // Demo only, and only with the demo token: the next price check sees the room this much
   // cheaper. The rebook that follows is real (in the sandbox) and labelled as simulated.
   app.post("/jobs/:id/demo-drop", async (c) => {

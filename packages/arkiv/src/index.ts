@@ -3,6 +3,7 @@ export type { AgentRating } from "./read";
 export {
   decodeRow,
   deliveriesBy,
+  disputesByAgent,
   type Found,
   findAgents,
   findListings,
@@ -23,6 +24,7 @@ export {
   publishListings,
   rateAgent,
   recordDelivery,
+  recordDispute,
   recordReceipt,
   setJobStatus,
 } from "./write";

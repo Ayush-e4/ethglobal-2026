@@ -196,7 +196,8 @@ export type HireStatus =
   | "delivered"
   | "released"
   | "refunded"
-  | "failed";
+  | "failed"
+  | "disputed"; // the buyer reported a problem during the review: the fee is frozen
 
 /** Every agent the concierge hired: written before paying, followed to the end. */
 export const hires = pgTable(
@@ -218,6 +219,7 @@ export const hires = pgTable(
     escrowId: text("escrow_id"),
     payTx: text("pay_tx"), // the Hedera transaction that held the fee
     undoUntil: at("undo_until"),
+    reviewUntil: at("review_until"), // after delivery: the buyer can report a problem until then
     jobUrl: text("job_url"),
     bookingRef: text("booking_ref"),
     note: text("note"),

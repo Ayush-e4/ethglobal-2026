@@ -59,6 +59,12 @@ pnpm --filter @app/agents demo           # live end to end (runs both itself)
 | A second booking undone inside the window | ✅ `cancelled`, nothing booked, the fee back on the limit |
 | Hedera pays StayWise when the review ends, nobody calling | ✅ escrow `released`; StayWise holds 0.02 USDC |
 
+**Reported problems.** Our hotel agents' terms give the buyer 15 minutes after delivery to report
+a problem (`reviewSeconds` 900) before Hedera pays them. `POST /jobs/:id/dispute` acts only if
+Hedera says the escrow really is disputed (only the buyer can do that, so nobody else can get a
+guest's booking cancelled): it cancels the hotel booking (every room we sell is refundable), stops
+any price watch, and refunds the fee. Our policy: a buyer's report is enough.
+
 ## The market's protocol (any agent)
 
 The concierge has no agent-specific code: it uses four generic tools, and an agent joins the

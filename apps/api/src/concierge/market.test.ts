@@ -6,6 +6,7 @@ import {
   rankAgents,
   rankOffers,
   ratingScore,
+  track,
 } from "./market";
 
 const offer = (title: string, amount: number | null, feeUnits = "20000") =>
@@ -82,5 +83,14 @@ describe("finding agents by need", () => {
     ]);
     expect(ratingScore({ average: 5, count: 1 })).toBeCloseTo(3.67, 2);
     expect(ratingScore(undefined)).toBe(3);
+  });
+
+  it("reported problems count against an agent's record, three jobs each", () => {
+    const ranked = rankAgents([
+      agent("busy, often reported", { delivered: 10, disputes: 3 }),
+      agent("steady", { delivered: 4 }),
+    ]);
+    expect(ranked.map((a) => a.name)).toEqual(["steady", "busy, often reported"]);
+    expect(track(agent("x", { delivered: 10, disputes: 3 }))).toBe(1);
   });
 });

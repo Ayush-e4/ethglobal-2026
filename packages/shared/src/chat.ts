@@ -21,6 +21,7 @@ export const AgentsCardSchema = z.object({
       endpoint: z.string(),
       model: z.string().optional(), // how it does the job, e.g. "Book and keep watching"
       delivered: z.number().optional(), // jobs it completed recently (its Arkiv records)
+      disputes: z.number().optional(), // of those, how many a buyer reported (on Arkiv, by us)
       rating: z.object({ average: z.number(), count: z.number().int() }).optional(), // verified people
     }),
   ),

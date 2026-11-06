@@ -10,6 +10,7 @@ import {
   type User,
   users,
 } from "../db/schema";
+import { DISPUTE_REASONS, type DisputeReason, DisputeReasonSchema } from "../hiring/disputes";
 import type { WorldRatings } from "../world/ratings";
 import type { TelegramAlerts } from "./telegram";
 
@@ -25,6 +26,8 @@ export interface LiveHiresDeps {
   appOrigin: string;
   cancel: (user: User, chatId: string, hireId: string) => Promise<unknown>; // undo
   ratings: WorldRatings | null;
+  /** Report a problem (disputes.ts): from the message's button, while the review is open. */
+  dispute?: (user: User, chatId: string, hireId: string, reason: DisputeReason) => Promise<unknown>;
   now?: () => number;
   log?: (line: string) => void;
 }
@@ -83,6 +86,7 @@ export function liveHires(d: LiveHiresDeps) {
       cancelled: "↩ Undone: nothing was booked, and the fee is back on your limit.",
       refunded: `⚠️ ${esc(h.agentName)} couldn't do it and refunded the fee. Nothing was charged.`,
       failed: `⚠️ It didn't go through${h.note ? ` (${esc(h.note)})` : ""}. Nothing was charged.`,
+      disputed: `⚠️ You reported a problem: the fee is frozen on Hedera while ${esc(h.agentName)} sorts it out.`,
     };
     const lines = [
       `<b>${esc(h.title)}</b>`,
@@ -96,6 +100,10 @@ export function liveHires(d: LiveHiresDeps) {
     ];
     const rows: Button[][] = [];
     if (undoOpen) rows.push([{ text: "↩ Undo", callback_data: `undo:${h.id}`, style: "danger" }]);
+    const reviewOpen =
+      h.status === "delivered" && !!h.reviewUntil && h.reviewUntil.getTime() > now();
+    if (reviewOpen && d.dispute)
+      rows.push([{ text: "⚠️ Report a problem", callback_data: `rp:${h.id}` }]);
     if ((h.status === "delivered" || h.status === "released") && d.ratings)
       rows.push(
         [1, 2, 3, 4, 5].map((n) => ({
@@ -182,6 +190,40 @@ export function liveHires(d: LiveHiresDeps) {
       return answer("This booking isn't linked to this chat any more.", true);
     const [user] = await db.select().from(users).where(eq(users.id, r.hire.userId));
     if (!user) return answer("Account not found.", true);
+    if (kind === "rp" && cq.message) {
+      // The reasons, in place of the buttons; "Back" puts them back.
+      await answer("What's wrong?");
+      await t.tg("editMessageReplyMarkup", {
+        chat_id: r.tg,
+        message_id: cq.message.message_id,
+        reply_markup: {
+          inline_keyboard: [
+            ...Object.entries(DISPUTE_REASONS).map(([id, label]) => [
+              { text: label, callback_data: `rr:${hireId}:${id}` },
+            ]),
+            [{ text: "Back", callback_data: `rx:${hireId}` }],
+          ],
+        },
+      });
+      return;
+    }
+    if (kind === "rx") {
+      await answer("");
+      await db.update(hireAlerts).set({ shown: "" }).where(eq(hireAlerts.hireId, hireId));
+      return show(hireId);
+    }
+    if (kind === "rr") {
+      const reason = DisputeReasonSchema.safeParse(n);
+      if (!d.dispute || !reason.success) return answer("That button is out of date.");
+      try {
+        await d.dispute(user, r.hire.chatId, hireId, reason.data);
+        await answer("Reported: the fee is frozen while the agent sorts it out.");
+      } catch (err) {
+        await answer(err instanceof Error ? err.message : "Couldn't report it.", true);
+      }
+      await db.update(hireAlerts).set({ shown: "" }).where(eq(hireAlerts.hireId, hireId));
+      return show(hireId);
+    }
     if (kind === "undo") {
       try {
         await d.cancel(user, r.hire.chatId, hireId);

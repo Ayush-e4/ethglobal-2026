@@ -80,7 +80,8 @@ export function loadHotelAgentConfig(
     port,
     publicUrl: (e[`${a.env}_URL`] as string | undefined) ?? `http://localhost:${port}`,
     dataDir: resolve(import.meta.dirname, "../../.data"),
-    terms: { undoSeconds: 60, deliverWithinSeconds: 1800, reviewSeconds: 120 },
+    // 15 minutes to report a problem after the booking is made, before the fee is paid out.
+    terms: { undoSeconds: 60, deliverWithinSeconds: 1800, reviewSeconds: 900 },
     watchEveryMs: Number(e.WATCH_EVERY_SECONDS) * 1000,
     demoToken: e.DEMO_TOKEN as string | undefined,
   };

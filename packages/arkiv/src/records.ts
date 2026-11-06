@@ -92,6 +92,17 @@ export const RatingSchema = z.object({
   verified: z.literal("world-id"),
 });
 
+/**
+ * A buyer's report that a delivered job wasn't right, filed within its review window. Written by
+ * the platform (an agent can't hide its disputes); `outcome` is what the agent did about it.
+ */
+export const DisputeSchema = z.object({
+  agent: address,
+  job: entityKey, // the paid job (its escrow id on Hedera)
+  reason: z.enum(["not_found", "wrong_details", "other"]),
+  outcome: z.enum(["open", "refunded"]),
+});
+
 export const RECORDS = {
   agent: AgentSchema,
   listing: ListingSchema,
@@ -100,6 +111,7 @@ export const RECORDS = {
   receipt: ReceiptSchema,
   delivery: DeliverySchema,
   rating: RatingSchema,
+  dispute: DisputeSchema,
 } as const;
 
 export type Kind = keyof typeof RECORDS;
@@ -111,3 +123,4 @@ export type Job = RecordOf<"job">;
 export type Receipt = RecordOf<"receipt">;
 export type Delivery = RecordOf<"delivery">;
 export type Rating = RecordOf<"rating">;
+export type Dispute = RecordOf<"dispute">;

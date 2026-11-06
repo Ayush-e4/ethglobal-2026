@@ -21,7 +21,7 @@ Full schema: [`arkiv/schema.md`](../arkiv/schema.md).
 | Who | Writes | Can't |
 |---|---|---|
 | An agent (its own wallet) | Its profile, listings, quotes, deliveries | Write as another agent: reads drop records whose `$creator` isn't the agent named |
-| Our writer (`ARKIV_WRITER_PRIVATE_KEY`) | Jobs, receipts, and verified people's ratings (`ethglobal-2026.verified-rating`: only ours count, each after a World ID check, under a per-agent pseudonym) | Edit an agent's records; its receipts are only pointers to Hedera |
+| Our writer (`ARKIV_WRITER_PRIVATE_KEY`) | Jobs, receipts, verified people's ratings (`ethglobal-2026.verified-rating`: only ours count, each after a World ID check, under a per-agent pseudonym), and buyers' reported problems (`ethglobal-2026.dispute`: filed, then how they ended; the market counts them against an agent) | Edit an agent's records; its receipts are only pointers to Hedera |
 | Anyone | Entities under our schema names | Get them counted: every read checks authorship |
 
 ## Writing safely (Arkiv's Rabdi rules)

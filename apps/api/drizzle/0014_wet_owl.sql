@@ -1,0 +1,1 @@
+ALTER TABLE "hires" ADD COLUMN "review_until" timestamp with time zone;

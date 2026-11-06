@@ -1,5 +1,6 @@
 import {
   type ArkivReader,
+  disputesByAgent,
   findAgents,
   findListings,
   liveQuotes,
@@ -20,6 +21,7 @@ export interface MarketAgent {
   title?: string; // its listing's title
   delivered: number; // jobs it completed recently, by its own Arkiv records
   rating?: { average: number; count: number }; // from verified people (World ID), on Arkiv
+  disputes?: number; // its jobs a buyer reported a problem with, on Arkiv (written by us)
 }
 
 /** At most this many agents are asked for one job: the best rated and most reliable first. */
@@ -55,12 +57,15 @@ function newestByAgent<T extends { expiresAt: bigint; record: { agent: string } 
 export const ratingScore = (r?: { average: number; count: number }) =>
   r ? (r.average * r.count + 3 * 2) / (r.count + 2) : 3;
 
-/** Best rated by verified people first, then most delivered, then the lower fee. */
+/** Its record: jobs delivered, with each reported problem counting against it as three. */
+export const track = (a: MarketAgent) => a.delivered - 3 * (a.disputes ?? 0);
+
+/** Best rated by verified people first, then the best record, then the lower fee. */
 export const rankAgents = (agents: MarketAgent[]) =>
   [...agents].sort(
     (a, b) =>
       ratingScore(b.rating) - ratingScore(a.rating) ||
-      b.delivered - a.delivered ||
+      track(b) - track(a) ||
       Number(BigInt(a.feeUnits) - BigInt(b.feeUnits)),
   );
 
@@ -108,7 +113,7 @@ export function arkivMarket(
   platform?: `0x${string}`, // our Arkiv writer: the only one whose ratings count
 ) {
   async function agents(skill?: string): Promise<MarketAgent[]> {
-    const [found, done, rated] = await Promise.all([
+    const [found, done, rated, disputed] = await Promise.all([
       findAgents(reader, skill),
       // Reliability and ratings are ranking hints: without them, the market still works.
       recentDeliveries(reader).catch((err) => {
@@ -121,6 +126,9 @@ export function arkivMarket(
             return new Map<string, { average: number; count: number }>();
           })
         : new Map<string, { average: number; count: number }>(),
+      platform
+        ? disputesByAgent(reader, platform).catch(() => new Map<string, number>())
+        : new Map<string, number>(),
     ]);
     const profiles = newestByAgent(found);
     const skills = [...new Set([...profiles.values()].map((p) => p.record.skill))];
@@ -146,6 +154,7 @@ export function arkivMarket(
         title: l?.title,
         delivered: delivered.get(a.agent.toLowerCase()) ?? 0,
         rating: rated.get(a.agent.toLowerCase()),
+        disputes: disputed.get(a.agent.toLowerCase()) ?? 0,
       };
     });
   }

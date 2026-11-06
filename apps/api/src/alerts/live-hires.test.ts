@@ -58,6 +58,7 @@ async function setup(o: { photoFails?: boolean; image?: string | null } = {}) {
     .returning();
   if (!hire) throw new Error("no hire");
   const cancelled: string[] = [];
+  const reported: string[] = [];
   const posted: Rating[] = [];
   const ratings = worldRatings(db, {
     secret: "s",
@@ -75,6 +76,10 @@ async function setup(o: { photoFails?: boolean; image?: string | null } = {}) {
       await db.update(hires).set({ status: "cancelled" }).where(eq(hires.id, hireId));
     },
     ratings,
+    dispute: async (_u, _c, hireId, reason) => {
+      reported.push(`${hireId}:${reason}`);
+      await db.update(hires).set({ status: "disputed" }).where(eq(hires.id, hireId));
+    },
     now: () => clock,
     log: () => {},
   });
@@ -92,6 +97,7 @@ async function setup(o: { photoFails?: boolean; image?: string | null } = {}) {
     user,
     calls,
     cancelled,
+    reported,
     posted,
     set,
     rows,
@@ -204,5 +210,41 @@ describe("a hire, live in Telegram", () => {
       .where(eq(alertChannels.userId, user.id));
     await live.show(hire.id);
     expect(calls).toHaveLength(0);
+  });
+
+  it("after delivery, a problem can be reported from the message, while the review is open", async () => {
+    const { live, hire, calls, reported, set, rows, tap, later } = await setup();
+    await set({
+      status: "delivered",
+      bookingRef: "R1",
+      reviewUntil: new Date(Date.parse("2026-11-06T05:15:00Z")),
+    });
+    await live.show(hire.id);
+    const report = rows(calls.at(-1))
+      .flat()
+      .find((b) => b.text === "⚠️ Report a problem");
+    expect(report?.callback_data).toBe(`rp:${hire.id}`);
+    await tap(`rp:${hire.id}`); // the reasons, in place of the buttons
+    const reasons = calls.filter((c) => c.method === "editMessageReplyMarkup").at(-1);
+    expect(rows(reasons).map((r) => r[0]?.text)).toEqual([
+      "The hotel can't find my booking",
+      "Wrong dates, room or guest",
+      "Something else",
+      "Back",
+    ]);
+    await tap(`rr:${hire.id}:wrong_details`);
+    expect(reported).toEqual([`${hire.id}:wrong_details`]);
+    expect(calls.at(-1)?.body.caption).toMatch(
+      /You reported a problem: the fee is frozen on Hedera/,
+    );
+    // Once the review is over, there's no button to report with.
+    await set({ status: "delivered" });
+    later(20 * 60_000);
+    await live.show(hire.id);
+    expect(
+      rows(calls.at(-1))
+        .flat()
+        .some((b) => b.text === "⚠️ Report a problem"),
+    ).toBe(false);
   });
 });
