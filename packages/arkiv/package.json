@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "arkiv-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
-    "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts"
+    "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts",
+    "query": "tsx scripts/query.ts"
   },
   "dependencies": {
     "@app/hedera": "workspace:*",

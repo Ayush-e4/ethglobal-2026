@@ -137,6 +137,39 @@ and approved. World verified the 4.0 proof, the nullifier was stored, and the ca
 3. The card said "Claimed: your next booking's fee comes back once its agent is paid", and 19 of
    20 were left.
 
+### Why Proof of Human, not Selfie Check
+
+A deal drop gives money back and there are only 20, so the one thing it must get right is **one
+per person**: the attack is one person claiming again and again with new accounts. Proof of
+Human (the Orb-verified credential) is World's strongest assurance that a proof comes from one
+unique person, and with one nullifier per person and drop, that's exactly the guarantee the drop
+needs. Selfie Check is a lighter check that more people can do from their phone, with less
+assurance of uniqueness: right for wide, low-stakes reach, wrong for a scarce payout. The cost of
+our choice is reach: only Orb-verified people can claim. For a small drop meant to reach many
+people, we'd ask for Selfie Check instead: the preset is one line in the app (`selfieCheck` for
+`proofOfHuman`), and the server's checks stay the same (a 4.0 proof, this action, environment
+and account, World's verify, the nullifier once).
+
+### IDKit debrief (for World)
+
+- **Setup through the Developer Portal MCP was quick:** `create_app`, `configure_world_id` (a
+  managed 4.0 RP) and `create_world_id_action` took minutes. Two snags: the MCP sits behind
+  Cloudflare, which refused our script's default Python user agent (error 1010) until we sent our
+  own; and the RP signing key is shown once, so it has to go straight into the server's settings.
+- **★ Two nullifiers for one person.** A person's World ID 3.0 (legacy) proof and their 4.0 proof
+  carry different nullifiers, so a drop that accepts both lets one person claim twice. We asked
+  World's booth, chose 4.0 only (`allow_legacy_proofs: false`, and the server refuses 3.0
+  proofs), and lost nobody who matters for the demo. The docs could say this in one line next to
+  `allow_legacy_proofs`.
+- **Environments:** staging worked first, with World's web simulator, in a browser and with no
+  app. Sandbox (what World's team asked teams to use at the event) needs the "World ID sbx"
+  TestFlight app; production needs the World ID app. Which environment fits a hackathon demo,
+  and how judges can try it, took asking at the booth.
+- **What worked well:** the server-side request signing (`signRequest`) and the v4 verify endpoint
+  were straightforward, and binding the proof to the account through the signal took one field.
+- **Wished for:** a "mock approve" on the sandbox page so anyone can try a flow in a minute, and a
+  short guide to which credential fits which use (the reasoning above).
+
 ## What people need
 
 Our hackathon build uses World's **sandbox** (`WORLD_ID_ISSUER=https://sandbox.auth.world.org`;

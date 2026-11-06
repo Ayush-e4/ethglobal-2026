@@ -1,8 +1,9 @@
+import type { Receipt } from "@app/arkiv";
 import type { MandateClient } from "@app/mandates";
 import { checkLive, decodeRequest, fromHex, verifyTag } from "@app/shared";
 import type { HederaIds } from "@app/x402";
 import { and, count, eq, gte } from "drizzle-orm";
-import type { LocalAccount } from "viem";
+import { keccak256, type LocalAccount, toHex } from "viem";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
 import { chats, merchants, payRequests, type User } from "../db/schema";
@@ -30,6 +31,7 @@ export function inPersonPayer(d: {
   token: `0x${string}`;
   demo: { owner: LocalAccount; accountId: string; caps: { perUser: bigint; total: bigint } };
   ownWallet?: OwnWallet;
+  onPaid?: (receipt: Receipt) => void; // for the public record (Arkiv)
 }) {
   const facilitatorUrl = process.env.FACILITATOR_URL ?? "http://localhost:8790";
 
@@ -182,6 +184,15 @@ export function inPersonPayer(d: {
         live: view.live?.ok ?? null,
       };
       await d.db.update(payRequests).set(done).where(eq(payRequests.id, row.r.id));
+      d.onPaid?.({
+        job: keccak256(toHex(row.r.frameHex)), // the request itself
+        task: `shop-${row.r.id.slice(0, 8)}`,
+        mandateId: limit.mandateId.toString(),
+        payer: limit.ownerAccount,
+        payTo: row.m.account,
+        amountUnits: units.toString(),
+        hederaTx: payTx,
+      });
       return { ...view, status: "paid", payTx, chatId: chat.id };
     } catch (err) {
       await d.db.update(payRequests).set({ status: "open" }).where(eq(payRequests.id, row.r.id));

@@ -1,4 +1,4 @@
-import { rateAgent, SafeArkivWriter } from "@app/arkiv";
+import { rateAgent, recordReceipt, SafeArkivWriter } from "@app/arkiv";
 import { Erc8004Client } from "@app/erc8004";
 import { serve } from "@hono/node-server";
 import { privateKeyToAccount } from "viem/accounts";
@@ -85,6 +85,13 @@ const hiring = hiringService(db, loadHiringConfig(), (id) => wallets.get(id, fal
     await disputes.onDispute(hire, reason, outcome);
     void reviews.onDispute(hire.quoteKey).catch(() => {});
   },
+  // Every payment's receipt on Arkiv (our writer), pointing at its Hedera transaction.
+  onPaid: platform
+    ? (r) =>
+        void recordReceipt(platform, r)
+          .then(() => console.log(`arkiv: receipt for ${r.task} (${r.hederaTx})`))
+          .catch((err) => console.error(`arkiv receipt ${r.task}: ${String(err).slice(0, 160)}`))
+    : undefined,
 });
 // Phone alerts in Telegram (our own bot; off without TELEGRAM_BOT_TOKEN): each hire is one live
 // message there, with Undo and ratings, and the chats' own news buzzes as alerts.
