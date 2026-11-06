@@ -1,5 +1,7 @@
 import { rateAgent, SafeArkivWriter } from "@app/arkiv";
+import { Erc8004Client } from "@app/erc8004";
 import { serve } from "@hono/node-server";
+import { privateKeyToAccount } from "viem/accounts";
 import { statusText } from "./alerts/commands";
 import { liveHires } from "./alerts/live-hires";
 import { alertingChats } from "./alerts/routes";
@@ -21,6 +23,7 @@ import { arkivDisputes } from "./hiring/dispute-record";
 import { reportedNote } from "./hiring/disputes";
 import { hireFollower } from "./hiring/follow";
 import { hiringService } from "./hiring/service";
+import { erc8004Market } from "./market/identity";
 import { marketplace } from "./market/setup";
 import { travellerService } from "./travellers/service";
 import { hederaWalletChain } from "./wallet/chain";
@@ -48,10 +51,18 @@ const bonus = worldBonus(db, walletChain, wallets, loadBonusOptions());
 // Verified people's ratings, posted to Arkiv by our own writer (the only ratings readers trust).
 const arkivKey = process.env.ARKIV_WRITER_PRIVATE_KEY as `0x${string}` | undefined;
 const platform = arkivKey ? new SafeArkivWriter(arkivKey) : null;
+// ERC-8004 on Hedera: agents' identities, and each verified rating as feedback from our
+// concierge (the client that hires agents).
+const conciergeKey = process.env.CONCIERGE_PRIVATE_KEY as `0x${string}` | undefined;
+const erc8004 = erc8004Market({
+  registry: new Erc8004Client(),
+  reporter: conciergeKey ? privateKeyToAccount(conciergeKey) : null,
+});
 const ratings = process.env.RATINGS_SECRET
   ? worldRatings(db, {
       secret: process.env.RATINGS_SECRET,
       post: platform ? (r) => rateAgent(platform, r) : null,
+      alsoTo: erc8004.feedback,
     })
   : null;
 const checks = worldCfg
@@ -158,7 +169,7 @@ const app = createApp({
   travellers,
   alerts,
   tools,
-  market: { market, reviews },
+  market: { market, reviews, erc8004 },
   deals,
   // An app (Claude) was connected: tell the account's own traveller ("me"), if it has one.
   async onAppConnected(userId, app) {

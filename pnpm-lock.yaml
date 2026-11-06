@@ -181,6 +181,9 @@ importers:
       '@app/arkiv':
         specifier: workspace:*
         version: link:../../packages/arkiv
+      '@app/erc8004':
+        specifier: workspace:*
+        version: link:../../packages/erc8004
       '@app/hedera':
         specifier: workspace:*
         version: link:../../packages/hedera
@@ -236,6 +239,9 @@ importers:
       '@app/arkiv':
         specifier: workspace:*
         version: link:../../packages/arkiv
+      '@app/erc8004':
+        specifier: workspace:*
+        version: link:../../packages/erc8004
       '@app/hedera':
         specifier: workspace:*
         version: link:../../packages/hedera
@@ -406,6 +412,22 @@ importers:
       forge-std:
         specifier: github:foundry-rs/forge-std#v1.17.0
         version: https://codeload.github.com/foundry-rs/forge-std/tar.gz/f3dae6e6ee381f25eb6a246f7da9b85c91a68219
+
+  packages/erc8004:
+    dependencies:
+      '@app/mandates':
+        specifier: workspace:*
+        version: link:../mandates
+      viem:
+        specifier: 2.57.7
+        version: 2.57.7(typescript@5.9.3)(zod@4.6.7)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.6
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   packages/hedera:
     dependencies:

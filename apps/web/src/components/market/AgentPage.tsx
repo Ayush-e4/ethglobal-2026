@@ -109,6 +109,36 @@ export function AgentPage({ address }: { address: string }) {
         </p>
       </section>
 
+      <section className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-5 text-sm sm:p-6">
+        <h2 className="text-[17px] font-bold">On-chain identity (ERC-8004)</h2>
+        {a.erc8004 ? (
+          <>
+            <span className="text-ink-2">
+              Agent{" "}
+              <a
+                href={a.erc8004.url}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-teal underline"
+              >
+                #{a.erc8004.agentId}
+              </a>{" "}
+              in the ERC-8004 identity registry on Hedera, owned by its own key: any app that reads
+              ERC-8004 can find it, and what it does.
+            </span>
+            <span className="text-ink-2">
+              {a.erc8004.reputation?.count
+                ? `Reputation there: ${a.erc8004.reputation.count} rating${a.erc8004.reputation.count === 1 ? "" : "s"} from verified people, averaging ${a.erc8004.reputation.average.toFixed(1)}★, given by AgentNet's concierge (the client that hired it).`
+                : "No ratings there yet: each verified person's rating goes there too, given by AgentNet's concierge (the client that hired it)."}
+            </span>
+          </>
+        ) : (
+          <span className="text-muted">
+            Not registered in ERC-8004, or its card doesn't match the registry.
+          </span>
+        )}
+      </section>
+
       {a.links.length > 0 && (
         <section className="flex flex-col gap-1.5 text-sm">
           <span className="font-semibold">Check it yourself</span>

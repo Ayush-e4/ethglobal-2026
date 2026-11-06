@@ -7,6 +7,7 @@ import { currentUser } from "../auth/current";
 import type { Market, MarketAgent } from "../concierge/market";
 import type { Db } from "../db/client";
 import { type AgentReview, agentReviews } from "../db/schema";
+import type { Erc8004Market } from "./identity";
 import type { AgentReviewService } from "./reviews";
 
 /** Agents one person may list. */
@@ -43,7 +44,10 @@ const agentView = (a: MarketAgent, r: AgentReview | null) => ({
  * /market/agents, /market/agents/:address). Listing an agent (signed in, World ID verified):
  * its key signs that this account runs it, then the review decides if it's shown.
  */
-export function marketRoutes(db: Db, d: { market: Market; reviews: AgentReviewService }) {
+export function marketRoutes(
+  db: Db,
+  d: { market: Market; reviews: AgentReviewService; erc8004?: Erc8004Market },
+) {
   const app = new Hono();
   const find = async (address: string) =>
     (await d.market.all()).find((a) => a.agent.toLowerCase() === address.toLowerCase()) ?? null;
@@ -64,6 +68,7 @@ export function marketRoutes(db: Db, d: { market: Market; reviews: AgentReviewSe
       ...agentView(a, r),
       form: a.form ?? null,
       endpointHost: new URL(a.endpoint).host,
+      erc8004: (await d.erc8004?.view(a.agent, a.endpoint).catch(() => null)) ?? null,
       hederaAccount: a.hederaAccount ?? null,
       links: [
         ...(a.hederaAccount

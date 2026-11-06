@@ -1,0 +1,21 @@
+{
+  "name": "@app/erc8004",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@app/mandates": "workspace:*",
+    "viem": "2.57.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "vitest": "5.0.5"
+  }
+}

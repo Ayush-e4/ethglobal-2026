@@ -83,6 +83,7 @@ export const ratings = pgTable(
     status: text("status").$type<"posting" | "posted" | "failed">().notNull().default("posting"),
     arkivKey: text("arkiv_key"),
     arkivTx: text("arkiv_tx"),
+    erc8004Tx: text("erc8004_tx"), // the same rating as ERC-8004 feedback on Hedera
     updatedAt: at("updated_at").notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.rater, t.agent] }), index("ratings_hire_idx").on(t.hireId)],
