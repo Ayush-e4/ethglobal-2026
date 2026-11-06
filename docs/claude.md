@@ -19,6 +19,7 @@ for things; only our code and Hedera move money.
 | Streaming, with tool inputs streamed as they're written (`eager_input_streaming`) | Replies appear as they're written; status lines show which step is running |
 | Our tools (the market's): `find_agents`, `agent_input`, `get_quotes`, `hire` | Each input is checked against a schema before it runs (streamed inputs can arrive cut short) |
 | **Web search** (server tool, `web_search_20250305`, at most 3 per reply, location: India) | General questions: weather, events, what an area is like. The newer version with dynamic filtering is Sonnet/Opus only |
+| **Web fetch** (server tool, `web_fetch_20250910`, at most 3 per reply, up to 12,000 tokens a page, citations on) | Reads a page someone shares (a booking, an itinerary, a hotel's site). Only URLs already in the conversation can be fetched |
 | **Citations** → a **Sources** card | What Claude cited, or else the pages its searches found |
 | **Advisor** (beta `advisor-tool-2026-03-01`, `advisor_20260301`) | Haiku consults Sonnet mid-reply; Sonnet's advice comes back encrypted and is only replayed to Haiku |
 | `pause_turn` | A long server-side search pauses the reply; we send it back as it is and Claude carries on |
