@@ -166,19 +166,6 @@ export function confirmations(
         `Hi ${first(h)}, ${h.agentName} found the same room cheaper and rebooked it.${r.simulated ? " (The price drop was simulated for the demo.)" : ""}`,
       ),
 
-    /** A reply finished after its reader left: what it starts with, and where to read it. */
-    replyReady: (to: string, title: string, excerpt: string, url: string) =>
-      send(
-        compose(
-          to,
-          `Your answer is ready: ${title}`,
-          [["Chat", title]],
-          excerpt || "Your reply is ready.",
-          [["Read it", url]],
-          "AgentNet runs on test networks: nothing real is booked or paid.",
-        ),
-      ),
-
     /** "Send a test email": proves this address gets AgentNet's emails. */
     test: (to: string) =>
       compose(

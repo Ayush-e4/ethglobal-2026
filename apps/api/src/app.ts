@@ -55,7 +55,8 @@ export type AppOptions = {
   onAppConnected?: (userId: string, app: string) => Promise<unknown>; // the security email
   deals?: DealService; // deal drops: one claim per person (World ID)
   email?: { available: boolean; tryEmail: TryEmail; test: (to: string) => Email }; // account email
-  replyReady?: ReplyReady; // a reply finished after its reader left: tell them
+  replyReady?: ReplyReady; // a slow reply finished after its reader left: nudge them
+  replyReadyAfterMs?: number; // how long a reply must take to be worth it (tests: 0)
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -73,7 +74,7 @@ export function createApp(o: AppOptions) {
   const onSignUp = wallets ? (id: string) => void wallets.ensure(id).catch(() => {}) : undefined;
   const links = deviceLinks(); // "use this account on another device" codes
   app.route("/", authRoutes(db, auth, onSignUp, links));
-  app.route("/", chatRoutes(db, concierge, o.replyReady));
+  app.route("/", chatRoutes(db, concierge, o.replyReady, o.replyReadyAfterMs));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));

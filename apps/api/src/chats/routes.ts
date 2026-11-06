@@ -12,7 +12,7 @@ import { chatStore } from "./store";
  * POST /chats/:id/messages: the user's text is saved first, then the reply streams as
  * Server-Sent Events (text deltas, cards, status) and is saved when it's complete.
  */
-/** Tells someone their reply is ready when they left before it finished (Telegram or email). */
+/** Nudges someone that a slow reply is ready, when they left before it finished (Telegram). */
 export type ReplyReady = (
   userId: string,
   chatId: string,
@@ -20,7 +20,15 @@ export type ReplyReady = (
   reply: string,
 ) => Promise<unknown>;
 
-export function chatRoutes(db: Db, concierge: Concierge, replyReady?: ReplyReady) {
+/** Only a reply someone waited a while for is worth a nudge. */
+export const READY_AFTER_MS = 20_000;
+
+export function chatRoutes(
+  db: Db,
+  concierge: Concierge,
+  replyReady?: ReplyReady,
+  readyAfterMs = READY_AFTER_MS,
+) {
   const store = chatStore(db);
   const app = new Hono();
 
@@ -67,6 +75,7 @@ export function chatRoutes(db: Db, concierge: Concierge, replyReady?: ReplyReady
       const emit = (event: unknown) => write(JSON.stringify(event));
       // Left before the reply was done (closed the tab, locked the phone): they'll be told.
       let away = false;
+      const started = Date.now();
       sse.onAbort(() => {
         away = true;
       });
@@ -87,7 +96,8 @@ export function chatRoutes(db: Db, concierge: Concierge, replyReady?: ReplyReady
         });
         const saved = await store.add(chat.id, "assistant", reply.text, reply.cards);
         emit({ type: "done", messageId: saved.id });
-        if (away) void replyReady?.(user.id, chat.id, chat.title, reply.text).catch(() => {});
+        if (away && Date.now() - started >= readyAfterMs)
+          void replyReady?.(user.id, chat.id, chat.title, reply.text).catch(() => {});
       } catch (err) {
         console.error(`chat ${chat.id}: ${err instanceof Error ? err.message : err}`);
         await store.add(chat.id, "assistant", "Sorry, something went wrong. Please try again.");

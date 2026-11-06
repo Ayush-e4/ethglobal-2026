@@ -43,6 +43,7 @@ async function setup() {
   const fake = fakeConcierge();
   const ready: unknown[][] = [];
   const app = createApp({
+    replyReadyAfterMs: 0, // the fake concierge answers at once
     replyReady: async (...args) => {
       ready.push(args);
     },
