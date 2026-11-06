@@ -4,7 +4,7 @@ import { testDb } from "../test/db";
 import { softPasskey } from "../test/passkey";
 
 const ORIGIN = "http://localhost:3000";
-const site = { rpID: "localhost", origin: ORIGIN, name: "AgentNet" };
+const site = { rpID: "localhost", origin: ORIGIN, name: "Shikigami" };
 
 async function setup(adminUsers: string[] = []) {
   const app = createApp({

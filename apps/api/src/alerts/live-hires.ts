@@ -235,7 +235,7 @@ export function liveHires(d: LiveHiresDeps) {
       if (!d.ratings) return answer("Ratings are off on this server.", true);
       if (!user.worldIss || !user.worldSub)
         return answer(
-          "Ratings count only from verified people: rate it in AgentNet, on the booking's card, with World ID.",
+          "Ratings count only from verified people: rate it in Shikigami, on the booking's card, with World ID.",
           true,
         );
       const note = await d.ratings.rate(user.id, hireId, Number(n), {

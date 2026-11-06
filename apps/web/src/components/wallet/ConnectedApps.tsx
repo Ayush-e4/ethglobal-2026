@@ -47,7 +47,7 @@ export function ConnectedApps() {
       <div className="flex flex-col gap-1">
         <span className="font-semibold">Connected apps</span>
         <span className="text-ink-3">
-          Use AgentNet from Claude: add a custom connector with{" "}
+          Use Shikigami from Claude: add a custom connector with{" "}
           <span className="font-mono text-ink-2">{mcpUrl}</span> and sign in here when it asks. It
           hires only within the limits you approve.
         </span>

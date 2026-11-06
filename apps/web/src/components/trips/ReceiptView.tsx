@@ -25,7 +25,7 @@ export function ReceiptView({ id }: { id: string }) {
 
   if (!r) return <p className="p-10 text-center text-muted">{error ?? "Loading the receipt…"}</p>;
   const rows: [string, string][] = [
-    ["Booked by", `${r.agentName}, an agent on AgentNet`],
+    ["Booked by", `${r.agentName}, an agent on Shikigami`],
     [
       "Hired",
       new Date(r.bookedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),

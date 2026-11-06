@@ -61,7 +61,7 @@ export function alertRoutes(db: Db, t: TelegramAlerts) {
     const user = await currentUser(db, c);
     if (!user) return c.json({ error: "signed_out" }, 401);
     const sent = await t.send(user.id, {
-      title: "AgentNet",
+      title: "Shikigami",
       text: "Alerts work: you'll hear here when an agent books, refunds, or finds your room cheaper.",
     });
     return c.json({ sent });

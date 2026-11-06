@@ -156,7 +156,7 @@ describe("connecting Claude (OAuth)", () => {
   });
 });
 
-describe("AgentNet over MCP", () => {
+describe("Shikigami over MCP", () => {
   it("asks for a token, pointing at how to get one", async () => {
     const s = await setup();
     const r = await rpc(s.mcp, null, { jsonrpc: "2.0", id: 1, method: "tools/list" });
@@ -185,7 +185,7 @@ describe("AgentNet over MCP", () => {
     });
     expect(
       ((await init.json()) as { result: { serverInfo: { name: string } } }).result.serverInfo.name,
-    ).toBe("AgentNet");
+    ).toBe("Shikigami");
     const list = (await (
       await rpc(s.mcp, token, { jsonrpc: "2.0", id: 2, method: "tools/list" })
     ).json()) as {

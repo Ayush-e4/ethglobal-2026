@@ -138,7 +138,7 @@ export function dealService(
         await d.chats.add(
           hire.chatId,
           "assistant",
-          `Deal drop: AgentNet paid back ${hire.agentName}'s ${formatUsdc(units)} USDC fee to your wallet (one per person, checked with World ID).`,
+          `Deal drop: Shikigami paid back ${hire.agentName}'s ${formatUsdc(units)} USDC fee to your wallet (one per person, checked with World ID).`,
         );
       } catch (err) {
         log(`deals: payback for hire ${hire.id.slice(0, 8)} failed: ${String(err).slice(0, 160)}`);

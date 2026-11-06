@@ -7,7 +7,7 @@ import { walletApprovals } from "../wallet/ops";
 import { walletService } from "../wallet/service";
 
 const ORIGIN = "http://localhost:3000";
-const site = { rpID: "localhost", origin: ORIGIN, name: "AgentNet" };
+const site = { rpID: "localhost", origin: ORIGIN, name: "Shikigami" };
 type Device = { id: string; onWallet: boolean; label: string | null };
 type Prepared = {
   opId: string;

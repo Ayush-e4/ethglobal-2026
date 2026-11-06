@@ -95,7 +95,7 @@ on the server; `apps/api/src/deals`), not the sign-in used above:
    unlinkable to anything else. It's unique per drop, so the same person can't claim again from
    another account. It's also one per account.
 4. **Payback**: when the account's next booking is released (its agent paid after the review
-   window), AgentNet sends that fee back to the wallet. A refunded or disputed booking is never
+   window), Shikigami sends that fee back to the wallet. A refunded or disputed booking is never
    released, so nothing is paid twice.
 
 | When | What the person sees |

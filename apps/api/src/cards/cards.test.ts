@@ -47,7 +47,7 @@ async function setup(escrow: { state: string; payee: string; amount: bigint }) {
   return { db, issuer, issue, hire };
 }
 
-describe("AgentNet Cards (mock issuer)", () => {
+describe("Shikigami Cards (mock issuer)", () => {
   it("issues a one-time card only for a funded escrow, signed by its agent; it shows on the hire", async () => {
     const s = await setup({ state: "held", payee: agent.address, amount: 32_347n });
     expect((await s.issue("12347", privateKeyToAccount(generatePrivateKey()))).status).toBe(403);

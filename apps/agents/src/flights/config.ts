@@ -34,7 +34,7 @@ export function loadFlightAgentConfig(env: Record<string, string | undefined> = 
         .startsWith("duffel_test_", "Duffel test token (duffel_test_…)"),
       MANDATE_REGISTRY_ID: z.string().regex(/^0\.0\.\d+$/),
       FACILITATOR_URL: z.url().default("http://localhost:8790"),
-      CARDS_URL: z.url().default("http://localhost:8787"), // AgentNet's (mock) card issuer
+      CARDS_URL: z.url().default("http://localhost:8787"), // Shikigami's (mock) card issuer
     })
     .safeParse(env);
   if (!parsed.success) {

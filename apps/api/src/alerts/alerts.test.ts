@@ -133,7 +133,7 @@ describe("Telegram alerts", () => {
     });
     const test = await app.request("/alerts/test", { method: "POST", headers: { Cookie: cookie } });
     expect(await test.json()).toEqual({ sent: true });
-    expect(sent.at(-1)?.text).toMatch(/^AgentNet\n\nAlerts work/);
+    expect(sent.at(-1)?.text).toMatch(/^Shikigami\n\nAlerts work/);
     expect((await app.request("/alerts")).status).toBe(401);
   });
 });

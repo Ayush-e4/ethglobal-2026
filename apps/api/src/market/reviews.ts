@@ -20,7 +20,7 @@ export function agentReviewService(
     reader: ArkivReader;
     writer: SafeArkivWriter | null; // our Arkiv writer: posts each review
     registryId: string;
-    house: Set<string>; // our own agents (lowercase addresses): answered for by AgentNet
+    house: Set<string>; // our own agents (lowercase addresses): answered for by Shikigami
     allowLocalHttp: boolean;
     log?: (line: string) => void;
     signedQuotes?: (task: string) => Promise<Set<string>>; // tests: instead of Arkiv

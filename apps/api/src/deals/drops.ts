@@ -17,7 +17,7 @@ export const DROPS: Drop[] = [
     id: "fee-back-1",
     title: "Your next agent fee, on us",
     detail:
-      "AgentNet pays back the agent's fee for your next booking (up to 0.05 USDC), once the agent is paid.",
+      "Shikigami pays back the agent's fee for your next booking (up to 0.05 USDC), once the agent is paid.",
     total: 20,
     maxFeeUnits: 50_000n,
     endsAt: new Date("2026-11-10T00:00:00+05:30"),

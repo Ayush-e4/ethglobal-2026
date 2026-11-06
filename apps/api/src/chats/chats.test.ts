@@ -50,7 +50,7 @@ async function setup() {
     appOrigin: ORIGIN,
     db: await testDb(),
     auth: {
-      site: { rpID: "localhost", origin: ORIGIN, name: "AgentNet" },
+      site: { rpID: "localhost", origin: ORIGIN, name: "Shikigami" },
       adminUsers: new Set(),
       secureCookies: false,
     },

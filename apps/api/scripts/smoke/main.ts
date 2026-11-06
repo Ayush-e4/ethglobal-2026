@@ -1,4 +1,4 @@
-// The smoke test: every route, as people and apps use them, on a running AgentNet.
+// The smoke test: every route, as people and apps use them, on a running Shikigami.
 // Spends test money only (Hedera testnet, LiteAPI sandbox, Duffel test mode); test travellers.
 // Run: pnpm smoke  (SMOKE_API / SMOKE_ORIGIN point it at another server; --only=public,demo,passkey)
 import { connectorRoutes } from "./connector";

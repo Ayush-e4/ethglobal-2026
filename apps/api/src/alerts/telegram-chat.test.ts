@@ -91,7 +91,7 @@ describe("the concierge in Telegram", () => {
     expect(concierge).not.toHaveBeenCalled();
   });
 
-  it("streams the reply as a draft, then sends it, saved in an AgentNet chat", async () => {
+  it("streams the reply as a draft, then sends it, saved in an Shikigami chat", async () => {
     const { db, user, chat, sent } = await setup();
     await chat.turn("42", "A hotel in Goa for two, 20 to 22 December");
     const drafts = sent("sendMessageDraft").map((c) => c.body.text);

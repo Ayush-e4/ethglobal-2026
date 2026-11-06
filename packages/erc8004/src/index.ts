@@ -42,7 +42,7 @@ export function agentCard(a: {
     description: a.description,
     services: [
       { name: "web", endpoint: a.endpoint },
-      ...(a.arkivProfile ? [{ name: "agentnet-listing", endpoint: a.arkivProfile }] : []),
+      ...(a.arkivProfile ? [{ name: "shikigami-listing", endpoint: a.arkivProfile }] : []),
     ],
     x402Support: true,
     active: true,

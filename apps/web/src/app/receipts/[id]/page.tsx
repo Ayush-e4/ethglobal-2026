@@ -10,7 +10,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-teal text-white">
           <LogoMark size={20} />
         </span>
-        <span className="text-xl font-bold">AgentNet</span>
+        <span className="text-xl font-bold">Shikigami</span>
       </span>
       <ReceiptView id={id} />
     </main>

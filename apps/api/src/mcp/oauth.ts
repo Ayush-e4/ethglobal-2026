@@ -98,7 +98,7 @@ export function oauthRoutes(
     authorization_servers: [appOrigin],
     scopes_supported: [SCOPE],
     bearer_methods_supported: ["header"],
-    resource_name: "AgentNet",
+    resource_name: "Shikigami",
   };
   app.get("/.well-known/oauth-protected-resource", (c) => c.json(resourceMeta));
   app.get("/.well-known/oauth-protected-resource/mcp", (c) => c.json(resourceMeta));

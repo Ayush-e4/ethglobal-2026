@@ -160,7 +160,7 @@ export function cardMessages(card: Card, appLink: string | null): Send[] {
     },
   });
   const web = appLink?.startsWith("https://")
-    ? [[{ text: "Open in AgentNet", url: appLink }]]
+    ? [[{ text: "Open in Shikigami", url: appLink }]]
     : undefined;
   switch (card.type) {
     case "quotes": {
@@ -213,7 +213,7 @@ export function cardMessages(card: Card, appLink: string | null): Send[] {
     case "limit":
       return [
         msg(
-          `To pay ${esc(card.agentName)} from your own wallet, approve a spending limit with Face ID in AgentNet: up to ${usdc(card.budgetUnits)} in this chat, for ${card.hours} hours. The booking then carries on, and it shows up here live.${web ? "" : `\n\n${esc(appLink ?? "")}`}`,
+          `To pay ${esc(card.agentName)} from your own wallet, approve a spending limit with Face ID in Shikigami: up to ${usdc(card.budgetUnits)} in this chat, for ${card.hours} hours. The booking then carries on, and it shows up here live.${web ? "" : `\n\n${esc(appLink ?? "")}`}`,
           web,
         ),
       ];

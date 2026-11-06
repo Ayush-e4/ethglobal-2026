@@ -21,7 +21,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     appOrigin: origin.origin,
     databaseUrl: e.DATABASE_URL,
     auth: {
-      site: { rpID: origin.hostname, origin: origin.origin, name: "AgentNet" },
+      site: { rpID: origin.hostname, origin: origin.origin, name: "Shikigami" },
       adminUsers: new Set(
         e.ADMIN_USERS.split(",")
           .map((s) => s.trim())

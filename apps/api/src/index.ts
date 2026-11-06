@@ -114,7 +114,7 @@ const deals = dealService(db, {
   chain: walletChain,
   chats: chatStore(db),
 });
-// AgentNet Cards (a mock issuer): agents pay hotels and airlines with one-time cards.
+// Shikigami Cards (a mock issuer): agents pay hotels and airlines with one-time cards.
 const cards = cardIssuer(db, hiring.registry);
 const hiringLive = {
   ...hiring,

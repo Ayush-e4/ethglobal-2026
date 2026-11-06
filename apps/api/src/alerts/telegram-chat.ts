@@ -42,7 +42,7 @@ export interface TelegramChatDeps {
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
- * The concierge in Telegram. A linked Telegram chat talks to one AgentNet chat (the same turns,
+ * The concierge in Telegram. A linked Telegram chat talks to one Shikigami chat (the same turns,
  * tools and payments as the web, saved in that chat; /new starts another). The reply streams in
  * as a draft ("Thinking…", then the text as it's written) and is then sent for good; offers come
  * as photos with Book buttons; a World ID approval opens from a button and, once it passes, the
@@ -106,7 +106,7 @@ export function telegramChat(d: TelegramChatDeps) {
       const l = await link(tgChatId);
       const [user] = l ? await db.select().from(users).where(eq(users.id, l.userId)) : [];
       if (!l || !user) {
-        await say(tgChatId, "Connect this chat first: AgentNet → Wallet → Phone alerts.");
+        await say(tgChatId, "Connect this chat first: Shikigami → Wallet → Phone alerts.");
         return;
       }
       // "Someone else": this message is the guest's details, so it never reaches the concierge.
@@ -193,7 +193,7 @@ export function telegramChat(d: TelegramChatDeps) {
     }
   }
 
-  /** The latest cards in the Telegram chat's AgentNet chat (what its buttons stand for). */
+  /** The latest cards in the Telegram chat's Shikigami chat (what its buttons stand for). */
   async function recentCards(tgChatId: string): Promise<Card[]> {
     const l = await link(tgChatId);
     if (!l?.appChatId) return [];
@@ -238,7 +238,7 @@ export function telegramChat(d: TelegramChatDeps) {
   return {
     turn,
 
-    /** "/new": the next message starts a new AgentNet chat. */
+    /** "/new": the next message starts a new Shikigami chat. */
     async fresh(tgChatId: string) {
       people.forget(tgChatId);
       await db

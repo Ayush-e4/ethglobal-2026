@@ -44,12 +44,12 @@ function Points({ dark }: { dark?: boolean }) {
   );
 }
 
-/** Phones: a short banner, then sign-in, then what AgentNet is. Wider: side by side. */
+/** Phones: a short banner, then sign-in, then what Shikigami is. Wider: side by side. */
 export default function LoginPage() {
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
       <section
-        aria-label="About AgentNet"
+        aria-label="About Shikigami"
         className="flex flex-col justify-between gap-5 bg-teal px-5 pt-[max(20px,env(safe-area-inset-top))] pb-6 text-white sm:px-14 md:flex-[1_1_480px] md:gap-10 md:py-10"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -57,7 +57,7 @@ export default function LoginPage() {
             <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-white text-teal">
               <LogoMark size={20} />
             </span>
-            <span className="text-xl font-bold">AgentNet</span>
+            <span className="text-xl font-bold">Shikigami</span>
           </div>
           <span className="flex items-center gap-2 rounded-full border border-[#3F7E86] px-3 py-1.5 text-[12px] text-[#D7E8EA] sm:text-[13px]">
             <span aria-hidden className="size-2 rounded-full bg-saffron" /> Hedera testnet · test

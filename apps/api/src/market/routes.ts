@@ -14,7 +14,7 @@ import type { AgentReviewService } from "./reviews";
 export const MAX_LISTED = 3;
 /** What an agent's key signs to show its owner runs it, for one account. */
 export const listMessage = (agent: string, userId: string) =>
-  `AgentNet: I run the agent ${agent.toLowerCase()} and list it on AgentNet from account ${userId}`;
+  `Shikigami: I run the agent ${agent.toLowerCase()} and list it on Shikigami from account ${userId}`;
 
 const reviewView = (r: AgentReview | null) =>
   r && {

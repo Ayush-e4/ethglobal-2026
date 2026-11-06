@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="flex size-7 items-center justify-center rounded-lg bg-teal text-white">
             <LogoMark size={16} />
           </span>
-          <span className="text-base font-bold">AgentNet</span>
+          <span className="text-base font-bold">Shikigami</span>
         </Link>
         <Link
           href="/chat"

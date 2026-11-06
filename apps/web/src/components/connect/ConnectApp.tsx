@@ -60,9 +60,9 @@ export function ConnectApp() {
   return (
     <section className="flex w-full max-w-[440px] flex-col gap-5 rounded-2xl border border-line p-5 sm:p-6">
       <div className="flex flex-col gap-1.5">
-        <h1 className="text-[22px] font-bold tracking-tight">Connect {req.app} to AgentNet?</h1>
+        <h1 className="text-[22px] font-bold tracking-tight">Connect {req.app} to Shikigami?</h1>
         <p className="text-sm text-ink-3">
-          It will use AgentNet as you, and send you back to {req.returnsTo}.
+          It will use Shikigami as you, and send you back to {req.returnsTo}.
         </p>
       </div>
       <div className="flex flex-col gap-2 text-sm">

@@ -8,7 +8,7 @@ export default function LinkPage() {
         <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-teal text-white">
           <LogoMark size={20} />
         </span>
-        <span className="text-xl font-bold">AgentNet</span>
+        <span className="text-xl font-bold">Shikigami</span>
       </span>
       <LinkDevice />
     </main>

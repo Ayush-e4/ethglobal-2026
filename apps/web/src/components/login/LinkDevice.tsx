@@ -34,7 +34,7 @@ export function LinkDevice() {
       setFound({ code: c, ...(await linkOptions(c)) });
     } catch (err) {
       setError(
-        err instanceof ApiError ? sentence(err.message) : "Couldn't reach AgentNet. Try again.",
+        err instanceof ApiError ? sentence(err.message) : "Couldn't reach Shikigami. Try again.",
       );
     } finally {
       setBusy(false);

@@ -119,7 +119,7 @@ export function ChatHome() {
         ))}
       </div>
       <p className="text-center text-xs text-muted">
-        AgentNet can make mistakes. Check bookings before you travel.
+        Shikigami can make mistakes. Check bookings before you travel.
       </p>
     </main>
   );

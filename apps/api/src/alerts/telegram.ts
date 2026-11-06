@@ -210,8 +210,8 @@ export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers 
     const linked = await t.finishLink(start[1], String(chatId));
     return say(
       linked
-        ? "Connected: AgentNet will tell you here when an agent books, refunds, or finds your room cheaper. Send /stop to stop."
-        : "That link has expired or was used already. Tap Connect Telegram in AgentNet again.",
+        ? "Connected: Shikigami will tell you here when an agent books, refunds, or finds your room cheaper. Send /stop to stop."
+        : "That link has expired or was used already. Tap Connect Telegram in Shikigami again.",
     );
   }
   if (text === "/start" || text === "/help") return say(HELP);
@@ -219,7 +219,7 @@ export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers 
   if (text === "/new" && h.onNew) return h.onNew(String(chatId));
   if (text === "/stop") {
     await t.unlinkChat(String(chatId));
-    return say("Stopped: no more AgentNet alerts here.");
+    return say("Stopped: no more Shikigami alerts here.");
   }
   if (h.onText && (text || photo?.length) && !text.startsWith("/")) {
     // Not awaited: a turn can take a minute, and other people's messages shouldn't wait.

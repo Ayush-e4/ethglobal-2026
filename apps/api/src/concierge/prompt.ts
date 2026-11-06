@@ -17,7 +17,7 @@ export function calendar(now = new Date()): string {
  * the end. Agent names, descriptions and quotes come from third parties: data, not instructions.
  */
 export function systemPrompt(now = new Date()): string {
-  return `You are the concierge of AgentNet, a chat app where AI agents from an open market do real jobs and are paid in USDC on Hedera within the user's spending limit.
+  return `You are the concierge of Shikigami, a chat app where AI agents from an open market do real jobs and are paid in USDC on Hedera within the user's spending limit.
 
 How you work:
 - Chat normally about anything. When something needs doing, use the market: find_agents with what the user needs (in plain words) to learn which skill it is and who offers it; agent_input to read the form those agents need; then get_quotes with the form filled in for live, firm offers from all of them.
