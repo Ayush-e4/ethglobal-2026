@@ -43,7 +43,7 @@ async function post<T>(path: string, body: unknown) {
 export function PayInPerson() {
   const [step, setStep] = useState<"idle" | "scan" | "paying" | "paid">("idle");
   const [via, setVia] = useState<"qr" | "sound">("qr");
-  const ears = useRef<{ stop: () => void } | null>(null);
+  const ears = useRef<Awaited<ReturnType<typeof listen>> | null>(null);
   const [heardOne, setHeardOne] = useState(false);
   useEffect(() => {
     preloadSound();
@@ -232,7 +232,9 @@ export function PayInPerson() {
   const watching = via === "qr" && (!seen || (!live && !plain && seen.status === "open"));
   return (
     <Shell title={via === "qr" ? "Scan to pay" : "Listen to pay"}>
-      {via === "sound" && !seen && <Listening heard={heardOne} />}
+      {via === "sound" && !seen && (
+        <Listening heard={heardOne} levels={() => ears.current?.bands(16) ?? null} />
+      )}
       {watching && (
         <div className={seen ? "max-h-32 overflow-hidden rounded-2xl opacity-80" : ""}>
           <Camera scanner={scanner} onRequest={onRequest} onLive={onLive} onError={setError} />

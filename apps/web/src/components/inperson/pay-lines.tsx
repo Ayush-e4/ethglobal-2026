@@ -1,5 +1,7 @@
 /** Small lines on the Pay screen: whether the request was checked live, and the listener. */
 
+import { ListenOrb } from "./ListenOrb";
+
 export function LiveLine(p: { live: string | null; plain: boolean; heard: boolean }) {
   const { live, plain } = p;
   if (p.heard)
@@ -20,13 +22,16 @@ export function LiveLine(p: { live: string | null; plain: boolean; heard: boolea
   );
 }
 
-export function Listening({ heard }: { heard: boolean }) {
+export function Listening({
+  heard,
+  levels = () => null,
+}: {
+  heard: boolean;
+  levels?: () => number[] | null;
+}) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-line bg-white p-8 text-center">
-      <span
-        aria-hidden
-        className="size-16 animate-pulse rounded-full bg-teal-soft ring-8 ring-teal-soft/50"
-      />
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-line bg-white p-6 text-center">
+      <ListenOrb levels={levels} heard={heard} />
       <span className="text-[15px] font-semibold">
         {heard
           ? "Heard it. Making sure only one shop is chirping…"
