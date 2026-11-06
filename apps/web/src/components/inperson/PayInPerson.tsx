@@ -7,8 +7,9 @@ import { LimitCard } from "../chat/LimitCard";
 import { CheckIcon } from "../icons";
 import { Camera } from "./Camera";
 import { Shell } from "./GetPaid";
+import { Listening, LiveLine } from "./pay-lines";
 import type { createScanner } from "./scanner";
-import { listen, preloadSound } from "./sound";
+import { LISTEN_ONE_MORE_CYCLE_MS, listen, preloadSound } from "./sound";
 
 type Seen = {
   merchant: { name: string; account: string; verified: boolean };
@@ -41,6 +42,7 @@ export function PayInPerson() {
   const [step, setStep] = useState<"idle" | "scan" | "paying" | "paid">("idle");
   const [via, setVia] = useState<"qr" | "sound">("qr");
   const ears = useRef<{ stop: () => void } | null>(null);
+  const [heardOne, setHeardOne] = useState(false);
   useEffect(() => {
     preloadSound();
     return () => ears.current?.stop();
@@ -108,12 +110,30 @@ export function PayInPerson() {
     setError(null);
     setVia("sound");
     setStep("scan");
+    // After the first request, listen one more full cycle of the shop's chirps: if a different
+    // request turns up too (someone nearby chirping their own), refuse rather than guess.
+    const heard = new Set<string>();
+    let deciding: ReturnType<typeof setTimeout> | null = null;
     try {
       ears.current = await listen((bytes) => {
         if (!decodeRequest(bytes).ok) return; // noise, or someone else's chirp format
-        ears.current?.stop();
-        ears.current = null;
-        void onRequest(toHex(bytes), false);
+        heard.add(toHex(bytes));
+        setHeardOne(true);
+        if (deciding) return;
+        deciding = setTimeout(() => {
+          ears.current?.stop();
+          ears.current = null;
+          setHeardOne(false);
+          if (heard.size > 1) {
+            setError(
+              "Two different payment requests were heard at once: someone nearby is chirping too. Scan the shop's QR instead.",
+            );
+            setStep("idle");
+            return;
+          }
+          const [only] = heard;
+          if (only) void onRequest(only, false);
+        }, LISTEN_ONE_MORE_CYCLE_MS);
       });
     } catch {
       setError(
@@ -190,7 +210,7 @@ export function PayInPerson() {
   const watching = via === "qr" && (!seen || (!live && !plain && seen.status === "open"));
   return (
     <Shell title={via === "qr" ? "Scan to pay" : "Listen to pay"}>
-      {via === "sound" && !seen && <Listening />}
+      {via === "sound" && !seen && <Listening heard={heardOne} />}
       {watching && (
         <div className={seen ? "max-h-32 overflow-hidden rounded-2xl opacity-80" : ""}>
           <Camera scanner={scanner} onRequest={onRequest} onLive={onLive} onError={setError} />
@@ -245,36 +265,5 @@ export function PayInPerson() {
       )}
       {error && <p className="text-sm text-bad">{error}</p>}
     </Shell>
-  );
-}
-
-function LiveLine(p: { live: string | null; plain: boolean; heard: boolean }) {
-  const { live, plain } = p;
-  if (p.heard)
-    return (
-      <p className="text-sm font-semibold text-ok">✓ Heard from the shop&apos;s device just now</p>
-    );
-  if (live) return <p className="text-sm font-semibold text-ok">✓ Live screen confirmed</p>;
-  if (plain)
-    return (
-      <p className="text-sm text-bad">No live layer: this could be a sticker or a screenshot.</p>
-    );
-  return (
-    <p className="text-sm text-ink-2">
-      Checking it&apos;s a live screen… keep the camera on the QR
-    </p>
-  );
-}
-
-function Listening() {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-line bg-white p-8 text-center">
-      <span
-        aria-hidden
-        className="size-16 animate-pulse rounded-full bg-teal-soft ring-8 ring-teal-soft/50"
-      />
-      <span className="text-[15px] font-semibold">Listening for the shop&apos;s chirp…</span>
-      <span className="text-xs text-muted">Hold your phone 20–50 cm from their device, still.</span>
-    </div>
   );
 }
