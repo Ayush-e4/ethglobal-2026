@@ -7,7 +7,7 @@ import { users, worldChecks } from "../db/schema";
 import { NeedsLimit } from "../hiring/limits";
 import { testDb } from "../test/db";
 import { liveKeyFor, merchantService } from "./merchants";
-import { inPersonPayer } from "./pay";
+import { claimRequest, inPersonPayer } from "./pay";
 
 const WALLET = "0x00000000000000000000000000000000000000aa";
 
@@ -131,5 +131,15 @@ describe("paying in person", () => {
     const r = await merchants.request(shop, 100_000);
     const live = toHex(await liveCode(fromHex(r.liveKey), fromHex(r.frame), counterAt()));
     await expect(payers.pay(demo, r.frame, { how: "qr", live })).rejects.toThrow(/up to ₹500/);
+  });
+
+  it("a request is claimed once, and never after it expired", async () => {
+    const { db, shop, merchants } = await setup();
+    await merchants.become(shop, "Chai Point");
+    const r = await merchants.request(shop, 40);
+    const later = new Date(Date.now() + 10 * 60_000); // past its 2 minutes
+    expect(await claimRequest(db, r.id, later)).toBe(false);
+    expect(await claimRequest(db, r.id)).toBe(true);
+    expect(await claimRequest(db, r.id)).toBe(false); // the second phone
   });
 });

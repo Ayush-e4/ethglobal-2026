@@ -2,7 +2,7 @@ import type { Receipt } from "@app/arkiv";
 import type { MandateClient } from "@app/mandates";
 import { checkLive, decodeRequest, fromHex, verifyTag } from "@app/shared";
 import type { HederaIds } from "@app/x402";
-import { and, count, eq, gte } from "drizzle-orm";
+import { and, count, eq, gt, gte } from "drizzle-orm";
 import { keccak256, type LocalAccount, toHex } from "viem";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
@@ -169,13 +169,8 @@ export function inPersonPayer(d: {
       console.error(`in-person limit: ${String(err).slice(0, 200)}`);
       throw new HireError("Couldn't reach Hedera to pay just now. Nothing was charged: try again.");
     }
-    // Claimed first, so two phones can't both pay one request.
-    const [claimed] = await d.db
-      .update(payRequests)
-      .set({ status: "paying" })
-      .where(and(eq(payRequests.id, row.r.id), eq(payRequests.status, "open")))
-      .returning();
-    if (!claimed) throw new HireError("Already being paid.");
+    if (!(await claimRequest(d.db, row.r.id)))
+      throw new HireError("This request has expired or is already being paid: ask for a new one.");
     try {
       const payTx = await payMerchant({
         ...d,
@@ -217,4 +212,20 @@ export function inPersonPayer(d: {
     pay,
     payerChat,
   };
+}
+
+/**
+ * Claims a request for one payment: only while it's open and before it expires (making the
+ * payer's limit can take a while: a payment never lands after the shop's screen says expired),
+ * and only once, so two phones can't both pay it. False if it can't be claimed.
+ */
+export async function claimRequest(db: Db, id: string, now = new Date()) {
+  const [claimed] = await db
+    .update(payRequests)
+    .set({ status: "paying" })
+    .where(
+      and(eq(payRequests.id, id), eq(payRequests.status, "open"), gt(payRequests.expiresAt, now)),
+    )
+    .returning({ id: payRequests.id });
+  return !!claimed;
 }
