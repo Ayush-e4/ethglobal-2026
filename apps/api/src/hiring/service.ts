@@ -7,6 +7,7 @@ import type { Db } from "../db/client";
 import { type Hire, hires, type Limit, quotes, type User } from "../db/schema";
 import type { GuestGate } from "../travellers/service";
 import type { HumanGate } from "../world/checkpoint";
+import { cancelBooking } from "./cancel-booking";
 import { demoCapsAllow } from "./caps";
 import type { HiringConfig } from "./config";
 import { type DisputeHook, type DisputeReason, disputeHire } from "./disputes";
@@ -193,6 +194,10 @@ export function hiringService(
       await save(hire.id, changes);
       return { ...hire, ...changes };
     },
+
+    /** Cancel a booked stay at the hotel, after the undo window (cancel-booking.ts). */
+    cancelBooking: (user: User, chatId: string, hireId: string) =>
+      cancelBooking({ db, concierge }, user, chatId, hireId),
 
     /** Report a problem with a delivered booking, within its review window (disputes.ts). */
     dispute: (user: User, chatId: string, hireId: string, reason: DisputeReason) =>

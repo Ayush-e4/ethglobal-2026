@@ -65,6 +65,11 @@ Hedera says the escrow really is disputed (only the buyer can do that, so nobody
 guest's booking cancelled): it cancels the hotel booking (every room we sell is refundable), stops
 any price watch, and refunds the fee. Our policy: a buyer's report is enough.
 
+**Cancelling a booked stay.** `POST /jobs/:id/cancel-booking` `{ signature }` cancels the hotel
+booking when the signature over `AgentNet: cancel the booking for job <escrowId>` comes from the
+job's buyer on Hedera (the limit's owner or its AI key), so nobody else can cancel a guest's stay.
+It keeps the fee (the job was done) and stops any price watch.
+
 ## The market's protocol (any agent)
 
 The concierge has no agent-specific code: it uses four generic tools, and an agent joins the

@@ -5,13 +5,14 @@ import { currentUser } from "../auth/current";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
 import type { Hire } from "../db/schema";
+import { canCancelBooking } from "./cancel-booking";
 import { DisputeReasonSchema, reportedNote } from "./disputes";
 import { HireError, type HiringService } from "./service";
 
 const Id = z.uuid();
 
 /** What the app sees of a hire: enough for its card, nothing internal (agent URLs, keys). */
-const show = (h: Hire) => ({
+export const show = (h: Hire) => ({
   id: h.id,
   title: h.title,
   agentName: h.agentName,
@@ -25,6 +26,11 @@ const show = (h: Hire) => ({
   watchNote: h.watchNote,
   reviewUntil: h.reviewUntil?.toISOString() ?? null,
   canReport: h.status === "delivered" && !!h.reviewUntil && h.reviewUntil > new Date(),
+  bookingCancelledAt: h.bookingCancelledAt?.toISOString() ?? null,
+  canCancelBooking: canCancelBooking(h),
+  guestName: h.guestName,
+  chatId: h.chatId,
+  createdAt: h.createdAt.toISOString(),
 });
 
 /** GET /chats/:id/hires (live status for the cards), POST /chats/:id/hires/:hireId/cancel (undo). */
@@ -65,6 +71,28 @@ export function hireRoutes(db: Db, hiring: HiringService, demoToken?: string) {
       throw err;
     }
   });
+  // Cancel a booked stay at the hotel, after the undo window (cancel-booking.ts).
+  app.post("/chats/:id/hires/:hireId/cancel-booking", async (c) => {
+    const user = await currentUser(db, c);
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const chat = await store.get(user.id, c.req.param("id"));
+    const hireId = Id.safeParse(c.req.param("hireId"));
+    if (!chat || !hireId.success) return c.json({ error: "not_found" }, 404);
+    try {
+      const hire = await hiring.cancelBooking(user, chat.id, hireId.data);
+      await store.add(
+        chat.id,
+        "assistant",
+        `Cancelled: ${hire.title}. ${hire.agentName} cancelled the stay at the hotel (the room was refundable). Its ${formatUsdc(hire.feeUnits)} USDC fee stays paid: the booking was made as promised.`,
+      );
+      return c.json(show(hire));
+    } catch (err) {
+      if (err instanceof HireError)
+        return c.json({ error: "cannot_cancel", message: err.message }, 409);
+      throw err;
+    }
+  });
+
   // Report a problem with a delivered booking, within its review window (disputes.ts).
   app.post("/chats/:id/hires/:hireId/dispute", async (c) => {
     const user = await currentUser(db, c);

@@ -1,6 +1,7 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { cancelBookingMessage } from "@app/shared";
 import type { Hex } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { describe, expect, it, vi } from "vitest";
@@ -11,6 +12,8 @@ import { HotelWorker } from "./worker";
 const ESCROW = `0x${"ab".repeat(32)}` as Hex;
 const QUOTE = `0x${"cd".repeat(32)}` as Hex;
 const agent = privateKeyToAccount(generatePrivateKey());
+const buyerAi = privateKeyToAccount(generatePrivateKey()); // the concierge's key on the limit
+const buyerWallet = privateKeyToAccount(generatePrivateKey());
 
 function setup(state: string, book: () => Promise<unknown>) {
   const dir = mkdtempSync(join(tmpdir(), "sw-"));
@@ -35,6 +38,7 @@ function setup(state: string, book: () => Promise<unknown>) {
     getEscrow: vi.fn(async () => ({ state })),
     markDelivered: vi.fn(async () => ({ transactionHash: "0xdelivered" })),
     refund: vi.fn(async () => ({ transactionHash: "0xrefund" })),
+    getMandate: vi.fn(async () => ({ owner: buyerWallet.address, agent: buyerAi.address })),
   };
   const lite = { book: vi.fn(book), cancel: vi.fn(async () => ({})) };
   const arkiv = { address: agent.address, run: vi.fn(async () => ({ txHash: "0x1" })) };
@@ -106,5 +110,23 @@ describe("HotelWorker", () => {
       cancelled: true,
     });
     expect(t.registry.refund).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancelling a booked stay: only with the buyer's signature; the fee stays paid", async () => {
+    const t = setup("released", async () => ({}));
+    t.jobs.set(ESCROW, { ...(t.jobs.get(ESCROW) as Job), status: "delivered", bookingId: "B1" });
+    const stranger = privateKeyToAccount(generatePrivateKey());
+    const sign = (who: typeof stranger) =>
+      who.signMessage({ message: cancelBookingMessage(ESCROW) });
+    expect(await t.worker.cancelBooking(ESCROW, await sign(stranger))).toEqual({
+      outcome: "not_the_buyer",
+    });
+    expect(t.lite.cancel).not.toHaveBeenCalled();
+    expect(await t.worker.cancelBooking(ESCROW, await sign(buyerAi))).toEqual({
+      outcome: "cancelled",
+    });
+    expect(t.lite.cancel).toHaveBeenCalledWith("B1");
+    expect(t.registry.refund).not.toHaveBeenCalled();
+    expect(t.jobs.get(ESCROW)).toMatchObject({ bookingCancelled: true, status: "delivered" });
   });
 });

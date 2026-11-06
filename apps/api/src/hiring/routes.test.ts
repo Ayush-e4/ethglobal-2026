@@ -30,6 +30,7 @@ function fakeHiring(late = false) {
     rebooksSeen: 0,
     watchNote: null,
     reviewUntil: null,
+    bookingCancelledAt: null,
     guestName: null,
     guestEmail: null,
     createdAt: new Date(),

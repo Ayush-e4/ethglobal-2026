@@ -67,6 +67,7 @@ export interface Job {
   task: string;
   guest: HotelGuest;
   status: JobStatus;
+  bookingCancelled?: boolean; // the guest cancelled the stay after it was booked
   startsAt: number; // unix seconds: the undo window ends, work may start
   bookingId?: string;
   confirmation?: string;

@@ -1,7 +1,8 @@
 import { recordDelivery, type SafeArkivWriter } from "@app/arkiv";
 import type { MandateClient } from "@app/mandates";
+import { cancelBookingMessage } from "@app/shared";
 import type { LiteApiClient } from "@app/travel";
-import { type Hex, keccak256, type LocalAccount, toHex } from "viem";
+import { type Hex, keccak256, type LocalAccount, recoverMessageAddress, toHex } from "viem";
 import type { JsonStore } from "../store";
 import type { Job, StoredQuote } from "./types";
 
@@ -139,6 +140,35 @@ export class HotelWorker {
       `Refunded after the buyer's report (${reason})${cancelled ? "; the hotel booking is cancelled" : "; the hotel booking couldn't be cancelled automatically"}`,
     );
     return { outcome: "refunded" as const, cancelled };
+  }
+
+  /**
+   * The buyer cancels the stay after it was booked (every room we sell is refundable). Only the
+   * buyer can ask: the request is signed by the limit's owner or its AI key, as Hedera records
+   * them for this job's escrow. Our fee stays paid: the booking was made as promised.
+   */
+  async cancelBooking(escrowId: string, signature: Hex) {
+    const job = this.d.jobs.get(escrowId);
+    if (!job?.bookingId) return { outcome: "not_found" as const };
+    if (job.bookingCancelled) return { outcome: "cancelled" as const };
+    const escrow = await this.d.registry.getEscrow(escrowId as Hex);
+    const mandate = await this.d.registry.getMandate(escrow.mandateId);
+    const signer = await recoverMessageAddress({
+      message: cancelBookingMessage(escrowId),
+      signature,
+    }).catch(() => null);
+    const buyers = [mandate.owner, mandate.agent].map((a) => a.toLowerCase());
+    if (!signer || !buyers.includes(signer.toLowerCase()))
+      return { outcome: "not_the_buyer" as const };
+    await this.d.lite.cancel(job.bookingId);
+    this.save(job, {
+      bookingCancelled: true,
+      note: "The guest cancelled the stay; the hotel booking is cancelled",
+      ...(job.watch
+        ? { watch: { ...job.watch, active: false, note: "Stopped: the stay was cancelled" } }
+        : {}),
+    });
+    return { outcome: "cancelled" as const };
   }
 
   private async refund(job: Job, note: string): Promise<void> {

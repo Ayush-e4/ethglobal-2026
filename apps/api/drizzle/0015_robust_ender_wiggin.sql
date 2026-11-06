@@ -1,0 +1,1 @@
+ALTER TABLE "hires" ADD COLUMN "booking_cancelled_at" timestamp with time zone;
