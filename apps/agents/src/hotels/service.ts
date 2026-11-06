@@ -1,18 +1,12 @@
-import {
-  arkivReader,
-  findAgents,
-  findListings,
-  ListingSchema,
-  publishAgent,
-  publishListings,
-  SafeArkivWriter,
-} from "@app/arkiv";
+import { arkivReader, ListingSchema, SafeArkivWriter } from "@app/arkiv";
+
 import { MandateClient, registryAddress } from "@app/mandates";
 import { parseUsdc } from "@app/shared";
 import { LiteApiClient } from "@app/travel";
 import { privateKeyToAccount } from "viem/accounts";
 import { agentIdentity } from "../identity";
 import { cardIssuer } from "../jobs/cards";
+import { keepListed } from "../listing";
 import { JsonStore } from "../store";
 import { hotelAgentApp } from "./app";
 import type { HotelAgentConfig } from "./config";
@@ -47,8 +41,6 @@ export async function startHotelAgent(config: HotelAgentConfig) {
     : null;
 
   const reader = arkivReader();
-  const mine = (r: { creator: string }) => r.creator.toLowerCase() === agent.address.toLowerCase();
-  const listed = (await findAgents(reader, "hotels")).some(mine);
   const listing = ListingSchema.parse({
     agent: agent.address,
     skill: "hotels",
@@ -57,27 +49,18 @@ export async function startHotelAgent(config: HotelAgentConfig) {
     input: HOTEL_FORM,
     service: config.service,
   });
-  if (!listed) {
-    await publishAgent(
-      arkiv,
-      {
-        agent: agent.address,
-        name: config.name,
-        skill: "hotels",
-        description: config.description,
-        endpoint: config.publicUrl,
-        hederaAccount: config.accountId,
-      },
-      [listing],
-    );
-  } else {
-    const newest = (await findListings(reader, "hotels"))
-      .filter(mine)
-      .sort((a, b) => Number(b.expiresAt - a.expiresAt))[0];
-    // Both as the parser returns them (it orders keys), so an unchanged listing isn't republished.
-    if (JSON.stringify(newest?.record) !== JSON.stringify(listing))
-      await publishListings(arkiv, [listing]);
-  }
+  const listed = await keepListed(
+    { arkiv, reader },
+    {
+      agent: agent.address,
+      name: config.name,
+      skill: "hotels",
+      description: config.description,
+      endpoint: config.publicUrl,
+      hederaAccount: config.accountId,
+    },
+    listing,
+  );
   worker.resume();
   watcher?.start();
   const identity = agentIdentity({ ...config, agent });

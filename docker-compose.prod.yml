@@ -26,6 +26,11 @@ services:
     environment:
       DATABASE_URL: postgres://shikigami:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/shikigami
       APP_ORIGIN: ${APP_ORIGIN}
+      # Each agent's public address: the web app forwards /a/<agent>/* to it here.
+      STAYWISE_URL: ${APP_ORIGIN}/a/staywise
+      PRICEGUARD_URL: ${APP_ORIGIN}/a/priceguard
+      SKYHOP_URL: ${APP_ORIGIN}/a/skyhop
+      BANKCHECK_URL: ${APP_ORIGIN}/a/bankcheck
       HEDERA_NETWORK: ${HEDERA_NETWORK:-}
       HEDERA_ACCOUNT_ID: ${HEDERA_ACCOUNT_ID:-}
       HEDERA_PRIVATE_KEY: ${HEDERA_PRIVATE_KEY:-}
@@ -79,6 +84,7 @@ services:
       dockerfile: deploy/Dockerfile.web
       args:
         API_URL: http://backend:8787
+        AGENTS_HOST: http://backend
     depends_on:
       - backend
     restart: unless-stopped

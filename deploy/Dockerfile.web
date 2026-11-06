@@ -1,11 +1,13 @@
-# The web app. API_URL is where Next forwards /api/*, /mcp and /oauth/* (fixed at build time).
+# The web app. API_URL is where Next forwards /api/*, /mcp and /oauth/*, AGENTS_HOST where it
+# forwards /a/<agent>/* (both fixed at build time).
 FROM node:24-slim
 RUN corepack enable
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
 ARG API_URL=http://backend:8787
-ENV API_URL=$API_URL NEXT_TELEMETRY_DISABLED=1
+ARG AGENTS_HOST=http://backend
+ENV API_URL=$API_URL AGENTS_HOST=$AGENTS_HOST NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @app/web build
 ENV NODE_ENV=production
 WORKDIR /app/apps/web

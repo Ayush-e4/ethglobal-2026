@@ -15,9 +15,12 @@ points there too, once registered.
 | `backend` | `deploy/Dockerfile.backend` | The API, the x402 facilitator and our four agents (StayWise, PriceGuard, SkyHop, Bank Check), started by `deploy/start-backend.sh` |
 | `web` | `deploy/Dockerfile.web` | The Next.js app (the PWA); the public domain points here, port 3000 |
 
-The agents are listed on Arkiv at `http://localhost:<port>` and the API hires them there, so they
-share the API's container. The market review allows a local address only for our own house
-agents (`HOUSE_AGENTS`); anyone else's agent must be on https. The agents' files (jobs, quotes,
+Each agent has a **public https address** on our domain: `https://heyshikigami.duckdns.org/a/staywise`
+(and `/a/priceguard`, `/a/skyhop`, `/a/bankcheck`). The web app forwards `/a/<agent>/*` to the
+agent inside the backend container (`AGENTS_HOST`), the agents list that address on Arkiv
+(`STAYWISE_URL` etc.: a profile is published again whenever an agent's address changes) and
+point their ERC-8004 cards at it. So the market review, other apps and anyone reading an agent's
+card reach it like any third-party agent, over https. The agents' files (jobs, quotes,
 ERC-8004 ids) are on the `agentdata` volume. A fresh volume is fine: each agent finds the
 ERC-8004 identity its key already owns on Hedera instead of registering a second one.
 
