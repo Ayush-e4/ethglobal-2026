@@ -64,6 +64,10 @@ export function ConnectApp() {
         <p className="text-sm text-ink-3">
           It will use Shikigami as you, and send you back to {req.returnsTo}.
         </p>
+        <p className="rounded-xl border border-warm-line bg-warm px-3 py-2 text-xs text-saffron-ink">
+          Any app can call itself &ldquo;{req.app}&rdquo;: Shikigami can&apos;t check the name. Only
+          continue if you started connecting from <strong>{req.returnsTo}</strong> yourself.
+        </p>
       </div>
       <div className="flex flex-col gap-2 text-sm">
         <span className="font-semibold">It can</span>
