@@ -10,6 +10,7 @@ import { chatStore } from "./chats/store";
 import { claudeConcierge } from "./concierge/concierge";
 import { arkivMarket } from "./concierge/market";
 import { saveQuotes } from "./concierge/quote-store";
+import type { ToolDeps } from "./concierge/tools";
 import { loadConfig } from "./config";
 import { connectDb } from "./db/client";
 import { confirmations } from "./email/confirmations";
@@ -87,7 +88,8 @@ const hiringLive = {
     return h;
   },
 };
-const concierge = claudeConcierge({
+// The market, quotes and hiring: the concierge's tools, also offered to connected apps (MCP).
+const tools: ToolDeps = {
   market: arkivMarket(arkivReader(), fetch, platform?.address),
   saveQuotes: (chatId, shown) => saveQuotes(db, chatId, shown),
   async hire(user, chatId, quoteKey) {
@@ -95,7 +97,8 @@ const concierge = claudeConcierge({
     void live.show(h.id);
     return h;
   },
-});
+};
+const concierge = claudeConcierge(tools);
 // Confirmation emails to the guest (Resend; off without RESEND_API_KEY).
 const confirm = confirmations(
   resendEmail(process.env.RESEND_API_KEY, process.env.RESEND_FROM),
@@ -135,6 +138,7 @@ const app = createApp({
   world: { checks, bonus, minFeeUnits, ratings },
   travellers,
   alerts,
+  tools,
 });
 await checks?.resume(); // World ID checks a restart interrupted
 // Follows every open hire to the end, from the database: restarts lose nothing.
