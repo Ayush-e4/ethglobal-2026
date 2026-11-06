@@ -1,0 +1,12 @@
+# Never in an image: secrets, local data, builds.
+.env
+.env.*
+**/.data
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+packages/contracts/out
+packages/contracts/cache
+.git
+.claude

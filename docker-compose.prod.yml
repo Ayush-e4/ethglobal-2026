@@ -1,0 +1,88 @@
+# Production on the Oracle VM through Coolify (docs/deploy.md). Coolify supplies every ${VAR}
+# from its environment settings, routes the public domain to `web` and adds HTTPS.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: shikigami
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      POSTGRES_DB: shikigami
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shikigami -d shikigami"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://shikigami:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/shikigami
+      APP_ORIGIN: ${APP_ORIGIN}
+      HEDERA_NETWORK: ${HEDERA_NETWORK:-}
+      HEDERA_ACCOUNT_ID: ${HEDERA_ACCOUNT_ID:-}
+      HEDERA_PRIVATE_KEY: ${HEDERA_PRIVATE_KEY:-}
+      USDC_TOKEN_ID: ${USDC_TOKEN_ID:-}
+      RELAYER_ACCOUNT_ID: ${RELAYER_ACCOUNT_ID:-}
+      RELAYER_PRIVATE_KEY: ${RELAYER_PRIVATE_KEY:-}
+      LOG_WRITER_ACCOUNT_ID: ${LOG_WRITER_ACCOUNT_ID:-}
+      LOG_WRITER_PRIVATE_KEY: ${LOG_WRITER_PRIVATE_KEY:-}
+      SPEND_LOG_TOPIC_ID: ${SPEND_LOG_TOPIC_ID:-}
+      MANDATE_REGISTRY_ADDRESS: ${MANDATE_REGISTRY_ADDRESS:-}
+      MANDATE_REGISTRY_ID: ${MANDATE_REGISTRY_ID:-}
+      ARKIV_WRITER_PRIVATE_KEY: ${ARKIV_WRITER_PRIVATE_KEY:-}
+      ARKIV_ACCESS_KEY: ${ARKIV_ACCESS_KEY:-}
+      DUFFEL_ACCESS_TOKEN: ${DUFFEL_ACCESS_TOKEN:-}
+      LITEAPI_KEY: ${LITEAPI_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      STAYWISE_PRIVATE_KEY: ${STAYWISE_PRIVATE_KEY:-}
+      STAYWISE_ACCOUNT_ID: ${STAYWISE_ACCOUNT_ID:-}
+      DEMO_WALLET_ACCOUNT_ID: ${DEMO_WALLET_ACCOUNT_ID:-}
+      DEMO_WALLET_PRIVATE_KEY: ${DEMO_WALLET_PRIVATE_KEY:-}
+      CONCIERGE_PRIVATE_KEY: ${CONCIERGE_PRIVATE_KEY:-}
+      PASSKEY_WALLET_FACTORY_ADDRESS: ${PASSKEY_WALLET_FACTORY_ADDRESS:-}
+      PASSKEY_WALLET_FACTORY_ID: ${PASSKEY_WALLET_FACTORY_ID:-}
+      SPONSOR_ACCOUNT_ID: ${SPONSOR_ACCOUNT_ID:-}
+      SPONSOR_PRIVATE_KEY: ${SPONSOR_PRIVATE_KEY:-}
+      DEMO_TOKEN: ${DEMO_TOKEN:-}
+      PRICEGUARD_PRIVATE_KEY: ${PRICEGUARD_PRIVATE_KEY:-}
+      PRICEGUARD_ACCOUNT_ID: ${PRICEGUARD_ACCOUNT_ID:-}
+      WORLD_ID_ISSUER: ${WORLD_ID_ISSUER:-}
+      WORLD_ID_CLIENT_ID: ${WORLD_ID_CLIENT_ID:-}
+      WORLD_ID_CLIENT_SECRET: ${WORLD_ID_CLIENT_SECRET:-}
+      RATINGS_SECRET: ${RATINGS_SECRET:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      SKYHOP_PRIVATE_KEY: ${SKYHOP_PRIVATE_KEY:-}
+      SKYHOP_ACCOUNT_ID: ${SKYHOP_ACCOUNT_ID:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      HOUSE_AGENTS: ${HOUSE_AGENTS:-}
+      WORLD_IDKIT_APP_ID: ${WORLD_IDKIT_APP_ID:-}
+      WORLD_IDKIT_RP_ID: ${WORLD_IDKIT_RP_ID:-}
+      WORLD_IDKIT_SIGNING_KEY: ${WORLD_IDKIT_SIGNING_KEY:-}
+      WORLD_IDKIT_ENV: ${WORLD_IDKIT_ENV:-}
+      BANKCHECK_PRIVATE_KEY: ${BANKCHECK_PRIVATE_KEY:-}
+      BANKCHECK_ACCOUNT_ID: ${BANKCHECK_ACCOUNT_ID:-}
+    volumes:
+      - agentdata:/app/apps/agents/.data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+      args:
+        API_URL: http://backend:8787
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  agentdata:

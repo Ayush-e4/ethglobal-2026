@@ -74,7 +74,7 @@ export async function checkAgent(
   d: {
     registryId: string; // our escrow (Hedera contract id)
     signedQuotes: (task: string) => Promise<Set<string>>; // `${key}|${creator}`, lowercase
-    allowLocalHttp?: boolean; // development: our own agents on localhost
+    allowLocalHttp?: boolean; // our own agents beside the API (or development), on localhost
     fetchImpl?: typeof fetch;
   },
 ): Promise<Check[]> {
@@ -92,7 +92,7 @@ export async function checkAgent(
     url.protocol === "https:"
       ? "Served over https"
       : d.allowLocalHttp && local
-        ? "A local address, allowed while developing"
+        ? "A local address: one of ours on this server, or while developing"
         : "Not served over https",
   );
   const base = a.endpoint.endsWith("/") ? a.endpoint : `${a.endpoint}/`;

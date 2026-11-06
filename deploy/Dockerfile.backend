@@ -1,0 +1,10 @@
+# The API, the x402 facilitator and the agents, in one container (start-backend.sh). They run
+# from TypeScript with tsx, as in development: the workspace packages ship TypeScript source.
+FROM node:24-slim
+RUN corepack enable
+WORKDIR /app
+COPY . .
+RUN pnpm install --frozen-lockfile
+ENV NODE_ENV=production
+EXPOSE 8787
+CMD ["bash", "deploy/start-backend.sh"]
