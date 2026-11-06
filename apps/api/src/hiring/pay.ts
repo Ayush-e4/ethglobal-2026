@@ -110,5 +110,31 @@ export async function payAgent(d: {
         : `HTTP ${res.status}`;
     throw new PayError(why);
   }
-  return { ...body.data, payTx: payment.transaction, signed };
+  return { ...trustedJob(d.endpoint, signed, body.data), payTx: payment.transaction, signed };
+}
+
+/**
+ * What we act on later (undo, a report, cancelling the booking, following the job) must be what
+ * we paid, never what the agent says: the escrow is the one our own signature created (its id
+ * comes from our limit and nonce), and the job is followed at the agent's listed address. An agent
+ * naming another escrow (someone else's) or a link elsewhere is ignored and logged.
+ */
+export function trustedJob(
+  endpoint: string,
+  signed: SignedPayment | undefined,
+  said: { escrowId: string; startsAt: number; jobUrl: string },
+) {
+  if (signed?.kind !== "held" || !signed.escrowId)
+    throw new PayError("the payment wasn't held in escrow");
+  const escrowId = signed.escrowId.toLowerCase() as `0x${string}`;
+  if (said.escrowId.toLowerCase() !== escrowId)
+    console.error(
+      `agent at ${new URL(endpoint).host} named escrow ${said.escrowId}, not ours: ignored`,
+    );
+  const base = endpoint.endsWith("/") ? endpoint : `${endpoint}/`;
+  return {
+    escrowId,
+    startsAt: said.startsAt,
+    jobUrl: new URL(`jobs/${escrowId}`, base).toString(),
+  };
 }

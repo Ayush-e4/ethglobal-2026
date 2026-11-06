@@ -101,7 +101,8 @@ export function hireFollower(
         ? await fetch(hire.jobUrl, { signal: AbortSignal.timeout(10_000) }).catch(() => null)
         : null;
       const job = Job.safeParse(res?.ok ? await res.json() : null);
-      if (job.success && job.data.status === "delivered") {
+      // Delivered when Hedera says so (the agent marked our escrow delivered), not on its word.
+      if (job.success && job.data.status === "delivered" && escrow.deliveredAt > 0n) {
         const w = job.data.watch;
         const ref = job.data.reference ?? job.data.bookingId;
         const reviewEnds = Number(escrow.deliveredAt) + escrow.reviewSeconds;
