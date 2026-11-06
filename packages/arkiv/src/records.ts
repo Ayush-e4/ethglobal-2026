@@ -103,6 +103,21 @@ export const DisputeSchema = z.object({
   outcome: z.enum(["open", "refunded"]),
 });
 
+/**
+ * The marketplace's review of an agent: the checks it ran (reachable, quotes signed on Arkiv,
+ * payment terms with an undo window and a review window, the right payee and fee, its record)
+ * and whether the agent is shown. Written by the platform only, so anyone can check who's in.
+ */
+export const ReviewSchema = z.object({
+  agent: address,
+  status: z.enum(["approved", "failed", "suspended"]),
+  operator: z.enum(["agentnet", "verified-person"]), // who answers for it
+  checks: z
+    .array(z.object({ id: z.string().max(20), ok: z.boolean(), note: z.string().max(200) }))
+    .max(10),
+  reviewedAt: z.number().int(), // unix seconds
+});
+
 export const RECORDS = {
   agent: AgentSchema,
   listing: ListingSchema,
@@ -112,6 +127,7 @@ export const RECORDS = {
   delivery: DeliverySchema,
   rating: RatingSchema,
   dispute: DisputeSchema,
+  review: ReviewSchema,
 } as const;
 
 export type Kind = keyof typeof RECORDS;
@@ -124,3 +140,4 @@ export type Receipt = RecordOf<"receipt">;
 export type Delivery = RecordOf<"delivery">;
 export type Rating = RecordOf<"rating">;
 export type Dispute = RecordOf<"dispute">;
+export type Review = RecordOf<"review">;

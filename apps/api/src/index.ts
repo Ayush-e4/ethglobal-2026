@@ -1,4 +1,4 @@
-import { arkivReader, rateAgent, SafeArkivWriter } from "@app/arkiv";
+import { rateAgent, SafeArkivWriter } from "@app/arkiv";
 import { serve } from "@hono/node-server";
 import { statusText } from "./alerts/commands";
 import { liveHires } from "./alerts/live-hires";
@@ -8,7 +8,6 @@ import { telegramChat } from "./alerts/telegram-chat";
 import { createApp } from "./app";
 import { chatStore } from "./chats/store";
 import { claudeConcierge } from "./concierge/concierge";
-import { arkivMarket } from "./concierge/market";
 import { saveQuotes } from "./concierge/quote-store";
 import type { ToolDeps } from "./concierge/tools";
 import { loadConfig } from "./config";
@@ -20,6 +19,7 @@ import { arkivDisputes } from "./hiring/dispute-record";
 import { reportedNote } from "./hiring/disputes";
 import { hireFollower } from "./hiring/follow";
 import { hiringService } from "./hiring/service";
+import { marketplace } from "./market/setup";
 import { travellerService } from "./travellers/service";
 import { hederaWalletChain } from "./wallet/chain";
 import { loadWalletConfig } from "./wallet/config";
@@ -61,10 +61,15 @@ const { minFeeUnits } = loadCheckpointOptions();
 const travellers = travellerService(db);
 // Reported problems, on the public record (Arkiv): the market counts them per agent.
 const disputes = arkivDisputes(db, platform);
+// The market, gated by our review of each agent (checked again hourly, and after a report).
+const { market, reviews } = marketplace(db, platform, config.appOrigin);
 const hiring = hiringService(db, loadHiringConfig(), (id) => wallets.get(id, false), {
   guest: travellers.gate(),
   human: checks ? humanCheckpoint(checks, minFeeUnits) : undefined,
-  onDispute: disputes.onDispute,
+  async onDispute(hire, reason, outcome) {
+    await disputes.onDispute(hire, reason, outcome);
+    void reviews.onDispute(hire.quoteKey).catch(() => {});
+  },
 });
 // Phone alerts in Telegram (our own bot; off without TELEGRAM_BOT_TOKEN): each hire is one live
 // message there, with Undo and ratings, and the chats' own news buzzes as alerts.
@@ -90,7 +95,7 @@ const hiringLive = {
 };
 // The market, quotes and hiring: the concierge's tools, also offered to connected apps (MCP).
 const tools: ToolDeps = {
-  market: arkivMarket(arkivReader(), fetch, platform?.address),
+  market,
   saveQuotes: (chatId, shown) => saveQuotes(db, chatId, shown),
   async hire(user, chatId, quoteKey) {
     const h = await hiring.hire(user, chatId, quoteKey);
@@ -139,7 +144,9 @@ const app = createApp({
   travellers,
   alerts,
   tools,
+  market: { market, reviews },
 });
+reviews.start(); // our own agents first, then every approved agent hourly
 await checks?.resume(); // World ID checks a restart interrupted
 // Follows every open hire to the end, from the database: restarts lose nothing.
 await hireFollower(

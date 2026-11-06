@@ -9,6 +9,7 @@ import {
   CloseIcon,
   ExitIcon,
   LogoMark,
+  MarketIcon,
   PlaneIcon,
   PlusIcon,
   SearchIcon,
@@ -18,6 +19,7 @@ import {
 const MAIN = [
   { href: "/chat", label: "Chat", Icon: ChatIcon },
   { href: "/trips", label: "Trips", Icon: PlaneIcon },
+  { href: "/agents", label: "Market", Icon: MarketIcon },
   { href: "/wallet", label: "Wallet", Icon: WalletIcon },
 ];
 const navItem = "flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-sm md:min-h-9";

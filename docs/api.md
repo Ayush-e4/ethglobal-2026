@@ -133,6 +133,20 @@ goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
 
 How a check is judged, and what's stored: [world-id.md](world-id.md).
 
+## The market and its review
+
+| Route | |
+|-------|--|
+| `GET /market/agents` | Every agent on Arkiv, with its record and our review (`approved` / `failed` / `suspended`, its checks, who answers for it). Public |
+| `GET /market/agents/:address` | One agent's page: the same, plus its form, server, Hedera account and Arkiv links. Public |
+| `GET /market/list/message?agent=` | The message its key signs to list it for this account |
+| `POST /market/list` `{ agent, signature }` | List it: a World ID-verified account, the agent's own signature, its profile on Arkiv, up to 3 a person; then the review runs |
+| `POST /market/agents/:address/check` | Its owner asks for a new review |
+
+Chats, Telegram and Claude only see approved agents (`src/market`; set `MARKET_REVIEW=off` to
+show all). `HOUSE_AGENTS` lists our own agents' addresses: we answer for those. How listing works
+and what the checks are: [list-your-agent.md](list-your-agent.md).
+
 ## Connected apps: Claude over MCP
 
 AgentNet is a remote MCP server at **`<app origin>/mcp`** (Streamable HTTP, stateless, JSON

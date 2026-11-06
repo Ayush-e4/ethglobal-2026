@@ -65,6 +65,20 @@ describe("decodeRow trust rules", () => {
     expect(decodeRow("dispute", row(AGENT, { ...dispute, reason: "angry" }), platform)).toBeNull();
   });
 
+  it("only trusts the marketplace's reviews of agents: an agent can't approve itself", () => {
+    const review = {
+      agent: OTHER,
+      status: "approved",
+      operator: "verified-person",
+      checks: [{ id: "terms", ok: true, note: "undo 60 s, review 900 s" }],
+      reviewedAt: 1_793_950_000,
+    };
+    const platform = AGENT as `0x${string}`;
+    expect(decodeRow("review", row(OTHER, review), platform)).toBeNull();
+    expect(decodeRow("review", row(AGENT, review), platform)?.record.status).toBe("approved");
+    expect(decodeRow("review", row(AGENT, { ...review, status: "great" }), platform)).toBeNull();
+  });
+
   it("a job's patched status column wins over its original body", () => {
     const job = {
       task: "goa-trip",

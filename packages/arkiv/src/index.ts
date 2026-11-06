@@ -11,6 +11,7 @@ export {
   liveQuotes,
   receiptsForJob,
   recentDeliveries,
+  reviewsByAgent,
   verifiedRatings,
 } from "./read";
 export * from "./records";
@@ -26,5 +27,6 @@ export {
   recordDelivery,
   recordDispute,
   recordReceipt,
+  recordReview,
   setJobStatus,
 } from "./write";
