@@ -7,6 +7,7 @@ import { useBackToClose } from "@/lib/native/back";
 import { haptic } from "@/lib/native/haptics";
 import { useWakeLock } from "@/lib/native/wake-lock";
 import { useSession } from "@/lib/session";
+import { CardSkeleton } from "../Skeleton";
 import { SuccessMark } from "../SuccessMark";
 import { LiveQr } from "./LiveQr";
 import { chirp, preloadSound } from "./sound";
@@ -112,7 +113,12 @@ export function GetPaid() {
       .catch(fail);
   };
 
-  if (merchant === undefined) return <p className="p-6 text-sm text-muted">Loading…</p>;
+  if (merchant === undefined)
+    return (
+      <div className="mx-auto w-full max-w-[520px] p-4 sm:p-6">
+        <CardSkeleton label="Loading your shop" />
+      </div>
+    );
   if (!merchant)
     return (
       <Shell title="Get paid in person">

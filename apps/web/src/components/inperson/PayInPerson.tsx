@@ -7,6 +7,7 @@ import { useBackToClose } from "@/lib/native/back";
 import { haptic } from "@/lib/native/haptics";
 import { LimitCard } from "../chat/LimitCard";
 import { SuccessMark } from "../SuccessMark";
+import { WaitSteps } from "../WaitSteps";
 import { Camera } from "./Camera";
 import { Shell } from "./GetPaid";
 import { Listening, LiveLine } from "./pay-lines";
@@ -277,6 +278,16 @@ export function PayInPerson() {
                     : "Waiting for the live check…"
                   : `Pay ₹${seen.inr.toLocaleString("en-IN")}`}
             </button>
+          )}
+          {step === "paying" && (
+            <WaitSteps
+              steps={[
+                [0, "Sending the payment to Hedera…"],
+                [5, "Hedera is confirming it…"],
+                [15, "A first payment also sets up your spending limit on Hedera: keep this open."],
+                [60, "Still going: Hedera is slow right now. Nothing is charged twice."],
+              ]}
+            />
           )}
           <button
             type="button"

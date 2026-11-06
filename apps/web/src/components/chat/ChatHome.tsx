@@ -7,6 +7,7 @@ import { useEnter } from "@/lib/native/motion";
 import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
 import { ChatIcon, HotelIcon, MarketIcon, UndoIcon } from "../icons";
+import { InstallCard } from "../shell/Pwa";
 import { Composer } from "./Composer";
 
 /** The first message is handed to the chat page this way, so it sends once the page is open. */
@@ -94,6 +95,7 @@ export function ChatHome() {
         </p>
       </div>
       <Composer onSend={start} disabled={busy} placeholder="Ask anything" />
+      <InstallCard />
       {error && (
         <p role="alert" className="text-center text-sm text-bad">
           {error}

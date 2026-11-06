@@ -102,6 +102,37 @@ button,
 .tab-pill {
   transition: transform 420ms cubic-bezier(0.3, 1.35, 0.4, 1);
 }
+
+/* Placeholders shimmer; a long wait's bar keeps moving. */
+.skeleton {
+  background: linear-gradient(90deg, #efebe4 0%, #f7f4ef 40%, #efebe4 80%) 0 0 / 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -150% 0;
+  }
+}
+.wait-bar {
+  position: relative;
+}
+.wait-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--color-teal);
+  animation: wait-slide 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes wait-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -231,7 +262,10 @@ button,
     animation: none !important;
   }
   .press,
-  .fade-in {
+  .fade-in,
+  .skeleton,
+  .wait-bar::after,
+  .tab-pill {
     transition: none;
     animation: none;
   }

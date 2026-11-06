@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api, type Trip } from "@/lib/api";
 import { useEnter } from "@/lib/native/motion";
+import { CardSkeleton } from "../Skeleton";
 import { TripCard } from "./TripCard";
 
 /** A trip is one chat: its flight and stay together, the newest trip first. */
@@ -49,7 +50,14 @@ export function TripsView() {
         </p>
       </div>
       {!trips ? (
-        <p className="p-10 text-center text-muted">{error ?? "Loading your trips…"}</p>
+        error ? (
+          <p className="p-10 text-center text-muted">{error}</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <CardSkeleton label="Loading your trips" />
+            <CardSkeleton label="Loading your trips" />
+          </div>
+        )
       ) : trips.length === 0 ? (
         <section className="flex flex-col items-start gap-3 rounded-2xl border border-line p-5 text-sm text-ink-3">
           Nothing booked yet.

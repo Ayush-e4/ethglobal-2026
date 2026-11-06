@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { type ReactNode, Suspense, useEffect, useState, ViewTransition } from "react";
 import { useBackToClose, useGoBack, useNavStack } from "@/lib/native/back";
 import { BackIcon, LogoMark, MenuIcon, PlusIcon } from "../icons";
+import { OfflineBar } from "./OfflineBar";
 import { Sidebar } from "./Sidebar";
 import { showsTabs, TabBar } from "./TabBar";
 
@@ -101,6 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Only navigations tagged with a direction animate (browser back and refreshes don't). */}
       <ViewTransition update={PAGE_MOTION} default="none">
         <div className={`flex min-w-0 flex-1 flex-col ${tabs ? "with-tabbar" : ""}`}>
+          <OfflineBar />
           {children}
         </div>
       </ViewTransition>
