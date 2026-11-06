@@ -128,6 +128,12 @@ concierge's model: the card holds no details, and in Telegram the guest's reply 
 it reaches the concierge. Each hire keeps the guest's name and email for its receipt and
 confirmation.
 
+**Confirmation emails** (`src/email`, Resend): when the hotel confirms a booking, the guest gets
+an email with the stay, the booking reference, their name, the agent, its fee (with the Hedera
+payment) and a link to the chat; when PriceGuard rebooks it cheaper, another with the new
+reference and what comes back. Both say it's a sandbox booking. Off without `RESEND_API_KEY`;
+until a domain is verified at Resend, it delivers only to the Resend account's own email.
+
 ## Phone alerts (Telegram)
 
 | Route | |

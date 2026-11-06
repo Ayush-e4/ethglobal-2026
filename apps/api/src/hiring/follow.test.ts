@@ -39,12 +39,19 @@ async function setup(
     vi.fn(async () => Response.json(job)),
   );
   const posted: string[] = [];
-  const follower = hireFollower(db, { getEscrow: async () => ({ state: escrowState }) } as never, {
-    add: async (_c: string, _r: string, text: string) => {
-      posted.push(text);
-      return {} as never;
+  const booked: string[] = [];
+  const follower = hireFollower(
+    db,
+    { getEscrow: async () => ({ state: escrowState }) } as never,
+    {
+      add: async (_c: string, _r: string, text: string) => {
+        posted.push(text);
+        return {} as never;
+      },
     },
-  });
+    5000,
+    { onBooked: async (_h, ref) => booked.push(ref) },
+  );
   const read = async () =>
     (
       await db
@@ -52,7 +59,7 @@ async function setup(
         .from(hires)
         .where(eq(hires.id, hire?.id as string))
     )[0];
-  return { follower, posted, read };
+  return { follower, posted, read, booked };
 }
 
 describe("hireFollower", () => {
@@ -61,6 +68,9 @@ describe("hireFollower", () => {
     await t.follower.tick();
     expect((await t.read())?.status).toBe("delivered");
     expect(t.posted[0]).toContain("uw4P2UqWj");
+    expect(t.booked).toEqual(["uw4P2UqWj"]); // the confirmation email, once
+    await t.follower.tick();
+    expect(t.booked).toHaveLength(1);
   });
 
   it("marks it released once Hedera paid the agent", async () => {
