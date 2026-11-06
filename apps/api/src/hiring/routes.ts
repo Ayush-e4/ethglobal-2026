@@ -1,10 +1,11 @@
 import { formatUsdc } from "@app/shared";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { currentUser } from "../auth/current";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
-import type { Hire } from "../db/schema";
+import { type Hire, quotes } from "../db/schema";
 import { canCancelBooking } from "./cancel-booking";
 import { DisputeReasonSchema, reportedNote } from "./disputes";
 import { HireError, type HiringService } from "./service";
@@ -127,6 +128,16 @@ export function hireRoutes(db: Db, hiring: HiringService, demoToken?: string) {
     if (!demoToken || !chat || !hireId.success) return c.json({ error: "not_found" }, 404);
     const hire = (await hiring.list(chat.id)).find((h) => h.id === hireId.data);
     if (!hire?.watching || !hire.jobUrl) return c.json({ error: "not_watching" }, 409);
+    // The demo token only ever goes to our own agents, never to a listed third party's job link.
+    const [q] = await db
+      .select({ agent: quotes.agentAddress })
+      .from(quotes)
+      .where(eq(quotes.key, hire.quoteKey));
+    if (!q || !houseAgents().has(q.agent.toLowerCase()))
+      return c.json(
+        { error: "not_ours", message: "Only our own agents take a simulated drop." },
+        409,
+      );
     const res = await fetch(`${hire.jobUrl}/demo-drop`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-demo-token": demoToken },
@@ -138,3 +149,12 @@ export function hireRoutes(db: Db, hiring: HiringService, demoToken?: string) {
   });
   return app;
 }
+
+/** Our own agents (HOUSE_AGENTS, lowercase addresses). */
+const houseAgents = () =>
+  new Set(
+    (process.env.HOUSE_AGENTS ?? "")
+      .split(",")
+      .map((a) => a.trim().toLowerCase())
+      .filter(Boolean),
+  );
