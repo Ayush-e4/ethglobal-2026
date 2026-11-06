@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api, hashscanTx } from "@/lib/api";
 import { useBackToClose } from "@/lib/native/back";
-import { haptic } from "@/lib/native/haptics";
 import { useWakeLock } from "@/lib/native/wake-lock";
 import { useSession } from "@/lib/session";
 import { CardSkeleton } from "../Skeleton";
@@ -73,10 +72,6 @@ export function GetPaid() {
     setReq(null);
   });
   useWakeLock(!!req && status?.status !== "paid" && status?.status !== "expired" && left !== 0);
-  const paidNow = status?.status === "paid";
-  useEffect(() => {
-    if (paidNow) haptic("success");
-  }, [paidNow]);
 
   useEffect(() => {
     api<{ merchant: Merchant | null }>("/merchant")

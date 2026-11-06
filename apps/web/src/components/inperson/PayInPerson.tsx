@@ -1,40 +1,21 @@
 "use client";
 
-import { type Card, decodeRequest, toHex } from "@app/shared";
+import { decodeRequest, toHex } from "@app/shared";
 import { useEffect, useRef, useState } from "react";
-import { hashscanTx } from "@/lib/api";
 import { useBackToClose } from "@/lib/native/back";
 import { haptic } from "@/lib/native/haptics";
 import { LimitCard } from "../chat/LimitCard";
-import { SuccessMark } from "../SuccessMark";
 import { WaitSteps } from "../WaitSteps";
 import { Camera } from "./Camera";
 import { Shell } from "./GetPaid";
+import { type LimitData, post, type Seen } from "./pay-api";
+import { PAY_WAIT, PaidCard } from "./pay-done";
 import { Listening, LiveLine } from "./pay-lines";
 import type { createScanner } from "./scanner";
 import { LISTEN_ONE_MORE_CYCLE_MS, listen, preloadSound } from "./sound";
 
-type Seen = {
-  merchant: { name: string; account: string; verified: boolean };
-  inr: number;
-  status: "open" | "paying" | "paid" | "expired";
-  live: { ok: boolean; reason?: string } | null;
-};
-type LimitData = Extract<Card, { type: "limit" }>;
 const btn =
   "flex min-h-12 w-full items-center justify-center rounded-xl px-5 text-[15px] font-semibold";
-
-async function post<T>(path: string, body: unknown) {
-  const res = await fetch(`/api${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return {
-    ok: res.ok,
-    data: (await res.json().catch(() => ({}))) as T & { message?: string; error?: string },
-  };
-}
 
 /**
  * Paying a shop in person: scan its Live QR, see who and how much (checked by our server: a
@@ -87,9 +68,8 @@ export function PayInPerson() {
       how: via,
     });
     if (r.ok) {
-      setTx(r.data.payTx);
+      setTx(r.data.payTx); // the Paid screen's success mark buzzes and bursts
       setStep("paid");
-      haptic("success");
     } else if (r.data.error === "needs_limit" && r.data.card && r.data.chatId) {
       setLimit({ card: r.data.card, chatId: r.data.chatId });
       setStep("scan");
@@ -171,26 +151,13 @@ export function PayInPerson() {
   if (step === "paid" && seen)
     return (
       <Shell title="Paid">
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-white p-6 text-center">
-          <SuccessMark />
-          <span className="text-sm font-semibold text-ok">Paid</span>
-          <span className="text-[30px] font-bold">₹{seen.inr.toLocaleString("en-IN")}</span>
-          <span className="text-sm text-ink-2">to {seen.merchant.name}</span>
-          <span className="text-xs text-muted">
-            {live ? "Live screen confirmed" : "Paid without the live check"} ·{" "}
-            {seen.merchant.account}
-          </span>
-          {tx && (
-            <a
-              href={hashscanTx(tx)}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-xs text-teal underline"
-            >
-              See it on Hedera
-            </a>
-          )}
-        </div>
+        <PaidCard
+          inr={seen.inr}
+          name={seen.merchant.name}
+          account={seen.merchant.account}
+          live={!!live}
+          tx={tx}
+        />
         <button type="button" onClick={reset} className={`${btn} border border-line-2 bg-white`}>
           Scan another
         </button>
@@ -286,16 +253,7 @@ export function PayInPerson() {
                   : `Pay ₹${seen.inr.toLocaleString("en-IN")}`}
             </button>
           )}
-          {step === "paying" && (
-            <WaitSteps
-              steps={[
-                [0, "Sending the payment to Hedera…"],
-                [5, "Hedera is confirming it…"],
-                [15, "A first payment also sets up your spending limit on Hedera: keep this open."],
-                [60, "Still going: Hedera is slow right now. Nothing is charged twice."],
-              ]}
-            />
-          )}
+          {step === "paying" && <WaitSteps steps={PAY_WAIT} />}
           {step !== "paying" && (
             <button
               type="button"

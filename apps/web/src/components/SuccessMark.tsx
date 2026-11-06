@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { celebrate } from "@/lib/native/celebrate";
+import { haptic } from "@/lib/native/haptics";
 
 /**
  * The moment money lands: a coin pops and turns over into a green tick that draws itself, a
@@ -12,6 +13,7 @@ export function SuccessMark({ size = 72, burst = true }: { size?: number; burst?
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!burst) return;
+    haptic("success");
     const t = setTimeout(() => celebrate(ref.current), 260);
     return () => clearTimeout(t);
   }, [burst]);
