@@ -7,7 +7,7 @@ import { type Hire, hires, type User } from "../db/schema";
 import { HireError } from "./errors";
 
 export const DISPUTE_REASONS = {
-  not_found: "The hotel can't find my booking",
+  not_found: "They can't find my booking",
   wrong_details: "Wrong dates, room or guest",
   other: "Something else",
 } as const;

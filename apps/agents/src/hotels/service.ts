@@ -17,7 +17,7 @@ import type { HotelAgentConfig } from "./config";
 import { HOTEL_FORM } from "./form";
 import type { Job, StoredQuote } from "./types";
 import { PriceWatcher } from "./watch";
-import { HotelWorker } from "./worker";
+import { hotelWorker } from "./worker";
 
 /**
  * Wires a hotel agent up: listed on Arkiv (a new listing only when what it says changed), jobs
@@ -30,7 +30,7 @@ export async function startHotelAgent(config: HotelAgentConfig) {
   const lite = new LiteApiClient(config.liteApiKey);
   const quotes = new JsonStore<StoredQuote>(`${config.dataDir}/${config.id}-quotes.json`);
   const jobs = new JsonStore<Job>(`${config.dataDir}/${config.id}-jobs.json`);
-  const worker = new HotelWorker({
+  const worker = hotelWorker({
     registry,
     agent,
     lite,

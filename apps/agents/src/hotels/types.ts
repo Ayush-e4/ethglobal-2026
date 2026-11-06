@@ -1,5 +1,5 @@
-import type { HotelGuest } from "@app/travel";
 import type { Hex } from "viem";
+import type { PaidJob } from "../jobs/types";
 
 /** A firm quote: the LiteAPI prebook it's built on, and its Arkiv record. */
 export interface StoredQuote {
@@ -58,21 +58,7 @@ export interface Watch {
   note?: string;
 }
 
-export type JobStatus = "held" | "booking" | "delivered" | "refunded" | "cancelled" | "failed";
+export type { JobStatus } from "../jobs/types";
 
 /** One paid booking, from the held payment to delivered (or refunded / cancelled). */
-export interface Job {
-  escrowId: Hex;
-  quoteKey: Hex;
-  task: string;
-  guest: HotelGuest;
-  status: JobStatus;
-  bookingCancelled?: boolean; // the guest cancelled the stay after it was booked
-  startsAt: number; // unix seconds: the undo window ends, work may start
-  bookingId?: string;
-  confirmation?: string;
-  deliveredTx?: string;
-  refundTx?: string;
-  note?: string;
-  watch?: Watch; // a watching agent's, after delivery
-}
+export type Job = PaidJob<Watch>;

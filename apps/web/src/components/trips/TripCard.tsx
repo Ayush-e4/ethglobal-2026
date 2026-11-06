@@ -25,7 +25,7 @@ export function TripCard({ trip }: { trip: Trip }) {
   const [t, setT] = useState(trip);
   const path = `/chats/${t.chatId}/hires/${t.id}`;
   const [pill, tone] = t.bookingCancelledAt
-    ? (["stay cancelled", "bg-side text-ink-3"] as const)
+    ? (["cancelled afterwards", "bg-side text-ink-3"] as const)
     : PILL[t.status];
   const booked = t.status === "delivered" || t.status === "released";
   const update = (h: Partial<Trip>) => setT((x) => ({ ...x, ...h }));

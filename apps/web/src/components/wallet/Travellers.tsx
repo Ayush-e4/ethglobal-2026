@@ -41,7 +41,7 @@ export function Travellers() {
         <span className="font-semibold">Travellers</span>
         <span className="text-ink-3">
           Who your bookings can be for, up to {max}. A booking sends the chosen one's details only
-          to the agent you hire, and on to the hotel.
+          to the agent you hire, and on to the hotel or airline.
         </span>
       </div>
       {list.length > 0 && (

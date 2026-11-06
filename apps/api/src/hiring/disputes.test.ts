@@ -57,7 +57,7 @@ describe("reporting a problem", () => {
     expect(registry.dispute).toHaveBeenCalledWith(concierge, hire.escrowId);
     expect(h).toMatchObject({
       status: "disputed",
-      note: "reported: The hotel can't find my booking",
+      note: "reported: They can't find my booking",
     });
     expect((await db.select().from(hires).where(eq(hires.id, hire.id)))[0]?.status).toBe(
       "disputed",
@@ -67,7 +67,7 @@ describe("reporting a problem", () => {
       { url: "http://agent/jobs/0xe5/dispute", body: { reason: "not_found" } },
     ]);
     expect(reportedNote(h, "not_found")).toMatch(
-      /^Reported to StayWise: "The hotel can't find my booking"\. The 0\.02 USDC fee is frozen/,
+      /^Reported to StayWise: "They can't find my booking"\. The 0\.02 USDC fee is frozen/,
     );
     // Reported twice: nothing more happens.
     await disputeHire(d, user, hire.chatId, hire.id, "not_found");

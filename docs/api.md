@@ -78,6 +78,11 @@ moves from the app:
    agent, which checks the signer against Hedera (the limit's owner or its AI key) before
    cancelling at the hotel. The agent's fee stays paid: it booked as promised. The chat says so.
 
+**When an agent refuses before payment.** An agent can refuse a booking before anything is paid,
+with a reason (HTTP 422 `{ error, message }`; SkyHop does when the traveller has no date of
+birth or gender). The hire is marked `failed`, nothing is charged, and the reason goes to the
+chat and the concierge.
+
 **Trips and receipts.** `GET /trips` lists your bookings from every chat, newest first, with the
 chat's title. `GET /receipts/:id` is public, by the hire's unguessable id: what was booked, the
 fee's escrow as Hedera holds it now, and links to the payment, the escrow contract, the agent's
@@ -132,7 +137,7 @@ How a check is judged, and what's stored: [world-id.md](world-id.md).
 
 | Route | |
 |-------|--|
-| `GET /travellers`, `POST /travellers` | Your saved travellers (up to 5: first and last name, email, phone, "me"), and adding one |
+| `GET /travellers`, `POST /travellers` | Your saved travellers (up to 5: first and last name, email, phone, "me", and for flights the date of birth and gender as on the ID), and adding one |
 | `PATCH /travellers/:id`, `DELETE /travellers/:id` | Change one, or remove one (a chat booking for them asks again) |
 | `GET /chats/:id/traveller`, `POST /chats/:id/traveller` `{ travellerId }` | Who this chat's bookings are for |
 

@@ -227,7 +227,7 @@ describe("a hire, live in Telegram", () => {
     await tap(`rp:${hire.id}`); // the reasons, in place of the buttons
     const reasons = calls.filter((c) => c.method === "editMessageReplyMarkup").at(-1);
     expect(rows(reasons).map((r) => r[0]?.text)).toEqual([
-      "The hotel can't find my booking",
+      "They can't find my booking",
       "Wrong dates, room or guest",
       "Something else",
       "Back",

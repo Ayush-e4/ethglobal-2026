@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ApiError, api, type HireView } from "@/lib/api";
 
 const REASONS = [
-  ["not_found", "The hotel can't find my booking"],
+  ["not_found", "They can't find my booking"],
   ["wrong_details", "Wrong dates, room or guest"],
   ["other", "Something else"],
 ] as const;

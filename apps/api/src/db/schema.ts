@@ -220,7 +220,7 @@ export const hires = pgTable(
     payTx: text("pay_tx"), // the Hedera transaction that held the fee
     undoUntil: at("undo_until"),
     reviewUntil: at("review_until"), // after delivery: the buyer can report a problem until then
-    bookingCancelledAt: at("booking_cancelled_at"), // the guest cancelled the stay afterwards
+    bookingCancelledAt: at("booking_cancelled_at"), // the guest cancelled it afterwards
     jobUrl: text("job_url"),
     bookingRef: text("booking_ref"),
     note: text("note"),

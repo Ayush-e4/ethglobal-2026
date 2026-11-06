@@ -83,7 +83,7 @@ export function hireRoutes(db: Db, hiring: HiringService, demoToken?: string) {
       await store.add(
         chat.id,
         "assistant",
-        `Cancelled: ${hire.title}. ${hire.agentName} cancelled the stay at the hotel (the room was refundable). Its ${formatUsdc(hire.feeUnits)} USDC fee stays paid: the booking was made as promised.`,
+        `Cancelled: ${hire.title}. ${hire.agentName} cancelled it with the hotel or airline. Its ${formatUsdc(hire.feeUnits)} USDC fee stays paid: the booking was made as promised.`,
       );
       return c.json(show(hire));
     } catch (err) {

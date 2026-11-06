@@ -209,6 +209,7 @@ export async function runTool(
           why: o.tag,
           title: o.title,
           subtitle: o.subtitle,
+          details: o.details?.slice(0, 3), // e.g. a return flight's way back
           price: o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : undefined,
           refundable: o.refundable,
           rating: o.rating,

@@ -7,9 +7,9 @@ const input =
   "h-10 min-w-0 rounded-[10px] border border-line-2 bg-white px-3 text-sm outline-none focus:border-teal";
 
 /**
- * A traveller's details, as the hotel needs them: name, email (for the confirmation) and phone.
- * Saves a new traveller, or changes `editing`. They stay on the account; a booking sends them
- * only to the agent hired for it.
+ * A traveller's details: name, email (for the confirmation) and phone, which hotels need, and
+ * for flights the date of birth and gender as on the ID. Saves a new traveller, or changes
+ * `editing`. They stay on the account; a booking sends them only to the agent hired for it.
  */
 export function TravellerForm({
   editing,
@@ -27,24 +27,36 @@ export function TravellerForm({
     lastName: editing?.lastName ?? "",
     email: editing?.email ?? "",
     phone: editing?.phone ?? "",
+    bornOn: editing?.bornOn ?? "",
+    gender: editing?.gender ?? "",
     isSelf: editing?.isSelf ?? !!firstOne,
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setF({ ...f, [k]: k === "isSelf" ? e.target.checked : e.target.value });
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setF({
+      ...f,
+      [k]:
+        k === "isSelf" && e.target instanceof HTMLInputElement ? e.target.checked : e.target.value,
+    });
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    // Left empty: not sent (and cleared on a change).
+    const body = {
+      ...f,
+      bornOn: f.bornOn || undefined,
+      gender: f.gender || undefined,
+    };
     try {
       const r = editing
         ? await api<{ traveller: Traveller }>(`/travellers/${editing.id}`, {
             method: "PATCH",
-            body: f,
+            body,
           })
-        : await api<{ traveller: Traveller }>("/travellers", { method: "POST", body: f });
+        : await api<{ traveller: Traveller }>("/travellers", { method: "POST", body });
       onSaved(r.traveller);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't save. Try again.");
@@ -91,6 +103,30 @@ export function TravellerForm({
           onChange={set("phone")}
         />
       </div>
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1 text-xs text-ink-3">For flights, as on the ID (optional)</legend>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <input
+            className={input}
+            type="date"
+            aria-label="Date of birth"
+            autoComplete="bday"
+            max={new Date().toISOString().slice(0, 10)}
+            value={f.bornOn}
+            onChange={set("bornOn")}
+          />
+          <select
+            className={input}
+            aria-label="Gender on the ID"
+            value={f.gender}
+            onChange={set("gender")}
+          >
+            <option value="">Gender on the ID</option>
+            <option value="f">Female</option>
+            <option value="m">Male</option>
+          </select>
+        </div>
+      </fieldset>
       <label className="flex items-center gap-2 text-ink-3">
         <input type="checkbox" checked={f.isSelf} onChange={set("isSelf")} /> This is me
       </label>

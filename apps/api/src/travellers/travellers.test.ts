@@ -122,6 +122,13 @@ describe("a guest typed in one message", () => {
     expect(parseGuest(text)).toEqual(ASHA);
   });
 
+  it.each([
+    "Asha Test, asha@example.com, +91 98000 00001, 1990-05-14, F",
+    "Asha Test female 14/05/1990 asha@example.com +91 98000 00001",
+  ])("with a date of birth and gender, for flights: %s", (text) => {
+    expect(parseGuest(text)).toEqual({ ...ASHA, bornOn: "1990-05-14", gender: "f" });
+  });
+
   it("says what's missing", () => {
     expect(parseGuest("Asha, asha@example.com")).toEqual({
       error: "I need first and last name, a phone number",

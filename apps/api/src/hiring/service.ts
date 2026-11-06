@@ -13,7 +13,7 @@ import type { HiringConfig } from "./config";
 import { type DisputeHook, type DisputeReason, disputeHire } from "./disputes";
 import { HireError } from "./errors";
 import { demoLimitFor, LIMIT_TERMS, limitParams, liveLimit, NeedsLimit } from "./limits";
-import { PayError, payAgent, TEST_TRAVELLER } from "./pay";
+import { AgentRefused, PayError, payAgent, TEST_TRAVELLER } from "./pay";
 
 const USDC_TESTNET = "0.0.429274";
 
@@ -163,6 +163,8 @@ export function hiringService(
       } catch (err) {
         const note = err instanceof PayError ? `payment refused: ${err.message}` : "payment failed";
         await save(hire.id, { status: "failed", note });
+        if (err instanceof AgentRefused)
+          throw new HireError(`${quote.agentName}: ${err.message} Nothing was charged.`);
         throw new HireError(`${quote.agentName} couldn't be paid (${note}). Nothing was charged.`);
       }
     },

@@ -56,8 +56,8 @@ export function TravellerCard({ card, ctx }: { card: TravellerCardData; ctx: Car
       <div className="flex flex-col gap-1">
         <span className="text-[15px] font-bold">Who is this booking for?</span>
         <span className="text-sm text-ink-3">
-          Their name, email and phone go only to {card.agentName}, for this booking, and on to the
-          hotel. They stay out of the chat.
+          Their details go only to {card.agentName}, for this booking, and on to the hotel or
+          airline. They stay out of the chat.
         </span>
       </div>
       {chosen ? (

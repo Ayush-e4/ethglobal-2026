@@ -36,7 +36,7 @@ export function telegramTravellers(
         rows.push([{ text: "➕ Someone else", callback_data: "tv:new" }]);
       await say(
         tgChatId,
-        `<b>Who is this booking for?</b>\nTheir name, email and phone go only to ${esc(card.agentName)}, for this booking, and on to the hotel.`,
+        `<b>Who is this booking for?</b>\nTheir name, email and phone go only to ${esc(card.agentName)}, for this booking, and on to the hotel or airline.`,
         { parse_mode: "HTML", reply_markup: { inline_keyboard: rows } },
       );
     },
@@ -57,9 +57,13 @@ export function telegramTravellers(
       if (cq.data === "tv:new") {
         awaiting.set(tgChatId, card.reply);
         await answer("Who's travelling?");
-        await say(tgChatId, `Reply with the guest's name, email and phone, like: ${EXAMPLE}`, {
-          reply_markup: { force_reply: true, input_field_placeholder: "Name, email, phone" },
-        });
+        await say(
+          tgChatId,
+          `Reply with the guest's name, email and phone, like: ${EXAMPLE}\nFor a flight, add the date of birth and gender too: ${EXAMPLE}, 1990-05-14, F`,
+          {
+            reply_markup: { force_reply: true, input_field_placeholder: "Name, email, phone" },
+          },
+        );
         return null;
       }
       const ok = await travellers.choose(link.userId, link.appChatId, (cq.data ?? "").slice(3));

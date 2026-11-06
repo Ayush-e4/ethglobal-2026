@@ -77,13 +77,13 @@ describe("the guest's confirmations", () => {
       subject: "Booked: Park Inn by Radisson Goa Candolim · 10–12 Jan (ref Tb8Y44VaX)",
     });
     expect(e?.text).toMatch(
-      /^Hi Asha, your stay is booked\.[\s\S]*Booking reference: Tb8Y44VaX[\s\S]*Guest: Asha Test/,
+      /^Hi Asha, it's booked\.[\s\S]*Booking reference: Tb8Y44VaX[\s\S]*Guest: Asha Test/,
     );
     expect(e?.text).toContain(
       "https://hashscan.io/testnet/transaction/0.0.11328382@1793936488.549097829",
     );
     expect(e?.text).toContain("https://app.example/chat/c1");
-    expect(e?.text).toMatch(/test booking in a hotel sandbox/);
+    expect(e?.text).toMatch(/test booking in a travel sandbox/);
   });
 
   it("rebooked: the new reference and what comes back", async () => {
