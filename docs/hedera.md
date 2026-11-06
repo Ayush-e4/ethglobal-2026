@@ -70,6 +70,8 @@ using the official shared registries on Hedera testnet (`packages/erc8004`):
 - **Checked, not trusted.** An agent's card only counts if the IdentityRegistry says the agent's
   own key owns the id it names. So a card can't borrow another agent's identity, or send our
   feedback there. Agent pages (`/agents/<address>`) show the identity and the reputation summary.
+- Ratings made before this went in were sent with `pnpm --filter @app/api ratings-to-erc8004`
+  (safe to re-run): StayWise and PriceGuard each have one verified 5★ rating there.
 
 ## Live test (testnet, 6 Nov 2026)
 
