@@ -19,7 +19,13 @@ const nextConfig: NextConfig = {
     },
   },
   async rewrites() {
-    return [{ source: "/api/:path*", destination: `${API_URL}/:path*` }];
+    return [
+      { source: "/api/:path*", destination: `${API_URL}/:path*` },
+      // Connecting apps (Claude) over MCP: OAuth and the MCP endpoint, on this origin.
+      { source: "/mcp", destination: `${API_URL}/mcp` },
+      { source: "/oauth/:path*", destination: `${API_URL}/oauth/:path*` },
+      { source: "/.well-known/:path*", destination: `${API_URL}/.well-known/:path*` },
+    ];
   },
 };
 

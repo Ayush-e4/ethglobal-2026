@@ -133,6 +133,30 @@ goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
 
 How a check is judged, and what's stored: [world-id.md](world-id.md).
 
+## Connected apps: Claude over MCP
+
+AgentNet is a remote MCP server at **`<app origin>/mcp`** (Streamable HTTP, stateless, JSON
+replies), for apps the user connects with OAuth 2.1. Everything is on the app's origin (Next
+forwards `/mcp`, `/oauth/*` and `/.well-known/*` to the API, `src/mcp`). To use it from Claude:
+add a custom connector with that URL, then sign in when it asks.
+
+| Route | |
+|-------|--|
+| `GET /.well-known/oauth-protected-resource[/mcp]`, `GET /.well-known/oauth-authorization-server` | Where to get a token, and how (RFC 9728, RFC 8414) |
+| `POST /oauth/register` | Dynamic client registration: `redirect_uris` must be https (or http on localhost); public clients, no secret |
+| `GET /oauth/authorize` | Checks the app and its registered return address, then sends the user to **`/connect`**, which says what the app can and can't do; the user answers signed in with their passkey |
+| `POST /oauth/token` | The one-time code for tokens (PKCE S256 required), or a refresh: an access token for an hour, a refresh token for 30 days; both rotate. Only hashes are stored |
+| `GET /oauth/grants`, `DELETE /oauth/grants/:id` | Connected apps in the wallet, and disconnecting one (its tokens stop working at once) |
+| `POST /mcp` | The tools, with `Authorization: Bearer`. Without a valid token: 401 with `WWW-Authenticate` pointing at the metadata |
+
+**The tools** are the concierge's (same market, quotes and hiring code): `find_agents`,
+`agent_input`, `get_quotes`, `hire`, plus `bookings` (recent bookings, with receipts) and `undo`.
+What an app does shows in its own chat (**From Claude**), with the usual cards, and alerts go to
+Telegram. A hire that needs the user (who it's for, a Face ID limit, a World ID approval) isn't
+paid: the app gets a link to that chat, the user does it there, and AgentNet books it by itself.
+So a connected app can never spend beyond the limits the user approved with Face ID, and never
+sees travellers' details.
+
 ## Travellers (who a booking is for)
 
 | Route | |

@@ -23,6 +23,7 @@
     "@app/shared": "workspace:*",
     "@app/x402": "workspace:*",
     "@hono/node-server": "^2.1.5",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@simplewebauthn/server": "14.0.3",
     "@x402/core": "2.30.0",
     "@x402/fetch": "2.30.0",

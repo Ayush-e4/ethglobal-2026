@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, hashscanAccount, shortAddress, usdc, type WalletInfo } from "@/lib/api";
 import { PasskeyIcon } from "../icons";
 import { Alerts } from "./Alerts";
+import { ConnectedApps } from "./ConnectedApps";
 import { Devices } from "./Devices";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
@@ -64,6 +65,7 @@ export function WalletView() {
           </section>
           <Alerts />
           <Travellers />
+          <ConnectedApps />
         </>
       ) : !w || w.status === "creating" ? (
         <p
@@ -133,6 +135,7 @@ export function WalletView() {
           <WorldBonus onBonus={load} />
           <Alerts />
           <Travellers />
+          <ConnectedApps />
           <Limits />
           <Devices />
           <TopUp address={w.address} />

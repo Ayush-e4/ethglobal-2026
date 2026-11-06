@@ -274,6 +274,8 @@ export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 
 // Saved travellers.
+// Apps connected to an account (OAuth): Claude, for one.
+export * from "./oauth-schema";
 export * from "./travel-schema";
 // World ID: checks, the welcome bonus, verified ratings.
 export * from "./world-schema";

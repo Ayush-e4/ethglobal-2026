@@ -120,6 +120,13 @@
       "when": 1793951386943,
       "tag": "0016_typical_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793955440776,
+      "tag": "0017_gigantic_rick_jones",
+      "breakpoints": true
     }
   ]
 }
