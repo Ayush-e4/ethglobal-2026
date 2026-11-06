@@ -54,6 +54,30 @@ sign-in always go to the network, never a stale copy. Chrome and Android show **
 in the sidebar (their install prompt); on an iPhone it explains Share → Add to Home Screen.
 Installing needs https (any deployed address; on this machine, localhost).
 
+## Feels like an app on a phone
+
+What an installed web app can do on iPhones and Android today, used where it helps:
+
+| Native thing | Where | How |
+|---|---|---|
+| Tab bar, Back below a tab | Chat, Trips, Pay, Get paid, Wallet; a chat thread | `shell/TabBar.tsx`, `shell/AppShell.tsx` |
+| Back closes what's on top first | The drawer, Pay's scanner, Get paid's QR | One history entry per open layer (`lib/native/back.ts`) |
+| Page slides | Tabs rise in; a chat slides in from the right | React `<ViewTransition>` with typed navigations (`tab`, `nav-forward`, `nav-back`) |
+| Haptics | Tabs, payment success and failure | Vibration API on Android; a tap tick on iOS 18+ (`lib/native/haptics.ts`) |
+| Screen stays on | While a shop shows its QR | Screen Wake Lock (Android; iPhones from iOS 18.4) |
+| Share sheet | Receipts | Web Share (copies the link where there's none) |
+| Install | A card on the chat home on phones | Chrome's prompt; Safari's two steps |
+
+Motion: a WebGL2 burst and a coin-flip tick when money lands (`lib/native/celebrate.ts`,
+`SuccessMark.tsx`); a WebGL orb that follows the microphone while listening for a chirp
+(`inperson/ListenOrb.tsx`); GSAP for lists that rise in, new messages, the undo ring and the
+sliding tab highlight (`lib/native/motion.ts`). Placeholders shimmer while loading, a slow
+payment says what Hedera is doing, and an offline bar explains a stalled screen. Reduced motion
+(a phone setting) turns all of it off.
+
+Not used yet: push notifications and app-icon badges (installed apps on both, iOS 16.4+): they
+need a server side (subscriptions, signing keys); Telegram alerts cover it for now.
+
 ## The hire card
 
 After **Choose**, the concierge hires the agent and the chat shows its card, which follows the hire
