@@ -154,8 +154,16 @@ export function telegramChat(d: TelegramChatDeps) {
       for (const card of reply.cards) {
         if (card.type === "human") await human(tgChatId, user.id, chat.id, card);
         else
-          for (const m of cardMessages(card, appLink))
-            await t.tg(m.method, { chat_id: tgChatId, ...m.body }).catch(() => null);
+          for (const m of cardMessages(card, appLink)) {
+            const sent = await t.tg(m.method, { chat_id: tgChatId, ...m.body }).catch(() => null);
+            if (!sent?.ok && m.method === "sendPhoto") {
+              // A photo Telegram can't load: the same offer as text, with its buttons.
+              const { photo: _, caption, ...rest } = m.body;
+              await t
+                .tg("sendMessage", { chat_id: tgChatId, ...rest, text: caption })
+                .catch(() => null);
+            }
+          }
       }
     } catch (err) {
       log(`telegram chat ${tgChatId}: ${String(err).slice(0, 160)}`);
