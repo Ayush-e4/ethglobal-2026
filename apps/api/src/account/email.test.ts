@@ -41,4 +41,29 @@ describe("the account's email", () => {
     expect(tried).toEqual(["me@example.com"]);
     expect((await call("POST", "/account/email/test")).status).toBe(429); // not twice in a row
   });
+
+  it("demo accounts get no emails: they can't set one or send a test", async () => {
+    const db: Db = await testDb();
+    const [u] = await db.insert(users).values({ isDemo: true, email: "x@example.com" }).returning();
+    if (!u) throw new Error("no user");
+    const cookie = `app_session=${await createSession(db, u.id)}`;
+    const sent: string[] = [];
+    const app = emailRoutes(db, {
+      available: true,
+      tryEmail: async (e) => {
+        sent.push(e.to);
+        return { ok: true };
+      },
+      test: (to) => ({ to, subject: "t", html: "h", text: "t" }),
+    });
+    const call = (method: string, path: string, body?: unknown) =>
+      app.request(path, {
+        method,
+        headers: { Cookie: cookie, "content-type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    expect((await call("PUT", "/account/email", { email: "victim@example.com" })).status).toBe(403);
+    expect((await call("POST", "/account/email/test")).status).toBe(403);
+    expect(sent).toEqual([]);
+  });
 });
