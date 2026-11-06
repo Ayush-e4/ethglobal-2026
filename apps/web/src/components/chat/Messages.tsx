@@ -34,9 +34,24 @@ export function Messages({
         t.role === "user" ? (
           <li
             key={t.id}
-            className="max-w-[85%] self-end rounded-[18px_18px_4px_18px] bg-bubble px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] sm:max-w-[78%]"
+            className="flex max-w-[85%] flex-col gap-2 self-end rounded-[18px_18px_4px_18px] bg-bubble px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] sm:max-w-[78%]"
           >
-            {t.text}
+            {t.cards.map((c) =>
+              c.type === "photos" ? (
+                <span key="photos" className="flex flex-wrap gap-2">
+                  {c.thumbs.map((src, i) => (
+                    // biome-ignore lint/performance/noImgElement: a small stored thumbnail
+                    <img
+                      key={src.slice(-24)}
+                      src={src}
+                      alt={`Photo ${i + 1}`}
+                      className="max-h-40 rounded-xl border border-line bg-white object-cover"
+                    />
+                  ))}
+                </span>
+              ) : null,
+            )}
+            {t.text && <span>{t.text}</span>}
           </li>
         ) : (
           // Replies run the full width, flush with the page (no avatar beside them).

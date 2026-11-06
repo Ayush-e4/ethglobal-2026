@@ -144,6 +144,24 @@ describe("claudeConcierge", () => {
     expect(second.messages.map((m) => m.role)).toEqual(["user", "assistant"]); // no "continue"
   });
 
+  it("photos go to Claude before the words; a photo alone is asked about", async () => {
+    const deps = { market: {}, saveQuotes: async () => {}, hire: vi.fn() } as unknown as ToolDeps;
+    const { client, requests } = fakeClient([
+      { content: [{ type: "text", text: "That's a boarding pass." }], stop_reason: "end_turn" },
+    ]);
+    await claudeConcierge(deps, client, () => {})({
+      context: { user: { id: "u" } as never, chatId: "c" },
+      history: [],
+      text: "",
+      images: [{ mediaType: "image/jpeg", data: "QUJD" }],
+      emit: () => {},
+    });
+    const first = requests[0] as { messages: { content: { type: string; text?: string }[] }[] };
+    const content = first.messages.at(-1)?.content ?? [];
+    expect(content.map((b) => b.type)).toEqual(["image", "text"]);
+    expect(content[1]?.text).toMatch(/without a message/);
+  });
+
   it("uses Haiku, with Sonnet only as an advisor, at most once", async () => {
     const { reply, requests } = run([{ content: [cited], stop_reason: "end_turn" }]);
     await reply;

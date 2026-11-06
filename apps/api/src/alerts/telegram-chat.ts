@@ -8,7 +8,7 @@ import { alertChannels, chats, messages, users } from "../db/schema";
 import type { TravellerService } from "../travellers/service";
 import type { WorldCheck } from "../world/checks";
 import type { CallbackQuery } from "./live-hires";
-import type { TelegramAlerts } from "./telegram";
+import type { TelegramAlerts, TgPhotos } from "./telegram";
 import { showSlide } from "./telegram-carousel";
 import {
   cardMessages,
@@ -19,6 +19,7 @@ import {
   html,
   quoteButton,
 } from "./telegram-format";
+import { telegramLinks } from "./telegram-links";
 import { telegramTravellers } from "./telegram-travellers";
 
 export interface TelegramChatDeps {
@@ -57,25 +58,7 @@ export function telegramChat(d: TelegramChatDeps) {
     t.tg("sendMessage", { chat_id: chatId, text, ...extra }).catch(() => null);
   const people = telegramTravellers(t, d.travellers, say);
 
-  async function link(tgChatId: string) {
-    const [row] = await db
-      .select()
-      .from(alertChannels)
-      .where(eq(alertChannels.telegramChatId, tgChatId));
-    return row ?? null;
-  }
-
-  /** The AgentNet chat this Telegram chat is in, made from its first message if there's none. */
-  async function chatFor(userId: string, appChatId: string | null, firstText: string) {
-    const existing = appChatId ? await store.get(userId, appChatId).catch(() => null) : null;
-    if (existing) return existing;
-    const chat = await store.create(userId, firstText);
-    await db
-      .update(alertChannels)
-      .set({ appChatId: chat.id })
-      .where(eq(alertChannels.userId, userId));
-    return chat;
-  }
+  const { link, chatFor } = telegramLinks(db, store);
 
   /** A World ID approval from Telegram: a button to World's page; once it passes, carry on. */
   async function human(
@@ -113,7 +96,7 @@ export function telegramChat(d: TelegramChatDeps) {
   }
 
   /** One turn with the concierge, as if typed in the app's chat. */
-  async function turn(tgChatId: string, text: string): Promise<void> {
+  async function turn(tgChatId: string, text: string, photos?: TgPhotos): Promise<void> {
     if (busy.has(tgChatId)) {
       await say(tgChatId, "Still on your last message: one moment.");
       return;
@@ -127,7 +110,9 @@ export function telegramChat(d: TelegramChatDeps) {
         return;
       }
       // "Someone else": this message is the guest's details, so it never reaches the concierge.
-      const guest = await people.intercept(tgChatId, user.id, l.appChatId, text);
+      const guest = photos
+        ? { handled: false as const }
+        : await people.intercept(tgChatId, user.id, l.appChatId, text);
       if (guest.handled) {
         if (guest.carryOn) {
           busy.delete(tgChatId);
@@ -135,9 +120,14 @@ export function telegramChat(d: TelegramChatDeps) {
         }
         return;
       }
-      const chat = await chatFor(user.id, l.appChatId, text);
+      const chat = await chatFor(user.id, l.appChatId, text || "A photo");
       const history = toHistory(await store.messages(chat.id));
-      await store.add(chat.id, "user", text);
+      await store.add(
+        chat.id,
+        "user",
+        text,
+        photos ? [{ type: "photos", thumbs: photos.thumbs }] : [],
+      );
       const draftId = 1 + Math.floor(Math.random() * 2 ** 30);
       const draft = (s: string) =>
         t
@@ -156,6 +146,7 @@ export function telegramChat(d: TelegramChatDeps) {
         context: { user, chatId: chat.id },
         history,
         text,
+        images: photos?.images,
         emit: (e) => {
           if (e.type === "text") {
             written += e.delta;

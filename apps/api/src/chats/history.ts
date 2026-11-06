@@ -41,6 +41,8 @@ export function cardNote(card: Card): string {
       return `[web sources shown: ${card.sources.map((x) => x.title).join("; ")}]`;
     case "options":
       return `[choices shown: ${card.options.map((o) => o.label).join(" / ")}]`;
+    case "photos":
+      return `[the user sent ${card.thumbs.length} photo${card.thumbs.length === 1 ? "" : "s"} with this message: what your reply said about them is what you know of them now]`;
   }
 }
 
