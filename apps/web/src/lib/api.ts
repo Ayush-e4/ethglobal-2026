@@ -110,6 +110,12 @@ export type AgentPageView = MarketAgentView & {
   } | null;
   endpointHost: string;
   hederaAccount: string | null;
+  erc8004: {
+    agentId: string;
+    url: string;
+    reputation: { count: number; average: number } | null; // verified people's ratings
+    reporter: string | null; // who gave that feedback: our concierge
+  } | null;
   links: { label: string; url: string }[];
 };
 

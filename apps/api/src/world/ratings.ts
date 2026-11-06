@@ -20,6 +20,14 @@ export const raterId = (secret: string, iss: string, sub: string, agent: string)
 export interface RatingsOptions {
   secret: string;
   post: ((r: Rating) => Promise<{ entityKey: string; txHash: string }>) | null; // to Arkiv
+  // Then, also as ERC-8004 feedback on Hedera: its transaction, or null.
+  alsoTo?: (r: {
+    agent: string;
+    endpoint: string;
+    score: number;
+    arkivKey: string;
+    job: string;
+  }) => Promise<string | null>;
   log?: (line: string) => void;
 }
 
@@ -34,11 +42,11 @@ export function worldRatings(db: Db, o: RatingsOptions) {
   /** The user's hire, with the address of the agent that did it. */
   async function hireOf(userId: string, hireId: string) {
     const [row] = await db
-      .select({ hire: hires, agent: quotes.agentAddress })
+      .select({ hire: hires, agent: quotes.agentAddress, endpoint: quotes.endpoint })
       .from(hires)
       .innerJoin(quotes, eq(quotes.key, hires.quoteKey))
       .where(and(eq(hires.id, hireId), eq(hires.userId, userId)));
-    return row ? { ...row.hire, agent: row.agent.toLowerCase() } : null;
+    return row ? { ...row.hire, agent: row.agent.toLowerCase(), endpoint: row.endpoint } : null;
   }
 
   async function rate(
@@ -73,6 +81,16 @@ export function worldRatings(db: Db, o: RatingsOptions) {
         .update(ratings)
         .set({ status: "posted", arkivKey: posted.entityKey, arkivTx: posted.txHash })
         .where(mine);
+      void o
+        .alsoTo?.({
+          agent: hire.agent,
+          endpoint: hire.endpoint,
+          score,
+          arkivKey: posted.entityKey,
+          job: hire.escrowId,
+        })
+        .then((tx) => tx && db.update(ratings).set({ erc8004Tx: tx }).where(mine))
+        .catch(() => {});
       return undefined;
     } catch (err) {
       log(`ratings: posting for hire ${hireId.slice(0, 8)} failed: ${String(err).slice(0, 160)}`);

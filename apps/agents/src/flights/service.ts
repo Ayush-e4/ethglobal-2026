@@ -11,6 +11,7 @@ import { MandateClient, registryAddress } from "@app/mandates";
 import { parseUsdc } from "@app/shared";
 import { DuffelClient } from "@app/travel";
 import { privateKeyToAccount } from "viem/accounts";
+import { agentIdentity } from "../identity";
 import { JobWorker } from "../jobs/worker";
 import { JsonStore } from "../store";
 import { flightAgentApp } from "./app";
@@ -68,5 +69,9 @@ export async function startFlightAgent(config: FlightAgentConfig) {
       await publishListings(arkiv, [listing]);
   }
   worker.resume();
-  return { app: flightAgentApp({ config, registry, duffel, arkiv, quotes, jobs, worker }), agent };
+  const identity = agentIdentity({ ...config, agent });
+  void identity.ensure(); // ERC-8004 on Hedera: once, in the background
+  const app = flightAgentApp({ config, registry, duffel, arkiv, quotes, jobs, worker });
+  identity.routes(app);
+  return { app, agent };
 }

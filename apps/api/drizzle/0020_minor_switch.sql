@@ -1,0 +1,1 @@
+ALTER TABLE "ratings" ADD COLUMN "erc8004_tx" text;

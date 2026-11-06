@@ -11,6 +11,7 @@ import { MandateClient, registryAddress } from "@app/mandates";
 import { parseUsdc } from "@app/shared";
 import { LiteApiClient } from "@app/travel";
 import { privateKeyToAccount } from "viem/accounts";
+import { agentIdentity } from "../identity";
 import { JsonStore } from "../store";
 import { hotelAgentApp } from "./app";
 import type { HotelAgentConfig } from "./config";
@@ -77,8 +78,12 @@ export async function startHotelAgent(config: HotelAgentConfig) {
   }
   worker.resume();
   watcher?.start();
+  const identity = agentIdentity({ ...config, agent });
+  void identity.ensure(); // ERC-8004 on Hedera: once, in the background
+  const app = hotelAgentApp({ config, registry, lite, arkiv, quotes, jobs, worker, watcher });
+  identity.routes(app);
   return {
-    app: hotelAgentApp({ config, registry, lite, arkiv, quotes, jobs, worker, watcher }),
+    app,
     agent,
     listed,
   };

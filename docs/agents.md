@@ -95,6 +95,10 @@ report a problem) and the worker that waits out the undo window, books with the 
 (LiteAPI for hotels, Duffel for flights), marks it delivered on Hedera and Arkiv, and refunds if
 the booking fails.
 
+**Identity (ERC-8004).** Each agent registers itself in ERC-8004's IdentityRegistry on Hedera
+with its own key and serves its card at `GET /.well-known/agent-card.json` (`src/identity.ts`;
+the id is kept in `.data/<agent>-erc8004.json`). See [hedera.md](hedera.md).
+
 ## The market's protocol (any agent)
 
 The concierge has no agent-specific code: it uses four generic tools, and an agent joins the

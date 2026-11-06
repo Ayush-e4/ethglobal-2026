@@ -18,6 +18,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "1.0.0",
     "@app/arkiv": "workspace:*",
+    "@app/erc8004": "workspace:*",
     "@app/hedera": "workspace:*",
     "@app/mandates": "workspace:*",
     "@app/shared": "workspace:*",
