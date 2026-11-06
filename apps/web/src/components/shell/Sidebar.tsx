@@ -15,6 +15,7 @@ import {
   QrIcon,
   ScanIcon,
   SearchIcon,
+  SettingsIcon,
   WalletIcon,
 } from "../icons";
 import { InstallApp } from "./Pwa";
@@ -160,7 +161,12 @@ export function Sidebar({
 
       <InstallApp />
       <div className="flex flex-none items-stretch gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white p-3">
+        <Link
+          href="/settings"
+          onClick={onClose}
+          aria-current={pathname === "/settings" ? "page" : undefined}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white p-3 hover:border-line-2 aria-[current=page]:border-teal"
+        >
           <span
             aria-hidden
             className="flex size-[30px] flex-none items-center justify-center rounded-full bg-teal-soft text-[13px] font-bold text-teal"
@@ -173,7 +179,9 @@ export function Sidebar({
               {me ? (me.isDemo ? "demo account · test funds" : "passkey account") : "…"}
             </span>
           </span>
-        </div>
+          <span className="sr-only">Settings</span>
+          <SettingsIcon size={16} className="ml-auto flex-none text-muted" />
+        </Link>
         <button
           type="button"
           aria-label="Sign out"

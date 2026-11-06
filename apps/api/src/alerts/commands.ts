@@ -29,7 +29,7 @@ export async function setUpBotProfile(t: TelegramAlerts) {
     t.tg("setMyCommands", { commands: COMMANDS }),
     t.tg("setMyDescription", {
       description:
-        "Shikigami's concierge books hotels through AI agents from an open market, paid on Hedera only when the job is done. Chat with it here, and see each booking live: undo it, see its reference, rate the agent. Connect it in Shikigami: Wallet → Phone alerts.",
+        "Shikigami's concierge books hotels through AI agents from an open market, paid on Hedera only when the job is done. Chat with it here, and see each booking live: undo it, see its reference, rate the agent. Connect it in Shikigami: Settings → Phone alerts.",
     }),
     t.tg("setMyShortDescription", {
       short_description:
@@ -55,7 +55,7 @@ export async function statusText(db: Db, chatId: string): Promise<string> {
     .select({ userId: alertChannels.userId })
     .from(alertChannels)
     .where(eq(alertChannels.telegramChatId, chatId));
-  if (!link) return "This chat isn't connected. Connect it in Shikigami: Wallet → Phone alerts.";
+  if (!link) return "This chat isn't connected. Connect it in Shikigami: Settings → Phone alerts.";
   const rows = await db
     .select()
     .from(hires)

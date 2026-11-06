@@ -6,7 +6,7 @@ import type { FlightQuote } from "./types";
 export const passengerProblem = (g: Guest) =>
   g.bornOn && g.gender
     ? null
-    : "A flight needs the traveller's date of birth and gender, as on their ID. Add them to the traveller (Wallet → Travellers) and book again.";
+    : "A flight needs the traveller's date of birth and gender, as on their ID. Add them to the traveller (Settings → Travellers) and book again.";
 
 /**
  * SkyHop's supplier: Duffel books the flight at the fare quoted (not if it went up by more than

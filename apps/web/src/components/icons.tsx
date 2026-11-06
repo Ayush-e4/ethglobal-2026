@@ -136,6 +136,13 @@ export const PasskeyIcon = (p: IconProps) => (
     <path d="M12 3.5a7.5 7.5 0 0 1 7.5 7.5c0 .6 0 1.2-.1 1.8" />
   </Icon>
 );
+export const SettingsIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+    <circle cx="15" cy="7" r="2" />
+    <circle cx="9" cy="17" r="2" />
+  </Icon>
+);
 export const GaugeIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4 18a8 8 0 1 1 16 0" />

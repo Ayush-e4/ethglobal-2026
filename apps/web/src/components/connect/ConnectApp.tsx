@@ -84,7 +84,7 @@ export function ConnectApp() {
         </ul>
       </div>
       <p className="text-xs text-muted">
-        What it does shows in a chat here too. Disconnect any time in Wallet → Connected apps.
+        What it does shows in a chat here too. Disconnect any time in Settings → Connected apps.
       </p>
       <div className="flex gap-2">
         <button

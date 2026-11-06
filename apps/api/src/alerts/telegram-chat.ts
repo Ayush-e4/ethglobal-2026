@@ -106,7 +106,7 @@ export function telegramChat(d: TelegramChatDeps) {
       const l = await link(tgChatId);
       const [user] = l ? await db.select().from(users).where(eq(users.id, l.userId)) : [];
       if (!l || !user) {
-        await say(tgChatId, "Connect this chat first: Shikigami → Wallet → Phone alerts.");
+        await say(tgChatId, "Connect this chat first: Shikigami → Settings → Phone alerts.");
         return;
       }
       // "Someone else": this message is the guest's details, so it never reaches the concierge.
