@@ -47,7 +47,7 @@ export interface HireView {
   canSimulateDrop?: boolean; // demo only
   reviewUntil: string | null; // after delivery: a problem can be reported until then
   canReport: boolean;
-  bookingCancelledAt: string | null; // the guest cancelled the stay afterwards
+  bookingCancelledAt: string | null; // the guest cancelled it afterwards
   canCancelBooking: boolean;
   guestName: string | null;
   chatId: string;
@@ -96,6 +96,8 @@ export interface Traveller {
   lastName: string;
   email: string;
   phone: string;
+  bornOn: string | null; // flights need it
+  gender: "f" | "m" | null; // as on the ID: flights need it
   isSelf: boolean;
 }
 

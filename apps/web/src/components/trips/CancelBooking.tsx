@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ApiError, api, type HireView } from "@/lib/api";
 
 /**
- * Cancel a booked stay, after the undo window. The agent cancels it at the hotel; its fee stays
+ * Cancel a booking, after the undo window. The agent cancels it with the hotel or airline; its fee stays
  * paid, because it did book as promised. Asks once more first: this can't be undone.
  */
 export function CancelBooking({
@@ -39,12 +39,12 @@ export function CancelBooking({
         onClick={() => setSure(true)}
         className="min-h-9 self-start rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold text-bad"
       >
-        Cancel this stay
+        Cancel this booking
       </button>
     );
   return (
     <div className="flex w-full flex-col gap-2 rounded-xl border border-bad/30 bg-bad-soft p-3 text-sm">
-      <span className="font-semibold">Cancel the stay at the hotel?</span>
+      <span className="font-semibold">Cancel the booking?</span>
       <span className="text-xs text-ink-3">
         {agentName} cancels it for you. Its fee stays paid: it booked as promised. This can't be
         undone.

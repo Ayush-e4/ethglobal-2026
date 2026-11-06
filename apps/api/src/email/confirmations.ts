@@ -8,7 +8,7 @@ const esc = (s: string) =>
 const money = (n: number, currency: string) =>
   currency === "INR" ? `₹${Math.round(n).toLocaleString("en-IN")}` : `${currency} ${Math.round(n)}`;
 const SANDBOX =
-  "This is a test booking in a hotel sandbox: no real room was reserved and no money for the stay was taken.";
+  "This is a test booking in a travel sandbox: nothing real was reserved and no money for it was taken.";
 
 /** One email in both forms: plain lines, and the same lines as simple HTML. */
 function compose(
@@ -60,13 +60,13 @@ export function confirmations(send: SendEmail, appOrigin: string) {
               h.guestEmail,
               `Booked: ${h.title} (ref ${ref})`,
               [
-                ["Stay", h.title],
+                ["Booking", h.title],
                 ["Booking reference", ref],
                 ["Guest", h.guestName ?? ""],
                 ["Booked by", `${h.agentName}, through AgentNet`],
                 ["Agent's fee", `${formatUsdc(h.feeUnits)} USDC, paid only now it's done`],
               ],
-              `Hi ${first(h)}, your stay is booked.`,
+              `Hi ${first(h)}, it's booked.`,
               links(h),
             ),
           )
@@ -79,7 +79,7 @@ export function confirmations(send: SendEmail, appOrigin: string) {
               h.guestEmail,
               `Cheaper: ${h.title} rebooked (new ref ${r.toBookingId})`,
               [
-                ["Stay", h.title],
+                ["Booking", h.title],
                 ["New booking reference", r.toBookingId],
                 ["Price", `${money(r.from, r.currency)} → ${money(r.to, r.currency)}`],
                 ["Back to you", money(r.saved, r.currency)],

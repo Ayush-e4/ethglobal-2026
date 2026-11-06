@@ -14,6 +14,8 @@ const view = (t: Traveller) => ({
   lastName: t.lastName,
   email: t.email,
   phone: t.phone,
+  bornOn: t.bornOn,
+  gender: t.gender,
   isSelf: t.isSelf,
 });
 

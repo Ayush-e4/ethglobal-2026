@@ -105,7 +105,7 @@ describe("hireFollower", () => {
     await t.follower.tick();
     expect((await t.read())?.status).toBe("refunded");
     expect(t.posted[0]).toBe(
-      "StayWise accepted your report on Park Inn: the 0.02 USDC fee is refunded, and the hotel booking is cancelled.",
+      "StayWise accepted your report on Park Inn: the 0.02 USDC fee is refunded, and the booking is cancelled.",
     );
     expect(t.booked).toEqual(["settled"]);
   });

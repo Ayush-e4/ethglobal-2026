@@ -10,7 +10,8 @@
     "test": "vitest run",
     "agents-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
     "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts",
-    "priceguard": "tsx --env-file-if-exists=../../.env src/hotels/main.ts priceguard"
+    "priceguard": "tsx --env-file-if-exists=../../.env src/hotels/main.ts priceguard",
+    "skyhop": "tsx --env-file-if-exists=../../.env src/flights/main.ts"
   },
   "dependencies": {
     "@app/arkiv": "workspace:*",

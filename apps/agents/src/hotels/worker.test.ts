@@ -7,7 +7,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { describe, expect, it, vi } from "vitest";
 import { JsonStore } from "../store";
 import type { Job, StoredQuote } from "./types";
-import { HotelWorker } from "./worker";
+import { hotelWorker } from "./worker";
 
 const ESCROW = `0x${"ab".repeat(32)}` as Hex;
 const QUOTE = `0x${"cd".repeat(32)}` as Hex;
@@ -42,7 +42,7 @@ function setup(state: string, book: () => Promise<unknown>) {
   };
   const lite = { book: vi.fn(book), cancel: vi.fn(async () => ({})) };
   const arkiv = { address: agent.address, run: vi.fn(async () => ({ txHash: "0x1" })) };
-  const worker = new HotelWorker({ registry, agent, lite, arkiv, jobs, quotes } as never);
+  const worker = hotelWorker({ registry, agent, lite, arkiv, jobs, quotes } as never);
   return { worker, jobs, registry, lite };
 }
 
@@ -102,7 +102,7 @@ describe("HotelWorker", () => {
     expect(t.registry.refund).toHaveBeenCalled();
     expect(t.jobs.get(ESCROW)).toMatchObject({
       status: "refunded",
-      note: expect.stringMatching(/buyer's report \(not_found\); the hotel booking is cancelled/),
+      note: expect.stringMatching(/buyer's report \(not_found\); the booking is cancelled/),
     });
     // Asked again: already done, nothing twice.
     expect(await t.worker.onDispute(ESCROW, "not_found")).toEqual({

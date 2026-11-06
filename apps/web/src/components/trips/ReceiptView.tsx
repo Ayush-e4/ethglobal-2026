@@ -34,7 +34,9 @@ export function ReceiptView({ id }: { id: string }) {
     ...(r.bookingRef ? ([["Reference", r.bookingRef]] as [string, string][]) : []),
     ["Agent's fee", `${usdc(r.feeUnits)} USDC`],
     ["The fee now", r.escrow ? (ESCROW[r.escrow.state] ?? r.escrow.state) : "Not on Hedera"],
-    ...(r.bookingCancelled ? ([["Stay", "Cancelled by the guest"]] as [string, string][]) : []),
+    ...(r.bookingCancelled
+      ? ([["Cancelled", "By the guest, afterwards"]] as [string, string][])
+      : []),
   ];
 
   return (
@@ -66,7 +68,7 @@ export function ReceiptView({ id }: { id: string }) {
         ))}
       </div>
       <p className="text-xs leading-relaxed text-muted">
-        A test booking on Hedera testnet and a hotel sandbox: no real room was reserved. The guest
+        A test booking on Hedera testnet and a travel sandbox: nothing real was reserved. The guest
         shows as initials and the reference only in part.
       </p>
     </section>

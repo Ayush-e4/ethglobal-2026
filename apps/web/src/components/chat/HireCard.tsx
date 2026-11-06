@@ -152,7 +152,7 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
   }
 
   if (hire?.bookingCancelledAt)
-    steps.push({ id: "cancelled", label: "You cancelled the stay at the hotel", done: true });
+    steps.push({ id: "cancelled", label: "You cancelled the booking afterwards", done: true });
   if (hire?.watchNote)
     steps.push({ id: "watch", label: `${name}: ${hire.watchNote}`, done: !hire.watching });
 

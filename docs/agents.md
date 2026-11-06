@@ -70,6 +70,31 @@ booking when the signature over `AgentNet: cancel the booking for job <escrowId>
 job's buyer on Hedera (the limit's owner or its AI key), so nobody else can cancel a guest's stay.
 It keeps the fee (the job was done) and stops any price watch.
 
+## SkyHop (flights)
+
+SkyHop books economy flights for one passenger, one way or return, at most one stop, on
+**Duffel in test mode** (`DUFFEL_ACCESS_TOKEN` must start with `duffel_test_`: orders go to test
+airlines and are paid from Duffel's test balance; nobody is charged, no seat is taken). Skill
+`flights`, fee 0.03 USDC, port 8803, its own Hedera account and Arkiv writer
+(`SKYHOP_PRIVATE_KEY`, `SKYHOP_ACCOUNT_ID`, made by `agents-setup`).
+
+- **Quote** (`GET /quote?task&from&to&date&returnDate?`, free): searches Duffel and offers three
+  different flights, each for a reason: the cheapest, the fastest, and the most flexible
+  (refundable or changeable), or another departure time when none is flexible. All three are
+  posted on Arkiv in one transaction, expiring in 3 minutes.
+- **Book** (`POST /book`, the fee over x402 into escrow): refused before payment (422) if the
+  traveller has no date of birth or gender. After the undo window it re-checks the fare and books
+  only if it hasn't gone up by more than 2%; the guest gets the airline's booking code.
+- **Cancel, report**: the same as every agent (below): a reported problem cancels the order and
+  refunds the fee; a cancel after booking keeps the fee.
+
+Run it: `pnpm --filter @app/agents skyhop`.
+
+**Shared by every agent** (`src/jobs`): the paid routes (book, follow a job, cancel afterwards,
+report a problem) and the worker that waits out the undo window, books with the agent's supplier
+(LiteAPI for hotels, Duffel for flights), marks it delivered on Hedera and Arkiv, and refunds if
+the booking fails.
+
 ## The market's protocol (any agent)
 
 The concierge has no agent-specific code: it uses four generic tools, and an agent joins the

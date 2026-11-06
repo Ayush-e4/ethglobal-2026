@@ -7,7 +7,7 @@ import { chats, type Traveller, travellers, type User } from "../db/schema";
 export const MAX_TRAVELLERS = 5;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** A guest as the hotel needs them. */
+/** A guest as a hotel needs them; a flight also needs the date of birth and gender (on the ID). */
 export const GuestSchema = z.object({
   firstName: z.string().trim().min(1).max(40),
   lastName: z.string().trim().min(1).max(40),
@@ -16,6 +16,14 @@ export const GuestSchema = z.object({
     .string()
     .trim()
     .regex(/^\+?[0-9][0-9 ()-]{5,18}[0-9]$/, "a phone number, like +91 98000 00000"),
+  bornOn: z.iso
+    .date("a date of birth, like 1990-05-14")
+    .refine(
+      (d) => d > "1900-01-01" && d < new Date().toISOString().slice(0, 10),
+      "a real date of birth",
+    )
+    .optional(),
+  gender: z.enum(["f", "m"]).optional(),
 });
 export type Guest = z.infer<typeof GuestSchema>;
 
@@ -24,6 +32,8 @@ export const guestOf = (t: Traveller): Guest => ({
   lastName: t.lastName,
   email: t.email,
   phone: t.phone,
+  ...(t.bornOn ? { bornOn: t.bornOn } : {}),
+  ...(t.gender === "f" || t.gender === "m" ? { gender: t.gender } : {}),
 });
 
 /** Booking needs to know who it's for first (the card). */
@@ -89,7 +99,12 @@ export function travellerService(db: Db) {
         await db.update(travellers).set({ isSelf: false }).where(eq(travellers.userId, userId));
       const [t] = await db
         .update(travellers)
-        .set({ ...guest, ...(isSelf === undefined ? {} : { isSelf }) })
+        .set({
+          ...guest,
+          bornOn: guest.bornOn ?? null, // left out: cleared
+          gender: guest.gender ?? null,
+          ...(isSelf === undefined ? {} : { isSelf }),
+        })
         .where(mine(userId, id))
         .returning();
       return t as Traveller;
@@ -148,14 +163,29 @@ export type TravellerService = ReturnType<typeof travellerService>;
  */
 export function parseGuest(text: string): Guest | { error: string } {
   const email = /[^\s,;<>]+@[^\s,;<>]+\.[a-z]{2,}/i.exec(text)?.[0];
-  const phone = /\+?\d[\d ()-]{5,18}\d/.exec(text.replace(email ?? "", ""))?.[0];
-  const rest = text.replace(email ?? "", "").replace(phone ?? "", "");
-  const words = rest.split(/[\s,;]+/).filter((w) => /\p{L}/u.test(w));
+  let rest = text.replace(email ?? "", "");
+  // A date of birth (for flights), before the phone number: its digits would look like one.
+  const iso = /\b(\d{4})-(\d{2})-(\d{2})\b/.exec(rest);
+  const dmy = iso ? null : /\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b/.exec(rest);
+  const bornOn = iso
+    ? `${iso[1]}-${iso[2]}-${iso[3]}`
+    : dmy
+      ? `${dmy[3]}-${dmy[2]?.padStart(2, "0")}-${dmy[1]?.padStart(2, "0")}`
+      : undefined;
+  rest = rest.replace((iso ?? dmy)?.[0] ?? "", "");
+  const phone = /\+?\d[\d ()-]{5,18}\d/.exec(rest)?.[0];
+  rest = rest.replace(phone ?? "", "");
+  const all = rest.split(/[\s,;]+/).filter((w) => /\p{L}/u.test(w));
+  const genderWord = all.find((w) => /^(female|male|woman|man|f|m)$/i.test(w));
+  const gender = genderWord ? (/^(female|woman|f)$/i.test(genderWord) ? "f" : "m") : undefined;
+  const words = all.filter((w) => w !== genderWord);
   const parsed = GuestSchema.safeParse({
     firstName: words[0],
     lastName: words.slice(1).join(" "),
     email,
     phone,
+    ...(bornOn ? { bornOn } : {}),
+    ...(gender ? { gender } : {}),
   });
   if (parsed.success) return parsed.data;
   const missing = [

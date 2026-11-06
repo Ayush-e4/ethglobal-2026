@@ -20,6 +20,7 @@ const Job = z.object({
   status: z.string(),
   bookingId: z.string().optional(),
   confirmation: z.string().optional(),
+  reference: z.string().optional(), // what the guest quotes, when it isn't the booking id
   note: z.string().optional(),
   // A watching agent's watch over the room's price, after delivery.
   watch: z
@@ -98,19 +99,20 @@ export function hireFollower(
       const job = Job.safeParse(res?.ok ? await res.json() : null);
       if (job.success && job.data.status === "delivered") {
         const w = job.data.watch;
+        const ref = job.data.reference ?? job.data.bookingId;
         const reviewEnds = Number(escrow.deliveredAt) + escrow.reviewSeconds;
         await set(hire.id, {
           status: "delivered",
-          bookingRef: job.data.bookingId ?? null,
+          bookingRef: ref ?? null,
           reviewUntil: escrow.deliveredAt > 0n ? new Date(reviewEnds * 1000) : null,
           ...(w ? { watching: w.active, watchNote: watchNote(w) } : {}),
         });
         await chats.add(
           hire.chatId,
           "assistant",
-          `Booked: ${hire.title}. Booking reference ${job.data.bookingId ?? "pending"}. ${hire.agentName} is paid automatically by Hedera when the review window ends.`,
+          `Booked: ${hire.title}. Booking reference ${ref ?? "pending"}. ${hire.agentName} is paid automatically by Hedera when the review window ends.`,
         );
-        if (job.data.bookingId) await tell("email", hooks.onBooked?.(hire, job.data.bookingId));
+        if (ref) await tell("email", hooks.onBooked?.(hire, ref));
       }
     } else if (hire.status === "disputed" && escrow.state === "refunded") {
       // The agent settled the buyer's report by giving the fee back.
@@ -128,7 +130,7 @@ export function hireFollower(
       await chats.add(
         hire.chatId,
         "assistant",
-        `${hire.agentName} accepted your report on ${hire.title}: the ${formatUsdc(hire.feeUnits)} USDC fee is refunded${note?.includes("booking is cancelled") ? ", and the hotel booking is cancelled" : ""}.`,
+        `${hire.agentName} accepted your report on ${hire.title}: the ${formatUsdc(hire.feeUnits)} USDC fee is refunded${note?.includes("booking is cancelled") ? ", and the booking is cancelled" : ""}.`,
       );
       await tell("dispute", hooks.onDisputeSettled?.(hire));
       return;

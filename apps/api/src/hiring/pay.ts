@@ -3,6 +3,7 @@ import { type HederaIds, MandateClientScheme, NETWORK, type SignedPayment } from
 import { decodePaymentResponseHeader, wrapFetchWithPayment, x402Client } from "@x402/fetch";
 import type { LocalAccount } from "viem";
 import { z } from "zod";
+import type { Guest } from "../travellers/service";
 
 /** Who a booking is for when no traveller was chosen (scripts and tests): a test traveller. */
 export const TEST_TRAVELLER = {
@@ -15,6 +16,8 @@ export const TEST_TRAVELLER = {
 const Accepted = z.object({ escrowId: z.string(), startsAt: z.number(), jobUrl: z.url() });
 
 export class PayError extends Error {}
+/** The agent refused before anything was paid, and said why (e.g. a flight needs a birth date). */
+export class AgentRefused extends PayError {}
 
 /**
  * The one payment path: the AI's key signs an x402 payment its limit allows (held in escrow,
@@ -29,7 +32,7 @@ export async function payAgent(d: {
   ownerAccount: string;
   endpoint: string;
   quoteKey: string;
-  guest: { firstName: string; lastName: string; email: string; phone: string }; // only to this agent
+  guest: Guest; // only to this agent
 }) {
   let signed: SignedPayment | undefined;
   const scheme = new MandateClientScheme({
@@ -53,7 +56,10 @@ export async function payAgent(d: {
   });
   const settled = res.headers.get("PAYMENT-RESPONSE");
   const payment = settled ? decodePaymentResponseHeader(settled) : null;
-  const body = Accepted.safeParse(await res.json().catch(() => null));
+  const json = (await res.json().catch(() => null)) as { message?: unknown } | null;
+  if (res.status === 422 && typeof json?.message === "string")
+    throw new AgentRefused(json.message.slice(0, 300));
+  const body = Accepted.safeParse(json);
   if (res.status !== 202 || !body.success || !payment?.success) {
     const why =
       payment && !payment.success
