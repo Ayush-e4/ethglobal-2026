@@ -94,6 +94,46 @@ describe("claudeConcierge", () => {
     expect(JSON.stringify(second.messages.at(-1)?.content)).toMatch(/read the web/);
   });
 
+  it("a page someone shares is read, becomes a source, and that reply can't hire either", async () => {
+    const fetchCall = {
+      type: "server_tool_use",
+      id: "f1",
+      name: "web_fetch",
+      input: { url: "https://hotel.example/booking" },
+    };
+    const fetched = {
+      type: "web_fetch_tool_result",
+      tool_use_id: "f1",
+      content: {
+        type: "web_fetch_result",
+        url: "https://hotel.example/booking",
+        content: {
+          type: "document",
+          title: "Your booking",
+          source: { type: "text", media_type: "text/plain", data: "Park Inn, 20–22 Dec" },
+        },
+      },
+    };
+    const start = { type: "content_block_start", index: 0, content_block: fetchCall };
+    const { reply, hire, events } = run([
+      {
+        content: [fetchCall, fetched, { type: "text", text: "It's Park Inn." }, hireCall],
+        stop_reason: "tool_use",
+        events: [start],
+      },
+      { content: [{ type: "text", text: "Shall I book it?" }], stop_reason: "end_turn" },
+    ]);
+    const r = await reply;
+    expect(hire).not.toHaveBeenCalled();
+    expect(events).toContainEqual({ type: "status", label: "Reading the page" });
+    expect(r.cards).toEqual([
+      {
+        type: "sources",
+        sources: [{ url: "https://hotel.example/booking", title: "Your booking" }],
+      },
+    ]);
+  });
+
   it("a paused turn is sent back as it is, and Claude carries on", async () => {
     const { reply, requests } = run([
       { content: [search], stop_reason: "pause_turn" },

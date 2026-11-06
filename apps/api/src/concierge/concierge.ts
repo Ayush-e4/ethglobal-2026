@@ -13,8 +13,9 @@ const BETAS = ["advisor-tool-2026-03-01"];
 const MAX_STEPS = 8;
 
 /**
- * Tools Anthropic runs itself. Web search (the basic version: the newer one with dynamic
- * filtering is Sonnet/Opus only) answers general questions, with citations. The advisor is
+ * Tools Anthropic runs itself. Web search and web fetch (the basic versions: the newer ones with
+ * dynamic filtering are Sonnet/Opus only) answer general questions and read the pages people
+ * share (only URLs already in the conversation), with citations. The advisor is
  * Sonnet, consulted mid-reply for hard planning; its advice comes back encrypted and is only
  * replayed to Haiku.
  */
@@ -24,6 +25,13 @@ const SERVER_TOOLS: Anthropic.Beta.Messages.BetaToolUnion[] = [
     name: "web_search",
     max_uses: 3,
     user_location: { type: "approximate", country: "IN", timezone: "Asia/Kolkata" },
+  },
+  {
+    type: "web_fetch_20250910",
+    name: "web_fetch",
+    max_uses: 3,
+    max_content_tokens: 12000, // a long page's main part, not a whole site
+    citations: { enabled: true },
   },
   {
     type: "advisor_20260301",
@@ -57,6 +65,7 @@ const STATUS: Record<string, string> = {
   get_quotes: "Asking agents for firm prices",
   hire: "Paying the agent into escrow",
   web_search: "Searching the web",
+  web_fetch: "Reading the page",
   advisor: "Thinking it through",
 };
 
@@ -102,7 +111,8 @@ export function claudeConcierge(
       });
       stream.on("streamEvent", (e) => {
         if (e.type !== "content_block_start" || e.content_block.type !== "server_tool_use") return;
-        if (e.content_block.name === "web_search") readTheWeb = true;
+        if (e.content_block.name === "web_search" || e.content_block.name === "web_fetch")
+          readTheWeb = true;
         emit({ type: "status", label: STATUS[e.content_block.name] ?? "Working" });
       });
       let message: Anthropic.Beta.Messages.BetaMessage;
@@ -122,6 +132,12 @@ export function claudeConcierge(
           for (const r of b.content)
             if (r.type === "web_search_result" && r.url.startsWith("https://"))
               searched.set(r.url, r.title || new URL(r.url).hostname);
+        // A page it read is a source, cited or not.
+        if (b.type === "web_fetch_tool_result" && b.content.type === "web_fetch_result") {
+          const url = b.content.url;
+          if (url.startsWith("https://"))
+            sources.set(url, b.content.content.title || new URL(url).hostname);
+        }
       }
       if (message.stop_reason === "refusal" || message.stop_reason === "max_tokens") break;
       // A long server-side search pauses the turn: send it back as it is and Claude carries on.
