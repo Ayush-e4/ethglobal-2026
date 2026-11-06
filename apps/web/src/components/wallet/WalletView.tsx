@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, hashscanAccount, shortAddress, usdc, type WalletInfo } from "@/lib/api";
 import { PasskeyIcon } from "../icons";
+import { Devices } from "./Devices";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
 
@@ -123,6 +124,7 @@ export function WalletView() {
             </p>
           )}
           <Limits />
+          <Devices />
           <TopUp address={w.address} />
         </>
       )}

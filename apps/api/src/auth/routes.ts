@@ -1,7 +1,10 @@
+import { eq } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { z } from "zod";
 import type { Db } from "../db/client";
-import { users } from "../db/schema";
+import { passkeys, users } from "../db/schema";
+import { type DeviceLinks, deviceLabel } from "./device-links";
 import { type PasskeySite, passkeyAuth, SignInError } from "./passkey";
 import { rolesFor } from "./roles";
 import { createSession, endSession, SESSION_COOKIE, SESSION_TTL_MS, userForToken } from "./session";
@@ -14,9 +17,16 @@ export interface AuthConfig {
 
 /**
  * POST /auth/passkey/{register,login}-options → the device signs → POST /auth/passkey/{register,login}
+ * POST /auth/passkey/link/options { code } → the new device signs → POST /auth/passkey/link: another
+ * device for an existing account, with a code a signed-in device showed.
  * POST /auth/demo: a demo account in one tap. POST /auth/logout. GET /me.
  */
-export function authRoutes(db: Db, cfg: AuthConfig, onSignUp?: (userId: string) => void) {
+export function authRoutes(
+  db: Db,
+  cfg: AuthConfig,
+  onSignUp?: (userId: string) => void,
+  links?: DeviceLinks,
+) {
   const passkey = passkeyAuth(db, cfg.site);
   const app = new Hono();
   const signIn = async (c: Context, userId: string) => {
@@ -46,7 +56,8 @@ export function authRoutes(db: Db, cfg: AuthConfig, onSignUp?: (userId: string) 
   });
   app.post("/auth/passkey/register", async (c) => {
     const body = await c.req.json<{ response: never; label?: string }>();
-    const user = await passkey.register(body.response, body.label?.slice(0, 60) ?? null);
+    const label = body.label?.slice(0, 60) ?? deviceLabel(c.req.header("user-agent"));
+    const user = await passkey.register(body.response, label);
     await signIn(c, user.id);
     onSignUp?.(user.id); // e.g. start making their Face ID wallet, without waiting for it
     return c.json({ id: user.id });
@@ -56,6 +67,32 @@ export function authRoutes(db: Db, cfg: AuthConfig, onSignUp?: (userId: string) 
   );
   app.post("/auth/passkey/login", async (c) => {
     const user = await passkey.authenticate((await c.req.json<{ response: never }>()).response);
+    await signIn(c, user.id);
+    return c.json({ id: user.id });
+  });
+  // Another device for an existing account: it makes its own passkey with the code a signed-in
+  // device showed, and is signed in. (Paying from the wallet needs Face ID on a trusted device.)
+  const LinkCode = z.object({ code: z.string().min(8).max(16) });
+  const GONE = "That code expired or was already used. Make a new one on your other device.";
+  const linked = async (userId: string | null | undefined) =>
+    userId ? (await db.select().from(users).where(eq(users.id, userId)))[0] : undefined;
+  app.post("/auth/passkey/link/options", async (c) => {
+    const body = LinkCode.safeParse(await c.req.json().catch(() => null));
+    const user = await linked(body.success ? links?.peek(body.data.code) : null);
+    if (!user) return c.json({ error: "link_gone", message: GONE }, 410);
+    const keys = await db.select().from(passkeys).where(eq(passkeys.userId, user.id));
+    const name = user.displayName ?? undefined;
+    return c.json({ name: name ?? null, options: await passkey.registrationOptions(name, keys) });
+  });
+  app.post("/auth/passkey/link", async (c) => {
+    const body = LinkCode.extend({ response: z.looseObject({}) }).safeParse(
+      await c.req.json().catch(() => null),
+    );
+    if (!body.success) return c.json({ error: "bad_request" }, 400);
+    const credential = await passkey.verifyNew(body.data.response as never);
+    const user = await linked(links?.take(body.data.code));
+    if (!user) return c.json({ error: "link_gone", message: GONE }, 410);
+    await passkey.addDevice(user, credential, deviceLabel(c.req.header("user-agent")));
     await signIn(c, user.id);
     return c.json({ id: user.id });
   });

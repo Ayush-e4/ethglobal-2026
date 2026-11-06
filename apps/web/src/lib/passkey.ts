@@ -13,6 +13,24 @@ import { api } from "./api";
  */
 export const passkeysSupported = () => typeof window !== "undefined" && browserSupportsWebAuthn();
 
+// Which of the account's passkeys is this device's, so its list can say "this device".
+const DEVICE_KEY = "app.passkey";
+export function thisDevice(): string | null {
+  try {
+    return localStorage.getItem(DEVICE_KEY);
+  } catch {
+    return null;
+  }
+}
+const remember = <T extends { id: string }>(response: T) => {
+  try {
+    localStorage.setItem(DEVICE_KEY, response.id);
+  } catch {
+    // private browsing: the list just won't mark this device
+  }
+  return response;
+};
+
 /** Makes a new passkey, which makes a new account, and signs in. */
 export async function signUpWithPasskey(): Promise<void> {
   const optionsJSON = await api<PublicKeyCredentialCreationOptionsJSON>(
@@ -22,7 +40,7 @@ export async function signUpWithPasskey(): Promise<void> {
       body: {},
     },
   );
-  const response = await startRegistration({ optionsJSON });
+  const response = remember(await startRegistration({ optionsJSON }));
   await api("/auth/passkey/register", { method: "POST", body: { response } });
 }
 
@@ -34,8 +52,24 @@ export async function signInWithPasskey(): Promise<void> {
       method: "POST",
     },
   );
-  const response = await startAuthentication({ optionsJSON });
+  const response = remember(await startAuthentication({ optionsJSON }));
   await api("/auth/passkey/login", { method: "POST", body: { response } });
+}
+
+/** Which account a code from another device is for, and the options to make a passkey on it. */
+export const linkOptions = (code: string) =>
+  api<{ name: string | null; options: PublicKeyCredentialCreationOptionsJSON }>(
+    "/auth/passkey/link/options",
+    { method: "POST", body: { code } },
+  );
+
+/** Makes this device's own passkey on that account, and signs in. */
+export async function linkThisDevice(
+  code: string,
+  optionsJSON: PublicKeyCredentialCreationOptionsJSON,
+) {
+  const response = remember(await startRegistration({ optionsJSON }));
+  await api("/auth/passkey/link", { method: "POST", body: { code, response } });
 }
 
 /**

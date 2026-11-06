@@ -11,10 +11,11 @@
   },
   "dependencies": {
     "@app/shared": "workspace:*",
+    "@simplewebauthn/browser": "14.0.0",
     "next": "16.4.2",
+    "qrcode.react": "4.2.0",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "@simplewebauthn/browser": "14.0.0"
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

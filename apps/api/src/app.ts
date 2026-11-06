@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { deviceRoutes } from "./account/devices";
+import { deviceLinks } from "./auth/device-links";
 import { type AuthConfig, authRoutes } from "./auth/routes";
 import { chatRoutes } from "./chats/routes";
 import type { Concierge } from "./concierge/concierge";
@@ -30,10 +32,13 @@ export function createApp(o: AppOptions) {
   app.use("*", cors({ origin: appOrigin, credentials: true }));
   app.get("/health", (c) => c.json({ ok: true }));
   const onSignUp = wallets ? (id: string) => void wallets.ensure(id).catch(() => {}) : undefined;
-  app.route("/", authRoutes(db, auth, onSignUp));
+  const links = deviceLinks(); // "use this account on another device" codes
+  app.route("/", authRoutes(db, auth, onSignUp, links));
   app.route("/", chatRoutes(db, concierge));
   if (hiring) app.route("/", hireRoutes(db, hiring));
   if (wallets) app.route("/", walletRoutes(db, wallets));
+  if (wallets && o.approvals)
+    app.route("/", deviceRoutes(db, { wallets, approvals: o.approvals, links }));
   if (hiring && wallets && o.walletChain && o.approvals) {
     app.route("/", limitRoutes(db, hiring, wallets, o.walletChain, o.approvals));
     const registry = hiring.registry;

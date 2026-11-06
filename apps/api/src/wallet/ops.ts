@@ -18,6 +18,7 @@ const OP_TTL_MS = 5 * 60_000;
 const GAS: Record<WalletOpMeta["kind"], bigint> = {
   limit: BigInt(2_000_000),
   revoke: BigInt(800_000),
+  device: BigInt(800_000), // like a cancel: one passkey check and one write
 };
 
 export class WalletOpError extends Error {}
@@ -144,7 +145,7 @@ export function walletApprovals(
       const sig = { ...passkeyKey(key.publicKey), sig: assertionFromWebAuthn(answer.response) };
       const gas = GAS[op.meta.kind];
       const result = await chain.execute(op.wallet as Address, calls, op.deadline, sig, gas);
-      return { ...result, wallet: op.wallet as Address, meta: op.meta };
+      return { ...result, wallet: op.wallet as Address, meta: op.meta, approvedBy: key.id };
     },
   };
 }
