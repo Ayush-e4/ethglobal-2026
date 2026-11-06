@@ -36,6 +36,19 @@ export const guestOf = (t: Traveller): Guest => ({
   ...(t.gender === "f" || t.gender === "m" ? { gender: t.gender } : {}),
 });
 
+/**
+ * What an agent gets of a traveller: name, email and phone, plus the birth date and gender only
+ * if its listing says it needs them (an airline does; a hotel doesn't).
+ */
+export const guestFor = (g: Guest, needs: readonly ("bornOn" | "gender")[]): Guest => ({
+  firstName: g.firstName,
+  lastName: g.lastName,
+  email: g.email,
+  phone: g.phone,
+  ...(needs.includes("bornOn") && g.bornOn ? { bornOn: g.bornOn } : {}),
+  ...(needs.includes("gender") && g.gender ? { gender: g.gender } : {}),
+});
+
 /** Booking needs to know who it's for first (the card). */
 export class NeedsTraveller extends Error {
   constructor(readonly card: Extract<Card, { type: "traveller" }>) {

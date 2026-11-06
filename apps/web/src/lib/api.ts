@@ -99,6 +99,7 @@ export interface MarketAgentView {
   delivered: number;
   disputes: number;
   rating: { average: number; count: number } | null;
+  guestFields: ("bornOn" | "gender")[]; // what it gets of a traveller, besides name, email, phone
   review: AgentReviewView | null;
 }
 

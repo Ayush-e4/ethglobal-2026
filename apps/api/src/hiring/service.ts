@@ -5,7 +5,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Db } from "../db/client";
 import { type Hire, hires, type Limit, quotes, type User } from "../db/schema";
-import type { GuestGate } from "../travellers/service";
+import { type Guest, type GuestGate, guestFor } from "../travellers/service";
 import type { HumanGate } from "../world/checkpoint";
 import { cancelBooking } from "./cancel-booking";
 import { demoCapsAllow } from "./caps";
@@ -76,12 +76,13 @@ export function hiringService(
       const demo = user.isDemo;
       const blocked = demo ? await demoCapsAllow(db, user.id, quote.feeUnits, cfg.caps) : null;
       if (blocked) throw new HireError(blocked);
-      const guest =
+      const guest: Guest =
         (await gates.guest?.(user, chatId, {
           key: quoteKey,
           agentName: quote.agentName,
           summary: quote.summary,
         })) ?? TEST_TRAVELLER;
+      const sent = guestFor(guest, quote.guestFields ?? []); // only what this agent needs
       const approval = await human?.(user, chatId, {
         key: quoteKey,
         agentName: quote.agentName,
@@ -149,7 +150,7 @@ export function hiringService(
           ownerAccount: limit.ownerAccount,
           endpoint: quote.endpoint,
           quoteKey,
-          guest,
+          guest: sent,
         });
         const changes = {
           status: "held" as const,

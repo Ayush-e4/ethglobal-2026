@@ -23,6 +23,7 @@ export interface MarketAgent {
   rating?: { average: number; count: number }; // from verified people (World ID), on Arkiv
   disputes?: number; // its jobs a buyer reported a problem with, on Arkiv (written by us)
   hederaAccount?: string; // where it's paid
+  guestFields?: ("bornOn" | "gender")[]; // the traveller's details it needs besides name, email, phone
   profileKey?: `0x${string}`; // its Arkiv entities
   listingKey?: `0x${string}`;
 }
@@ -172,6 +173,7 @@ export function arkivMarket(
         rating: rated.get(a.agent.toLowerCase()),
         disputes: disputed.get(a.agent.toLowerCase()) ?? 0,
         hederaAccount: a.hederaAccount,
+        guestFields: l?.guest,
         profileKey: key,
         listingKey: found?.key,
       };

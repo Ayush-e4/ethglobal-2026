@@ -4,7 +4,7 @@ import type { Db } from "../db/client";
 import { chats, users } from "../db/schema";
 import { testDb } from "../test/db";
 import { travellerRoutes } from "./routes";
-import { NeedsTraveller, parseGuest, travellerService } from "./service";
+import { guestFor, NeedsTraveller, parseGuest, travellerService } from "./service";
 
 const ASHA = {
   firstName: "Asha",
@@ -110,6 +110,14 @@ describe("saved travellers", () => {
     expect((await call(`/travellers/${id}`, cookie, "DELETE")).status).toBe(200);
     expect((await call(`/chats/${chat.id}/traveller`, cookie)).json.traveller).toBeNull();
     expect((await call("/travellers", "")).status).toBe(401);
+  });
+});
+
+describe("what an agent gets of a traveller", () => {
+  it("the birth date and gender only if its listing asks for them", () => {
+    const asha = { ...ASHA, bornOn: "1990-05-14", gender: "f" as const };
+    expect(guestFor(asha, [])).toEqual(ASHA); // a hotel
+    expect(guestFor(asha, ["bornOn", "gender"])).toEqual(asha); // an airline
   });
 });
 

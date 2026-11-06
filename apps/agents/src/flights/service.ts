@@ -47,6 +47,7 @@ export async function startFlightAgent(config: FlightAgentConfig) {
     feeUnits: parseUsdc(config.feeUsd.replace("$", "")).toString(),
     input: FLIGHT_FORM,
     service: config.service,
+    guest: ["bornOn", "gender"], // an airline needs them; nobody else gets them
   });
   if (!listed) {
     await publishAgent(
