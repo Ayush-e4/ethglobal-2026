@@ -32,6 +32,8 @@ function ggwave() {
 export const preloadSound = () => void ggwave().catch(() => {});
 
 const SEND = ["audible-fastest", "audible-normal"];
+/** One full cycle of the shop's chirps (0.7 s, a gap, 2.1 s, a gap): a second shop would show up. */
+export const LISTEN_ONE_MORE_CYCLE_MS = 3500;
 const GAP_MS = 800;
 
 /** Plays the request over and over until stop(). Start it from a tap (iPhones insist). */

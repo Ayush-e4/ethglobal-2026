@@ -24,7 +24,9 @@ Reed-Solomon error correction, WebAssembly, served from `public/vendor/ggwave.js
 a fast chirp (0.7 s) and an echo-proof one (2.1 s), with gaps, until it's paid or expires.
 On the phone, **Listen to pay** opens the microphone with calls' echo and noise cancelling off
 (they erase steady tones), listens for both speeds, stops at the first request it hears, and
-shows the same checked sheet: who, how much, "heard from the shop's device just now". Hold the
+shows the same checked sheet: who, how much, "heard from the shop's device just now". After
+the first request it listens one more full cycle (3.5 s): if a *different* request turns up too,
+someone nearby is chirping their own, so it refuses and asks for the shop's QR instead. Hold the
 phone 20–50 cm away and still: the lab's maths and ~2,900 simulated rooms say audible chirps
 survive a hand moving up to ~1.3 m/s, and that close range beats echo.
 
