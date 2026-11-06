@@ -18,6 +18,11 @@ export const ROLES = {
     job: 'Holds test USDC for "Try the demo" accounts and owns their spending limits (with daily caps)',
     cannot: "Pay anyone outside a limit: payments only move through MandateRegistry's rules",
   },
+  sponsor: {
+    env: "SPONSOR",
+    job: "Makes Face ID wallets, submits the batches their passkeys signed (paying the gas), and gives each new wallet a little test USDC",
+    cannot: "Move anything a Face ID wallet holds: a wallet runs only what its passkeys signed",
+  },
   logWriter: {
     env: "LOG_WRITER",
     job: "Writes entries to the public log (an HCS topic)",

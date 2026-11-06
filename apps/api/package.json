@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "hiring-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts"
+    "hiring-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
+    "wallet-signup-demo": "tsx --env-file-if-exists=../../.env scripts/wallet-signup-demo.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

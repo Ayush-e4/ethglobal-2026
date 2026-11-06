@@ -109,7 +109,7 @@ export function hiringService(db: Db, cfg: HiringConfig) {
       }
     },
 
-    /** Undo: the limit's owner takes the fee back before the window ends. Nothing is booked. */
+    /** Undo: the fee goes back on the limit before the window ends. Nothing is booked. */
     async cancel(user: User, chatId: string, hireId: string): Promise<Hire> {
       const [hire] = await db
         .select()
@@ -120,7 +120,9 @@ export function hiringService(db: Db, cfg: HiringConfig) {
       if (hire.status !== "held" || !hire.undoUntil || hire.undoUntil <= new Date()) {
         throw new HireError("Too late to undo: the agent has started.");
       }
-      await registry.cancel(demoOwner, hire.escrowId as `0x${string}`);
+      // The concierge undoes it: it's the AI key on every limit (the escrow lets the owner or the
+      // AI cancel during the window), so this works for Face ID wallets' limits too, no Face ID.
+      await registry.cancel(concierge, hire.escrowId as `0x${string}`);
       const changes = {
         status: "cancelled" as const,
         note: `undone: ${formatUsdc(hire.feeUnits)} USDC back on the limit`,

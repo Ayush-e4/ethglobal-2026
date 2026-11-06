@@ -70,6 +70,20 @@ operator submits everything (it decides nothing):
    the laptop setting a limit now: NotAKey
 ```
 
+## In the app
+
+Signing up with a passkey makes the account's wallet (about 13 s on testnet: the factory call,
+the mirror showing its Hedera id, the gift). **Wallet** in the sidebar shows it: test USDC, its
+Hedera account on HashScan, and how to get more test USDC from Circle's faucet. Live
+(`pnpm --filter @app/api wallet-signup-demo`, a software passkey through the real API):
+
+```
+✓ signed up with a passkey
+✓ wallet ready in 13s
+  0x9456f9742f1C5398f44A31474a5Df504d9903592  https://hashscan.io/testnet/account/0.0.11331997
+  0.1 test USDC
+```
+
 ## Gotchas
 
 - **Reads lag the receipt.** Hedera's JSON-RPC answers reads from a mirror node a moment behind.

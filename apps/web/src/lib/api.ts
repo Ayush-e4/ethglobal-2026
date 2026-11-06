@@ -36,6 +36,18 @@ export interface HireView {
   note: string | null;
 }
 
+/** GET /wallet: a passkey account's Face ID wallet. Demo accounts have none. */
+export interface WalletInfo {
+  demo: boolean;
+  wallet: null | {
+    address: string; // EVM address
+    hederaId: string | null; // 0.0.x
+    status: "creating" | "ready" | "failed";
+    usdcUnits: string | null;
+    giftUnits: string | null; // the test USDC it started with, if any
+  };
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -67,3 +79,4 @@ export const usdc = (units: string | bigint) => (Number(units) / 1e6).toFixed(2)
 export const shortAddress = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 /** HashScan opens a transaction by its Hedera id (0.0.x@seconds.nanos). */
 export const hashscanTx = (tx: string) => `https://hashscan.io/testnet/transaction/${tx}`;
+export const hashscanAccount = (id: string) => `https://hashscan.io/testnet/account/${id}`;

@@ -68,6 +68,18 @@ moves from the app:
 `GET /chats/:id/hires` gives the cards their live status: only what a card shows (status, fee,
 pay transaction, undo deadline, booking reference, note), never the agent's job URL or escrow id.
 
+## Face ID wallets
+
+| Route | What |
+|---|---|
+| `GET /wallet` | A passkey account's wallet: address, Hedera id, status (`creating` / `ready` / `failed`), test USDC, the gift. Demo accounts: `{ demo: true, wallet: null }` |
+
+Signing up with a passkey starts making the wallet in the background (`src/wallet`): the sponsor
+calls the factory (the address comes from the passkey, so it's known up front), waits for the
+mirror to show its Hedera id, then sends the gift. Safe to repeat: a visit to `/wallet` retries a
+failed try or one a restart cut off, and the gift is recorded **before** it's sent, so it never
+goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
+
 ## Roles
 
 `user` for everyone; `admin` for account ids listed in `ADMIN_USERS` (server settings only, so
