@@ -22,6 +22,7 @@ import { inPersonRoutes } from "./inperson/routes";
 import type { Erc8004Market } from "./market/identity";
 import type { AgentReviewService } from "./market/reviews";
 import { marketRoutes } from "./market/routes";
+import { statsRoutes } from "./market/stats";
 import { grantRoutes } from "./mcp/grants";
 import { oauthRoutes } from "./mcp/oauth";
 import { mcpRoutes } from "./mcp/routes";
@@ -81,6 +82,7 @@ export function createApp(o: AppOptions) {
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));
+  app.route("/", statsRoutes(db)); // public counts for the landing page
   if (o.deals) app.route("/", dealRoutes(db, o.deals));
   if (o.cards) app.route("/", o.cards.routes);
   if (o.email) app.route("/", emailRoutes(db, o.email));
