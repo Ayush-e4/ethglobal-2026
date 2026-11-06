@@ -5,10 +5,10 @@ import type { ToolDeps } from "../concierge/tools";
 import type { Db } from "../db/client";
 import type { HiringService } from "../hiring/service";
 import { bearerGrant } from "./oauth";
-import { agentnetMcp } from "./tools";
+import { shikigamiMcp } from "./tools";
 
 /**
- * AgentNet as a remote MCP server at /mcp (Streamable HTTP, stateless, JSON replies), for apps
+ * Shikigami as a remote MCP server at /mcp (Streamable HTTP, stateless, JSON replies), for apps
  * the user connected with OAuth: Claude, for one. No token: 401, pointing at how to get one.
  */
 export function mcpRoutes(
@@ -33,7 +33,7 @@ export function mcpRoutes(
     const who = await bearerGrant(db, c.req.header("authorization"));
     if (!who) return c.json({ error: "invalid_token" }, 401, unauthorized);
     if (c.req.method !== "POST") return c.json({ error: "method_not_allowed" }, 405);
-    const server = agentnetMcp(db, appOrigin, d, who);
+    const server = shikigamiMcp(db, appOrigin, d, who);
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless: every request stands alone
       enableJsonResponse: true,

@@ -66,7 +66,7 @@ describe("Resend", () => {
     expect(first.url).toBe("https://api.resend.com/emails");
     expect((first.init.headers as Record<string, string>).authorization).toBe("Bearer re_test");
     expect(JSON.parse(String(first.init.body))).toMatchObject({
-      from: "AgentNet <onboarding@resend.dev>",
+      from: "Shikigami <onboarding@resend.dev>",
       to: ["asha.test@example.com"],
     });
     refuse = true;
@@ -147,7 +147,7 @@ describe("the guest's confirmations", () => {
     await c.connected("me@example.com", "Asha", "Claude");
     expect(sent.at(-1)).toMatchObject({
       to: "me@example.com",
-      subject: "Claude was connected to your AgentNet account",
+      subject: "Claude was connected to your Shikigami account",
     });
     expect(sent.at(-1)?.text).toMatch(
       /If this wasn't you, disconnect it in Wallet → Connected apps/,

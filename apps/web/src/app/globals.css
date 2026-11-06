@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* AgentNet look: calm console, warm cards. */
+/* Shikigami look: calm console, warm cards. */
 @theme inline {
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains);

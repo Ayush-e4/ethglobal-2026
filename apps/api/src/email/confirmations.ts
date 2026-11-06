@@ -38,7 +38,7 @@ function compose(
 }
 
 /**
- * The emails AgentNet sends. To the traveller a booking was for (their email is on the hire):
+ * The emails Shikigami sends. To the traveller a booking was for (their email is on the hire):
  * booked, rebooked cheaper, refunded, cancelled afterwards; and a copy of each to the account's
  * own email when it has one (so the person booking sees it too). Security notices, like an app
  * being connected, go to the account's email.
@@ -116,7 +116,7 @@ export function confirmations(
       send(
         compose(
           to,
-          `${app} was connected to your AgentNet account`,
+          `${app} was connected to your Shikigami account`,
           [
             ["App", app],
             [
@@ -132,9 +132,9 @@ export function confirmations(
               }),
             ],
           ],
-          `Hi ${name}, ${app} can now use AgentNet for you. If this wasn't you, disconnect it in Wallet → Connected apps.`,
+          `Hi ${name}, ${app} can now use Shikigami for you. If this wasn't you, disconnect it in Wallet → Connected apps.`,
           [["Connected apps", `${appOrigin}/wallet`]],
-          "AgentNet runs on test networks: nothing real is booked or paid.",
+          "Shikigami runs on test networks: nothing real is booked or paid.",
         ),
       ),
 
@@ -146,7 +146,7 @@ export function confirmations(
           ["Booking", h.title],
           ["Booking reference", ref],
           ["Guest", h.guestName ?? ""],
-          ["Booked by", `${h.agentName}, through AgentNet`],
+          ["Booked by", `${h.agentName}, through Shikigami`],
           ["Agent's fee", `${formatUsdc(h.feeUnits)} USDC, paid only now it's done`],
         ],
         `Hi ${first(h)}, it's booked.`,
@@ -166,15 +166,15 @@ export function confirmations(
         `Hi ${first(h)}, ${h.agentName} found the same room cheaper and rebooked it.${r.simulated ? " (The price drop was simulated for the demo.)" : ""}`,
       ),
 
-    /** "Send a test email": proves this address gets AgentNet's emails. */
+    /** "Send a test email": proves this address gets Shikigami's emails. */
     test: (to: string) =>
       compose(
         to,
-        "AgentNet: your emails work",
+        "Shikigami: your emails work",
         [["Email", to]],
-        "This is a test from AgentNet. Booking emails and account notices will reach you here.",
+        "This is a test from Shikigami. Booking emails and account notices will reach you here.",
         [["Your wallet", `${appOrigin}/wallet`]],
-        "AgentNet runs on test networks: nothing real is booked or paid.",
+        "Shikigami runs on test networks: nothing real is booked or paid.",
       ),
   };
 }

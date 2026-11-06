@@ -48,7 +48,7 @@ async function setup(o: { perDay?: number; giftFails?: boolean; noWorld?: boolea
     appOrigin: ORIGIN,
     db,
     auth: {
-      site: { rpID: "localhost", origin: ORIGIN, name: "AgentNet" },
+      site: { rpID: "localhost", origin: ORIGIN, name: "Shikigami" },
       adminUsers: new Set(),
       secureCookies: false,
     },

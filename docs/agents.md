@@ -66,7 +66,7 @@ guest's booking cancelled): it cancels the hotel booking (every room we sell is 
 any price watch, and refunds the fee. Our policy: a buyer's report is enough.
 
 **Cancelling a booked stay.** `POST /jobs/:id/cancel-booking` `{ signature }` cancels the hotel
-booking when the signature over `AgentNet: cancel the booking for job <escrowId>` comes from the
+booking when the signature over `Shikigami: cancel the booking for job <escrowId>` comes from the
 job's buyer on Hedera (the limit's owner or its AI key), so nobody else can cancel a guest's stay.
 It keeps the fee (the job was done) and stops any price watch.
 
@@ -118,7 +118,7 @@ the booking fails.
 
 **Trip prices and cards.** An offer's `priceUnits` (the trip price at testnet scale) is paid into
 the same escrow as the fee, and the agent pays the hotel or airline with a one-time card from
-AgentNet Cards (mock). See [agent-cards.md](agent-cards.md).
+Shikigami Cards (mock). See [agent-cards.md](agent-cards.md).
 
 **Identity (ERC-8004).** Each agent registers itself in ERC-8004's IdentityRegistry on Hedera
 with its own key and serves its card at `GET /.well-known/agent-card.json` (`src/identity.ts`;

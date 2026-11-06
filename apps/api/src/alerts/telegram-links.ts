@@ -3,7 +3,7 @@ import type { ChatStore } from "../chats/store";
 import type { Db } from "../db/client";
 import { alertChannels } from "../db/schema";
 
-/** Which account a Telegram chat is linked to, and which AgentNet chat it talks in. */
+/** Which account a Telegram chat is linked to, and which Shikigami chat it talks in. */
 export function telegramLinks(db: Db, store: ChatStore) {
   return {
     async link(tgChatId: string) {
@@ -14,7 +14,7 @@ export function telegramLinks(db: Db, store: ChatStore) {
       return row ?? null;
     },
 
-    /** The AgentNet chat this Telegram chat is in, made from its first message if there's none. */
+    /** The Shikigami chat this Telegram chat is in, made from its first message if there's none. */
     async chatFor(userId: string, appChatId: string | null, firstText: string) {
       const existing = appChatId ? await store.get(userId, appChatId).catch(() => null) : null;
       if (existing) return existing;

@@ -86,7 +86,7 @@ export async function connectorRoutes(s: Session) {
     capabilities: {},
     clientInfo: { name: "smoke", version: "1" },
   });
-  check("MCP initialize", init.json.result?.serverInfo?.name === "AgentNet");
+  check("MCP initialize", init.json.result?.serverInfo?.name === "Shikigami");
   const names = ((await rpc("tools/list")).json.result?.tools ?? []).map(
     (x: { name: string }) => x.name,
   );
@@ -102,7 +102,7 @@ export async function connectorRoutes(s: Session) {
     (await tool("find_agents", { need: "check a bank IFSC code" })).includes("Bank Check"),
   );
   check("MCP agent_input", (await tool("agent_input", { skill: "bank-check" })).includes("ifsc"));
-  // Its own chat has no lookup limit: it says to approve one in AgentNet, nothing is paid.
+  // Its own chat has no lookup limit: it says to approve one in Shikigami, nothing is paid.
   check(
     "MCP ask_agent asks for a Face ID limit first",
     /approve a small lookup limit/.test(

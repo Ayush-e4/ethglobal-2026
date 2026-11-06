@@ -11,7 +11,7 @@ import { limitParams } from "./limits";
 import type { HiringService } from "./service";
 
 const ORIGIN = "http://localhost:3000";
-const site = { rpID: "localhost", origin: ORIGIN, name: "AgentNet" };
+const site = { rpID: "localhost", origin: ORIGIN, name: "Shikigami" };
 const PAYEE = "0x00000000000000000000000000000000000000a7";
 const REGISTRY = "0x00000000000000000000000000000000000000f1";
 const CONCIERGE = "0x00000000000000000000000000000000000000c0";

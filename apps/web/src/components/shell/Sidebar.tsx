@@ -15,6 +15,7 @@ import {
   SearchIcon,
   WalletIcon,
 } from "../icons";
+import { InstallApp } from "./Pwa";
 
 const MAIN = [
   { href: "/chat", label: "Chat", Icon: ChatIcon },
@@ -47,7 +48,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
           <span className="flex size-[30px] items-center justify-center rounded-[9px] bg-teal text-white">
             <LogoMark size={17} />
           </span>
-          <span className="text-[17px] font-bold">AgentNet</span>
+          <span className="text-[17px] font-bold">Shikigami</span>
         </Link>
         <button
           type="button"
@@ -131,6 +132,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
         </ul>
       </section>
 
+      <InstallApp />
       <div className="flex flex-none items-stretch gap-2">
         <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white p-3">
           <span

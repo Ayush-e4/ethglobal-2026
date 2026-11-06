@@ -44,6 +44,16 @@ The screens come from the practice project's final, already-fixed version, built
 - **Long requests**: Next's proxy timeout is 5 minutes; the default 30 s made a booking look
   failed while its payment went through.
 
+## An installable app (PWA)
+
+Shikigami installs to a phone's home screen and opens in its own window: `src/app/manifest.ts`
+(name, start at `/chat`, shortcuts to a new chat, Trips and Wallet), icons in `public/` (a
+hitogata, the paper figure a shikigami lives in: regular, maskable for Android, and Apple's),
+and `public/sw.js`. The service worker only keeps a small "you're offline" page: chats, money and
+sign-in always go to the network, never a stale copy. Chrome and Android show **Install the app**
+in the sidebar (their install prompt); on an iPhone it explains Share → Add to Home Screen.
+Installing needs https (any deployed address; on this machine, localhost).
+
 ## The hire card
 
 After **Choose**, the concierge hires the agent and the chat shows its card, which follows the hire

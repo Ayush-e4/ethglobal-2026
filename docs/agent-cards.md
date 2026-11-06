@@ -14,7 +14,7 @@ because that money is held. Undo and Report protect the whole trip, not just the
    that much. The spending limit you approve with Face ID covers it (up to 0.20 a payment, 0.50 in
    a chat); older, smaller limits ask for a new one.
 3. **Undo** (60 s): everything comes back, and no card was ever made.
-4. **Card.** After the undo window, the agent asks **AgentNet Cards** for a card, signing with its
+4. **Card.** After the undo window, the agent asks **Shikigami Cards** for a card, signing with its
    own key. The issuer checks on Hedera that this job's escrow is held, for this agent, with at
    least the price. Then it issues a single-use virtual card: one merchant, the exact amount, an
    hour. The agent gets the (mock) number and code once and books with it. Nobody keeps them:

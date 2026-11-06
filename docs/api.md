@@ -74,7 +74,7 @@ moves from the app:
    Telegram, the hire's live message has **⚠️ Report a problem** for the same thing.
 9. **Cancel a booked stay**: `POST /chats/:id/hires/:hireId/cancel-booking`, after the undo
    window, for a booked stay not cancelled yet (`canCancelBooking` on the hire). We sign
-   `AgentNet: cancel the booking for job <escrowId>` with the concierge's key and send it to the
+   `Shikigami: cancel the booking for job <escrowId>` with the concierge's key and send it to the
    agent, which checks the signer against Hedera (the limit's owner or its AI key) before
    cancelling at the hotel. The agent's fee stays paid: it booked as promised. The chat says so.
 
@@ -154,7 +154,7 @@ and what the checks are: [list-your-agent.md](list-your-agent.md).
 
 ## Connected apps: Claude over MCP
 
-AgentNet is a remote MCP server at **`<app origin>/mcp`** (Streamable HTTP, stateless, JSON
+Shikigami is a remote MCP server at **`<app origin>/mcp`** (Streamable HTTP, stateless, JSON
 replies), for apps the user connects with OAuth 2.1. Everything is on the app's origin (Next
 forwards `/mcp`, `/oauth/*` and `/.well-known/*` to the API, `src/mcp`). To use it from Claude:
 add a custom connector with that URL, then sign in when it asks.
@@ -173,7 +173,7 @@ add a custom connector with that URL, then sign in when it asks.
 `bookings` (recent bookings, with receipts) and `undo`.
 What an app does shows in its own chat (**From Claude**), with the usual cards, and alerts go to
 Telegram. A hire that needs the user (who it's for, a Face ID limit, a World ID approval) isn't
-paid: the app gets a link to that chat, the user does it there, and AgentNet books it by itself.
+paid: the app gets a link to that chat, the user does it there, and Shikigami books it by itself.
 So a connected app can never spend beyond the limits the user approved with Face ID, and never
 sees travellers' details.
 
@@ -238,7 +238,7 @@ chat (`src/alerts`). The chat message is the record; the alert is a nudge, sent 
 - **Commands** (`src/alerts/commands.ts`): the bot sets its menu (`/status`: the account's
   latest bookings and price watches; `/help`; `/stop`) and what people see before tapping Start.
 - **The concierge in Telegram** (`src/alerts/telegram-chat.ts`): a connected Telegram chat talks to
-  one AgentNet chat, with the same turns, tools and payments as the web, saved in that chat (so the
+  one Shikigami chat, with the same turns, tools and payments as the web, saved in that chat (so the
   web shows it too; `/new` starts another). The reply streams in as a draft (`sendMessageDraft`:
   "Thinking…", the tool being used, then the text as it's written) and is then sent for good, in
   Telegram's HTML. Offers are one carousel message: a hotel with its photo and details, **◀ ▶**
@@ -272,7 +272,7 @@ pnpm --filter @app/api db:generate   # after changing src/db/schema.ts
 Tests run on PGlite (Postgres in memory) with the same migrations, and a software passkey that
 signs like a real device; no Docker needed.
 
-**Smoke test** (`pnpm smoke`, `apps/api/scripts/smoke`): every route on a running AgentNet, the
+**Smoke test** (`pnpm smoke`, `apps/api/scripts/smoke`): every route on a running Shikigami, the
 way people and apps use them, with test money only. Public routes and refusals (each agent's
 health, card and ERC-8004 identity; a lookup that finds nothing isn't charged); the demo account
 (travellers, chats, a hotel undone, a hotel delivered then reported and refunded, a flight

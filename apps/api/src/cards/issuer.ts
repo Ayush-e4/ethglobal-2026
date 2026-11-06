@@ -33,7 +33,7 @@ const view = (c: AgentCardRow) => ({
 });
 
 /**
- * AgentNet Cards: a mock issuer of one-time virtual cards that agents pay hotels and airlines
+ * Shikigami Cards: a mock issuer of one-time virtual cards that agents pay hotels and airlines
  * with. Nothing reaches a card network. A card is issued only for a job whose escrow on Hedera
  * holds the trip price for the asking agent (the agent's own key signs), locked to one merchant,
  * the exact amount and an hour. It follows the escrow: authorized when the agent books,

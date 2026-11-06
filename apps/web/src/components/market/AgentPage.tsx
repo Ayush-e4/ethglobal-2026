@@ -136,8 +136,8 @@ export function AgentPage({ address }: { address: string }) {
             </span>
             <span className="text-ink-2">
               {a.erc8004.reputation?.count
-                ? `Reputation there: ${a.erc8004.reputation.count} rating${a.erc8004.reputation.count === 1 ? "" : "s"} from verified people, averaging ${a.erc8004.reputation.average.toFixed(1)}★, given by AgentNet's concierge (the client that hired it).`
-                : "No ratings there yet: each verified person's rating goes there too, given by AgentNet's concierge (the client that hired it)."}
+                ? `Reputation there: ${a.erc8004.reputation.count} rating${a.erc8004.reputation.count === 1 ? "" : "s"} from verified people, averaging ${a.erc8004.reputation.average.toFixed(1)}★, given by Shikigami's concierge (the client that hired it).`
+                : "No ratings there yet: each verified person's rating goes there too, given by Shikigami's concierge (the client that hired it)."}
             </span>
           </>
         ) : (

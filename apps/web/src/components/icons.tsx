@@ -22,12 +22,14 @@ function Icon({ size = 18, children, ...rest }: IconProps & { children: React.Re
   );
 }
 
+/** Shikigami's mark: a hitogata, the paper figure a shikigami lives in (the app icon's shape). */
 export const LogoMark = (p: IconProps) => (
-  <Icon strokeWidth={2} {...p}>
-    <circle cx="6" cy="7" r="2.5" />
-    <circle cx="18" cy="7" r="2.5" />
-    <circle cx="12" cy="18" r="2.5" />
-    <path d="M8.5 7h7M7.2 9.2l3.6 6.6M16.8 9.2l-3.6 6.6" />
+  <Icon strokeWidth={0} {...p}>
+    <path
+      fill="currentColor"
+      d="M3.88 10.18 L9.48 8.92 L14.52 8.92 L20.12 10.18 L20.12 12.14 L15.08 12.0 L15.5 17.88 L16.34 22.08 L13.4 22.08 L12.0 18.44 L10.6 22.08 L7.66 22.08 L8.5 17.88 L8.92 12.0 L3.88 12.14 Z"
+    />
+    <circle fill="currentColor" cx="12.0" cy="5.14" r="3.22" />
   </Icon>
 );
 export const PlusIcon = (p: IconProps) => (

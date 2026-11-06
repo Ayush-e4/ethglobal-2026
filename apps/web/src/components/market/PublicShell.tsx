@@ -10,7 +10,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-teal text-white">
             <LogoMark size={20} />
           </span>
-          <span className="text-xl font-bold">AgentNet</span>
+          <span className="text-xl font-bold">Shikigami</span>
         </Link>
         <Link href="/chat" className="text-sm font-semibold text-teal">
           Open the app

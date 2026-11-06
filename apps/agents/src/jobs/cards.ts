@@ -15,7 +15,7 @@ export interface CardIssuer {
 }
 
 /**
- * AgentNet's card issuer (a mock: no real card network). The agent signs each request with its
+ * Shikigami's card issuer (a mock: no real card network). The agent signs each request with its
  * own key; the issuer only issues a card for a job whose escrow on Hedera holds that money for
  * this agent, locked to one merchant, the exact amount, an hour, and one use.
  */

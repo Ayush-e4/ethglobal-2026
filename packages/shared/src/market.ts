@@ -143,11 +143,11 @@ export type Offer = z.infer<typeof OfferSchema>;
 export const TESTNET_SCALE = "₹1 = 0.000001 test USDC";
 export const inrToTestUnits = (inr: number) => BigInt(Math.round(inr));
 
-/** What an agent signs to get a one-time card for a paid job, from AgentNet's (mock) issuer. */
+/** What an agent signs to get a one-time card for a paid job, from Shikigami's (mock) issuer. */
 export const cardMessage = (escrowId: string, amountUnits: string, merchant: string) =>
-  `AgentNet card: job ${escrowId}, ${amountUnits} units, for ${merchant}`;
+  `Shikigami card: job ${escrowId}, ${amountUnits} units, for ${merchant}`;
 export const voidCardMessage = (escrowId: string) =>
-  `AgentNet card: void the card for job ${escrowId}`;
+  `Shikigami card: void the card for job ${escrowId}`;
 
 /**
  * A lookup agent's answer (GET /answer, paid per lookup): what it found, in labelled lines, and
@@ -184,4 +184,4 @@ export function stay(checkin: string, checkout: string) {
  * checks the signer against the limit Hedera records for the job's escrow.
  */
 export const cancelBookingMessage = (escrowId: string) =>
-  `AgentNet: cancel the booking for job ${escrowId}`;
+  `Shikigami: cancel the booking for job ${escrowId}`;

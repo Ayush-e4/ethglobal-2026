@@ -75,7 +75,8 @@ export function LoginCard() {
         </div>
       ) : (
         <p className="rounded-xl bg-side px-4 py-3 text-sm text-ink-3">
-          This browser can't use passkeys. Open AgentNet in Safari, Chrome or Edge, or try the demo.
+          This browser can't use passkeys. Open Shikigami in Safari, Chrome or Edge, or try the
+          demo.
         </p>
       )}
       <div className="flex items-center gap-3 text-xs text-muted">

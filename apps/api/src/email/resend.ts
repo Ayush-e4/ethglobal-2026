@@ -18,7 +18,7 @@ const mask = (to: string) => to.replace(/^(.).*@/, "$1…@");
  */
 export function resendTry(
   key: string | undefined,
-  from = "AgentNet <onboarding@resend.dev>",
+  from = "Shikigami <onboarding@resend.dev>",
   fetchImpl: typeof fetch = fetch,
 ): TryEmail {
   return async (e) => {
