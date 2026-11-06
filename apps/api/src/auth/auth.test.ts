@@ -90,6 +90,8 @@ describe("sign-in", () => {
       body: JSON.stringify({ response: phishing.register(reg.challenge) }),
     });
     expect(res.status).toBe(401);
+    // The reason is in the answer (and the log), so a failed sign-up can be told apart.
+    expect(((await res.json()) as { message: string }).message).toMatch(/origin/i);
     const opts = await json(call("/auth/passkey/login-options", { method: "POST" }));
     const stranger = softPasskey(ORIGIN);
     const login = await call("/auth/passkey/login", {

@@ -68,6 +68,12 @@ moves from the app:
 `GET /chats/:id/hires` gives the cards their live status: only what a card shows (status, fee,
 pay transaction, undo deadline, booking reference, note), never the agent's job URL or escrow id.
 
+Passkeys ask for **required** user verification (Face ID, a fingerprint, a PIN), at sign-up and
+sign-in. With "preferred", a passkey app (a password-manager extension, in our first real-device
+test) may skip it, and the server refuses the answer; the wallet contract only accepts verified
+answers anyway. A refused answer's reason is logged (`auth: refused …`) and returned, so a
+failed sign-up can be told apart.
+
 ## Face ID wallets
 
 | Route | What |
