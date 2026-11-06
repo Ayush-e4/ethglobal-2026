@@ -102,6 +102,9 @@ goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
 |-------|--|
 | `GET /world` | World ID on this account: `available` (set up on this server), `verified`, the welcome `bonus` (`sending` / `sent` / `failed`, with its transaction), and the newest bonus `check` |
 | `POST /world/bonus` | Start a World ID check that sends the bonus when it passes: `{ check: { id, status, userCode, link, expiresAt } }`. One at a time (a waiting check is returned again). 409 for demo accounts, a wallet that isn't ready, or a bonus already had |
+| `POST /chats/:id/human-checks` `{ quoteKey }` | Start a World ID approval for a larger hire (fee from `WORLD_CHECK_FEE_USDC`): one payment to that quote's agent, at its fee, in this chat, within 10 minutes. The quote may have expired. 404 for a quote that isn't in your chat, 409 for one that needs no approval |
+| `GET /chats/:id/human-checks/:quoteKey` | The newest approval check for that agent and fee in this chat (a reopened card) |
+| `GET /world/checks/:id` | One of your checks: `waiting` / `verified` / `denied` / `expired` / `failed` / `mismatch`, and `used` |
 
 How a check is judged, and what's stored: [world-id.md](world-id.md).
 

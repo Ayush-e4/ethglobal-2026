@@ -3,6 +3,7 @@ import type { Card } from "@app/shared";
 import { z } from "zod";
 import type { User } from "../db/schema";
 import { NeedsLimit } from "../hiring/limits";
+import { NeedsHuman } from "../world/checkpoint";
 import type { Market, MarketOffer } from "./market";
 
 const Skill = z.string().regex(/^[a-z0-9_.-]{1,64}$/);
@@ -249,6 +250,11 @@ export async function runTool(
         },
       };
     } catch (err) {
+      if (err instanceof NeedsHuman)
+        return {
+          result: `Not booked yet: ${err.card.agentName}'s fee (${usdc(err.card.feeUnits)} USDC) is a larger payment, so a real person approves it first with World ID (the card shows it: they approve in the World ID app; it proves a person, nothing about who). Ask them to approve it on the card; once they do, the app sends the booking again. If they decline, nothing is paid. Don't call hire again until then. Their approval covers one payment to ${err.card.agentName} at this fee in this chat for 10 minutes, fresh quotes from it included: if this quote expires, get fresh prices from ${err.card.agentName} and hire the same offer, without asking them to approve again.`,
+          card: err.card,
+        };
       if (err instanceof NeedsLimit)
         return {
           result: `Not booked yet: ${err.card.agentName} is paid from the user's own wallet, so they first approve a spending limit for it with Face ID (the card shows it: up to ${usdc(err.card.budgetUnits)} USDC in this chat for ${err.card.hours} hours). Ask them to approve it on the card; once they do, the app sends the booking again. Don't call hire again until then.`,

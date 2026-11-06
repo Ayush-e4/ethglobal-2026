@@ -57,6 +57,13 @@
       "when": 1793933497745,
       "tag": "0007_mysterious_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793935061107,
+      "tag": "0008_high_kingpin",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,10 @@ We use World's **Agent Pass** (OpenID Connect, device flow) for:
 
 - **A welcome bonus, once per person.** Prove you're a person and your Face ID wallet gets
   +0.20 test USDC from our sponsor. The sign-up gift (0.10) needs nothing, so nobody is blocked.
+- **A human checkpoint before larger payments.** Hiring an agent whose fee is 0.05 USDC or more
+  (PriceGuard) needs a fresh approval in the World ID app, so a bot, a stolen session or a
+  confused model can't make larger payments alone. Declined or timed out: nothing is paid.
+  Smaller hires (StayWise, 0.02) go ahead as before, so nobody without World ID is stuck.
 
 ## How a check works
 
@@ -30,17 +34,35 @@ Anything else unlocks nothing: declined, timed out, World unavailable, a token t
 check, or a World ID already used by another account. The page says which, and nothing is sent.
 Checks are kept in the database; after a restart the server picks up the ones still waiting.
 
+## Approving a larger hire
+
+1. The concierge calls `hire`; hiring asks the checkpoint first (`world/checkpoint.ts`). No
+   approval yet: nothing is paid, and the chat shows a **Confirm it's you with World ID** card.
+2. The card starts a check (`POST /chats/:id/human-checks`), shown like the bonus's: code, QR or
+   button, waiting. Our server judges World's answer the same way (signature, audience, level,
+   freshness); a passkey account's World ID must be the one linked to it. Demo accounts are
+   throwaway, so nothing is linked to them: any verified person can approve there.
+3. Approved: the card sends the booking again. What's approved is **one payment to that agent, at
+   that fee, in that chat, within 10 minutes**: not the quote itself, since quotes last 3
+   minutes and a fresh one from the same agent must still count.
+4. The approval is used up only when the payment goes ahead, so a Face ID limit step in between
+   doesn't cost a second World ID check; two hires at once can't both use it.
+
 ## What people need
 
-The free **World ID** app ([iPhone and iPad](https://apps.apple.com/app/id6760839426),
-[Android](https://play.google.com/store/apps/details?id=org.world.id)). Our hackathon build
-uses World's **sandbox** (`WORLD_ID_ISSUER=https://sandbox.auth.world.org`): its page says
-"Uses fake identities", and the normal World ID app approves its checks. No Orb visit, and no
-production registration.
+Our hackathon build uses World's **sandbox** (`WORLD_ID_ISSUER=https://sandbox.auth.world.org`;
+its page says "Uses fake identities"). We approve with World's **sandbox World ID app** (from
+TestFlight, with a test identity). Whether the public World ID app
+([App Store](https://apps.apple.com/app/id6760839426),
+[Google Play](https://play.google.com/store/apps/details?id=org.world.id)) also approves sandbox
+checks is not confirmed yet: we've asked World. World's page also offers "Continue with a
+passkey", but only for a World ID that already has a passkey; it doesn't make a new one.
 
-- **Laptop:** scan the QR code on the Wallet page with your phone.
+- **Laptop:** scan the QR code on our card with your phone (or open World's page).
 - **Phone or tablet only:** tap **Open World ID**, then **Continue with World ID** and **Open World
-  ID app** on World's page; approve, and come back.
+  ID app** on World's page.
+- Either way: approve in the app, then **go back to World's page**. That finishes the check: until
+  the page is open again, our server's polls see "pending".
 
 ## Settings (.env)
 
@@ -50,6 +72,7 @@ production registration.
 | `WORLD_ID_CLIENT_ID`, `WORLD_ID_CLIENT_SECRET` | From World's developer portal (Agent Pass app). Without them, World ID is off and the page doesn't show it |
 | `WORLD_BONUS_USDC` | The bonus (default 0.20) |
 | `WORLD_BONUSES_PER_DAY` | Across everyone (default 20) |
+| `WORLD_CHECK_FEE_USDC` | A hire's fee from which a person approves it with World ID (default 0.05) |
 
 ## Live checks (6 Nov 2026)
 
@@ -58,6 +81,18 @@ production registration.
   World ID → the sponsor sent 0.20 test USDC
   ([tx](https://hashscan.io/testnet/transaction/0xafe3906ff12545510d0c1ba8f2396b088b9eb5f810d318194a5766a88659ad9d)),
   the wallet went from 0.08 to 0.28 and the card turned to "Verified person".
+- The checkpoint, on the same account in chat: "a hotel in Goa … keep watching the price" → offers
+  from StayWise and PriceGuard → PriceGuard's Park Inn (fee 0.05) → no payment, the World ID card
+  → **declined** on World's page → "You declined in the World ID app. Nothing was paid." (check
+  `denied`, no hire) → **approved** → the quote had expired meanwhile, so the concierge got fresh
+  prices; the approval covered the new quote → Face ID limit → hired, 0.05 USDC held in escrow
+  ([tx](https://hashscan.io/testnet/transaction/0.0.11328382@1793936488.549097829)), the approval
+  marked used → after the undo window PriceGuard booked it (reference LiugdfvpL) and is watching
+  the price until check-in.
+- Found on the way: the first version bound an approval to the quote, which expired during the
+  decline-and-retry (fixed: agent and fee); approvals reached our server only once World's page
+  was opened again (now said on the card); a passed payment approval ran the bonus code (no
+  bonus was sent, since it had been had; fixed and tested).
 - Token from the sandbox: `acr` = Orb, `amr` = `["pop"]`.
 - On an iPhone simulator (no app installed): World's page offers "Continue with a passkey",
   "Continue with World ID" and "Deny connection". "Continue with World ID" leads to **Open World

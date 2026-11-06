@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
 import { createSession } from "../auth/session";
@@ -7,7 +8,7 @@ import { testDb } from "../test/db";
 import { fakeWorld, token } from "../test/world";
 import type { WalletChain } from "../wallet/chain";
 import { walletService } from "../wallet/service";
-import { worldBonus } from "./bonus";
+import { bonusOnVerified, worldBonus } from "./bonus";
 import { worldChecks } from "./checks";
 import type { Poll } from "./oidc";
 
@@ -35,13 +36,7 @@ async function setup(o: { perDay?: number; giftFails?: boolean; noWorld?: boolea
   const tick = () => new Promise<void>((r) => setTimeout(r, 2));
   const checks = o.noWorld
     ? null
-    : worldChecks(
-        db,
-        await fakeWorld(async () => answer),
-        (c, v) => bonus.give(c.userId, v),
-        tick,
-        () => {},
-      );
+    : worldChecks(db, await fakeWorld(async () => answer), bonusOnVerified(bonus), tick, () => {});
   const app = createApp({
     appOrigin: ORIGIN,
     db,
@@ -52,7 +47,7 @@ async function setup(o: { perDay?: number; giftFails?: boolean; noWorld?: boolea
     },
     concierge: async () => ({ text: "", cards: [] }),
     wallets,
-    world: { checks, bonus },
+    world: { checks, bonus, minFeeUnits: 50_000n },
   });
   /** A signed-in account; a passkey account with its wallet ready, unless it's a demo. */
   const account = async (isDemo = false) => {
@@ -60,7 +55,7 @@ async function setup(o: { perDay?: number; giftFails?: boolean; noWorld?: boolea
     const id = u?.id ?? "";
     const address = `0x${id.replaceAll("-", "").padEnd(40, "0")}`;
     if (!isDemo) await db.insert(walletRows).values({ userId: id, address, status: "ready" });
-    return { address, cookie: `app_session=${await createSession(db, id)}` };
+    return { address, userId: id, cookie: `app_session=${await createSession(db, id)}` };
   };
   const call = (path: string, cookie: string, method = "GET") =>
     app.request(path, { method, headers: { Cookie: cookie } });
@@ -78,7 +73,19 @@ async function setup(o: { perDay?: number; giftFails?: boolean; noWorld?: boolea
     status: "done",
     idToken: await token({ sub }),
   });
-  return { call, world, account, prove, approved, gifts };
+  return {
+    db,
+    call,
+    world,
+    account,
+    prove,
+    approved,
+    gifts,
+    checks,
+    setAnswer: (p: Poll) => {
+      answer = p;
+    },
+  };
 }
 
 describe("the World ID welcome bonus", () => {
@@ -158,6 +165,18 @@ describe("the World ID welcome bonus", () => {
       check: { reason: "the bonus didn't go through" },
     });
     expect((await call("/world/bonus", me.cookie, "POST")).status).toBe(409);
+  });
+
+  it("approving a payment with World ID never sends the bonus", async () => {
+    const { db, account, world, gifts, checks, setAnswer, approved } = await setup();
+    const me = await account();
+    const [u] = await db.select().from(users).where(eq(users.id, me.userId));
+    if (!checks || !u) throw new Error("setup");
+    setAnswer(await approved());
+    const c = await checks.start(u.id, "spend", "chat:payee:50000");
+    await vi.waitFor(async () => expect((await checks.get(c.id, u.id))?.status).toBe("verified"));
+    expect(await world(me.cookie)).toMatchObject({ verified: true, bonus: null });
+    expect(gifts).toHaveLength(0);
   });
 
   it("demo accounts have no wallet of their own, so no bonus", async () => {

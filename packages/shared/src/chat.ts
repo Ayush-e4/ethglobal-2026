@@ -96,6 +96,19 @@ export const LimitCardSchema = z.object({
   reply: z.string(),
 });
 
+/**
+ * Before a larger payment (see WORLD_CHECK_FEE_USDC): a fresh World ID approval that a real
+ * person wants this hire (one payment to this agent, at this fee, in this chat, for 10 minutes:
+ * a fresh quote from it is covered). Once approved, the app sends `reply` as the user.
+ */
+export const HumanCardSchema = z.object({
+  type: z.literal("human"),
+  agentName: z.string(),
+  feeUnits: units,
+  quoteKey: z.string(), // the quote that asked: one payment to its agent, at its fee, is approved
+  reply: z.string(),
+});
+
 /** Where a reply's facts from the web came from (web search citations), to check them. */
 export const SourcesCardSchema = z.object({
   type: z.literal("sources"),
@@ -108,6 +121,7 @@ export const CardSchema = z.discriminatedUnion("type", [
   QuotesCardSchema,
   HireCardSchema,
   LimitCardSchema,
+  HumanCardSchema,
   SourcesCardSchema,
 ]);
 export type Card = z.infer<typeof CardSchema>;

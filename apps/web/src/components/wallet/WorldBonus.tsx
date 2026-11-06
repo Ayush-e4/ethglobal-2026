@@ -1,13 +1,8 @@
 "use client";
 
-import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, hashscanTx, usdc, type WorldCheck, type WorldInfo } from "@/lib/api";
-
-const IOS = "https://apps.apple.com/app/id6760839426";
-const ANDROID = "https://play.google.com/store/apps/details?id=org.world.id";
-const button =
-  "flex min-h-11 items-center justify-center rounded-xl bg-teal px-5 text-sm font-semibold text-white disabled:opacity-60";
+import { worldButton as button, WorldNote, WorldWaiting } from "../world/WorldWaiting";
 
 /** Why the last check didn't pass (or what it passed into), in plain words. */
 function ended(c: WorldCheck): string | null {
@@ -121,38 +116,7 @@ export function WorldBonus({ onBonus }: { onBonus: () => void }) {
       </div>
 
       {waiting && check ? (
-        <div className="flex flex-wrap items-center gap-5 rounded-2xl border border-line bg-white p-4">
-          <QRCodeSVG
-            value={check.link}
-            size={148}
-            marginSize={1}
-            className="hidden sm:block"
-            aria-label="QR code to approve with World ID"
-          />
-          <div className="flex min-w-[220px] flex-1 flex-col gap-2">
-            <span className="text-ink-3">
-              <span className="sm:hidden">Tap Open World ID and approve in the World ID app.</span>
-              <span className="hidden sm:inline">
-                Scan this with your phone, or open World's page, and approve in the World ID app.
-              </span>{" "}
-              Check the code matches:
-            </span>
-            <span className="font-mono text-2xl font-bold tracking-widest">{check.userCode}</span>
-            <a
-              className={`${button} self-start`}
-              href={check.link}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open World ID
-            </a>
-            <span role="status" className="flex items-center gap-2 text-xs text-muted">
-              <span className="size-2 animate-pulse rounded-full bg-saffron" />
-              Waiting for your approval, until{" "}
-              {new Date(check.expiresAt).toLocaleTimeString("en-IN", { timeStyle: "short" })}
-            </span>
-          </div>
-        </div>
+        <WorldWaiting check={check} />
       ) : (
         <>
           {check && ended(check) && <p className="text-ink-2">{ended(check)}</p>}
@@ -161,17 +125,7 @@ export function WorldBonus({ onBonus }: { onBonus: () => void }) {
           </button>
         </>
       )}
-      <span className="text-xs text-muted">
-        No World ID app? It's free:{" "}
-        <a className="underline" href={IOS} target="_blank" rel="noreferrer">
-          iPhone and iPad
-        </a>{" "}
-        ·{" "}
-        <a className="underline" href={ANDROID} target="_blank" rel="noreferrer">
-          Android
-        </a>
-        . This test version accepts test identities.
-      </span>
+      <WorldNote />
       {error && <p className="text-bad">{error}</p>}
     </section>
   );

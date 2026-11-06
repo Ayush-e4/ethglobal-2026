@@ -3,16 +3,7 @@ import { currentUser } from "../auth/current";
 import type { Db } from "../db/client";
 import type { WalletService } from "../wallet/service";
 import type { WorldBonus } from "./bonus";
-import type { WorldCheck, WorldChecks } from "./checks";
-
-const view = (c: WorldCheck) => ({
-  id: c.id,
-  status: c.status,
-  reason: c.reason,
-  userCode: c.userCode,
-  link: c.link,
-  expiresAt: new Date(c.expiresAt).toISOString(),
-});
+import { checkView as view, type WorldChecks } from "./checks";
 
 /**
  * GET /world: is this account a verified person (World ID), its welcome bonus, and its newest

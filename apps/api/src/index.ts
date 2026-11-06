@@ -14,7 +14,8 @@ import { hederaWalletChain } from "./wallet/chain";
 import { loadWalletConfig } from "./wallet/config";
 import { walletApprovals } from "./wallet/ops";
 import { walletService } from "./wallet/service";
-import { loadBonusOptions, worldBonus } from "./world/bonus";
+import { bonusOnVerified, loadBonusOptions, worldBonus } from "./world/bonus";
+import { humanCheckpoint, loadCheckpointOptions } from "./world/checkpoint";
 import { worldChecks } from "./world/checks";
 import { loadWorldConfig, worldClient } from "./world/oidc";
 
@@ -24,14 +25,19 @@ const walletCfg = loadWalletConfig();
 const walletChain = hederaWalletChain(walletCfg);
 const wallets = walletService(db, walletChain, walletCfg);
 const approvals = walletApprovals(db, walletChain, config.auth.site);
-// World ID: a person who proves they're one gets a welcome bonus, once per World ID.
+// World ID: a person who proves they're one gets a welcome bonus, once per World ID, and
+// approves larger hires (from WORLD_CHECK_FEE_USDC) in the World ID app.
 const worldCfg = loadWorldConfig();
 const bonus = worldBonus(db, walletChain, wallets, loadBonusOptions());
-const checks = worldCfg
-  ? worldChecks(db, worldClient(worldCfg), (c, v) => bonus.give(c.userId, v))
-  : null;
+const checks = worldCfg ? worldChecks(db, worldClient(worldCfg), bonusOnVerified(bonus)) : null;
+const { minFeeUnits } = loadCheckpointOptions();
 // Passkey accounts pay from their own Face ID wallet; demo accounts from the demo wallet.
-const hiring = hiringService(db, loadHiringConfig(), (id) => wallets.get(id, false));
+const hiring = hiringService(
+  db,
+  loadHiringConfig(),
+  (id) => wallets.get(id, false),
+  checks ? humanCheckpoint(checks, minFeeUnits) : undefined,
+);
 const concierge = claudeConcierge({
   market: arkivMarket(arkivReader()),
   saveQuotes: (chatId, shown) => saveQuotes(db, chatId, shown),
@@ -47,7 +53,7 @@ const app = createApp({
   walletChain,
   approvals,
   demoToken: process.env.DEMO_TOKEN || undefined,
-  world: { checks, bonus },
+  world: { checks, bonus, minFeeUnits },
 });
 await checks?.resume(); // World ID checks a restart interrupted
 // Follows every open hire to the end, from the database: restarts lose nothing.
