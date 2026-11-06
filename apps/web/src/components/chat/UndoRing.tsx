@@ -1,11 +1,15 @@
 import { useRef } from "react";
 import { UndoIcon } from "../icons";
 
-/** The undo window as a ring that drains, second by second, around the undo arrow. */
-export function UndoRing({ secs }: { secs: number }) {
-  const total = useRef(secs);
-  if (secs > total.current) total.current = secs;
-  const left = total.current > 0 ? secs / total.current : 0;
+/**
+ * The undo window as a ring that drains, second by second, around the undo arrow. With the
+ * window's length (`total`), a chat reopened halfway shows it half drained.
+ */
+export function UndoRing({ secs, total }: { secs: number; total?: number }) {
+  const most = useRef(secs);
+  if (secs > most.current) most.current = secs;
+  const whole = total && total >= secs ? total : most.current;
+  const left = whole > 0 ? secs / whole : 0;
   return (
     <span className="relative flex size-6 items-center justify-center" aria-hidden>
       <svg

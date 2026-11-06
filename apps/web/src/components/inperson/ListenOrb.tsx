@@ -151,7 +151,7 @@ export function ListenOrb({
       <span
         ref={fallback}
         aria-hidden
-        className="hidden size-24 animate-pulse rounded-full bg-teal-soft ring-8 ring-teal-soft/50"
+        className="hidden size-24 rounded-full bg-teal-soft ring-8 ring-teal-soft/50 motion-safe:animate-pulse"
       />
     </span>
   );

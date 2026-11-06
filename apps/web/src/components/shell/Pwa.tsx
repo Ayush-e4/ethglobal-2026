@@ -87,7 +87,7 @@ export function InstallCard() {
             <button
               type="button"
               onClick={() => void prompt.prompt()}
-              className="press min-h-10 rounded-xl bg-teal px-4 text-sm font-semibold text-white"
+              className="press min-h-10 max-md:min-h-11 rounded-xl bg-teal px-4 text-sm font-semibold text-white"
             >
               Install
             </button>
@@ -95,7 +95,7 @@ export function InstallCard() {
           <button
             type="button"
             onClick={dismiss}
-            className="min-h-10 rounded-xl px-3 text-sm font-semibold text-ink-3"
+            className="min-h-10 max-md:min-h-11 rounded-xl px-3 text-sm font-semibold text-ink-3"
           >
             Not now
           </button>

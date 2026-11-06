@@ -107,7 +107,7 @@ export function Limits() {
                   type="button"
                   disabled={working !== null}
                   onClick={() => cancel(l)}
-                  className="flex min-h-10 items-center rounded-xl border border-line-2 bg-white px-3.5 text-sm font-semibold text-bad disabled:opacity-50"
+                  className="flex min-h-10 max-md:min-h-11 items-center rounded-xl border border-line-2 bg-white px-3.5 text-sm font-semibold text-bad disabled:opacity-50"
                 >
                   {working === l.id ? "Waiting for Face ID…" : "Cancel"}
                 </button>

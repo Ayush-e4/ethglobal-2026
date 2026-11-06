@@ -122,7 +122,7 @@ export function Composer({
           title="Add a photo: a ticket, a booking, a hotel page"
           disabled={disabled || photos.length >= 3}
           onClick={() => picker.current?.click()}
-          className="flex size-9 flex-none items-center justify-center rounded-full text-ink-3 hover:bg-side disabled:opacity-35"
+          className="flex size-9 max-md:size-11 flex-none items-center justify-center rounded-full text-ink-3 hover:bg-side disabled:opacity-35"
         >
           <ImageIcon size={20} />
         </button>
@@ -133,7 +133,7 @@ export function Composer({
           type="submit"
           aria-label="Send"
           disabled={disabled || (!text.trim() && photos.length === 0)}
-          className="flex size-10 flex-none items-center justify-center rounded-full bg-teal text-white transition-opacity hover:bg-teal-dark disabled:opacity-35"
+          className="flex size-10 max-md:size-11 flex-none items-center justify-center rounded-full bg-teal text-white transition-opacity hover:bg-teal-dark disabled:opacity-35"
         >
           <SendIcon />
         </button>

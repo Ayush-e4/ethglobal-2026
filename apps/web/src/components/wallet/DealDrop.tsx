@@ -111,7 +111,7 @@ export function DealDrop() {
               type="button"
               disabled={d.left === 0}
               onClick={() => void begin(d.id)}
-              className="flex min-h-10 items-center self-start rounded-xl bg-ink px-4 font-semibold text-white disabled:opacity-50"
+              className="flex min-h-10 max-md:min-h-11 items-center self-start rounded-xl bg-ink px-4 font-semibold text-white disabled:opacity-50"
             >
               {d.left === 0 ? "All claimed" : "Claim with World ID"}
             </button>

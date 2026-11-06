@@ -1,9 +1,9 @@
 "use client";
 
 import type { Card } from "@app/shared";
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { usdc, verifiedRating } from "@/lib/api";
-import { useEnter } from "@/lib/native/motion";
+import { FreshTurn, useEnter } from "@/lib/native/motion";
 import { PinIcon, StarIcon } from "../icons";
 import type { CardCtx } from "./Cards";
 
@@ -147,7 +147,7 @@ function Offer({ q, first, ctx }: { q: Quote; first: boolean; ctx: CardCtx }) {
 /** Firm offers for one job, each picked for a reason; tapping one tells the concierge which. */
 export function QuotesCard({ card, ctx }: { card: QuotesCardData; ctx: CardCtx }) {
   const scope = useRef<HTMLElement>(null);
-  useEnter(scope);
+  useEnter(scope, [], { enabled: useContext(FreshTurn) });
   return (
     <section ref={scope} aria-label={`${card.skill} offers`} className="flex flex-col gap-3">
       <span className="text-[13px] text-ink-3">

@@ -2,7 +2,7 @@
 
 import type { Card } from "@app/shared";
 import { useRef } from "react";
-import { useNewIn } from "@/lib/native/motion";
+import { FreshTurn, useNewIn } from "@/lib/native/motion";
 import type { CardCtx } from "./Cards";
 import { CardView } from "./Cards";
 import { Markdown } from "./Markdown";
@@ -32,6 +32,8 @@ export function Messages({
   const latest = turns.findLast((t) => t.role === "assistant")?.id;
   const list = useRef<HTMLOListElement>(null);
   useNewIn(list, turns.length);
+  // The turns already here when the chat opened: their cards appear still (no replayed motion).
+  const history = useRef<Set<string>>(new Set(turns.map((t) => t.id)));
   return (
     <ol ref={list} aria-label="Conversation" className="flex flex-col gap-7">
       {turns.map((t) =>
@@ -67,15 +69,17 @@ export function Messages({
               ) : (
                 <Markdown text={t.text} />
               ))}
-            {t.cards
-              .map((card, n) => ({ card, id: `${t.id}-card${n}` })) // a turn's cards never reorder
-              .map(({ card, id }) => (
-                <CardView
-                  key={id}
-                  card={card}
-                  ctx={{ ...ctx, onReply, busy: busy || t.id !== latest }}
-                />
-              ))}
+            <FreshTurn.Provider value={!history.current.has(t.id)}>
+              {t.cards
+                .map((card, n) => ({ card, id: `${t.id}-card${n}` })) // a turn's cards never reorder
+                .map(({ card, id }) => (
+                  <CardView
+                    key={id}
+                    card={card}
+                    ctx={{ ...ctx, onReply, busy: busy || t.id !== latest }}
+                  />
+                ))}
+            </FreshTurn.Provider>
             {t.streaming && (
               <p role="status" className="flex items-center gap-2 text-sm text-muted">
                 <span aria-hidden className="size-2 animate-pulse rounded-full bg-saffron" />

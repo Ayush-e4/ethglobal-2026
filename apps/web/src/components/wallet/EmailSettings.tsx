@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 
-const small = "h-9 rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold";
+const small =
+  "h-9 max-md:h-11 rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold";
 
 /**
  * Your email: account notices (like an app being connected) and a copy of every booking email,
@@ -78,7 +79,7 @@ export function EmailSettings() {
           placeholder="you@example.com"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          className="h-9 min-w-0 flex-1 rounded-[10px] border border-line-2 bg-white px-3 text-sm outline-none focus:border-teal"
+          className="h-9 max-md:h-11 min-w-0 flex-1 rounded-[10px] border border-line-2 bg-white px-3 text-sm outline-none focus:border-teal"
         />
         <button
           type="button"

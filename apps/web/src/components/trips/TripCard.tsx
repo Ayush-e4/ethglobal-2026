@@ -94,18 +94,16 @@ export function TripCard({ trip }: { trip: Trip }) {
       <div className="flex flex-wrap items-center gap-2">
         <Link
           href={`/chat/${t.chatId}`}
-          className="flex min-h-9 items-center rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold"
+          className="flex min-h-9 max-md:min-h-11 items-center rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold"
         >
           Open the chat
         </Link>
-        <a
+        <Link
           href={`/receipts/${t.id}`}
-          target="_blank"
-          rel="noreferrer"
-          className="flex min-h-9 items-center rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold"
+          className="flex min-h-9 max-md:min-h-11 items-center rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold"
         >
           Receipt
-        </a>
+        </Link>
         {t.payTx && (
           <a
             href={hashscanTx(t.payTx)}

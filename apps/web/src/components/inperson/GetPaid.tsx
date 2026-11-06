@@ -111,9 +111,9 @@ export function GetPaid() {
 
   if (merchant === undefined)
     return (
-      <div className="mx-auto w-full max-w-[520px] p-4 sm:p-6">
+      <Shell title="Get paid in person">
         <CardSkeleton label="Loading your shop" />
-      </div>
+      </Shell>
     );
   if (!merchant)
     return (
@@ -247,7 +247,7 @@ export function GetPaid() {
             key={p}
             type="button"
             onClick={() => setInr(String(p))}
-            className="min-h-10 rounded-full border border-line-2 bg-white px-4 text-sm font-semibold"
+            className="min-h-10 max-md:min-h-11 rounded-full border border-line-2 bg-white px-4 text-sm font-semibold"
           >
             {rupees(p)}
           </button>

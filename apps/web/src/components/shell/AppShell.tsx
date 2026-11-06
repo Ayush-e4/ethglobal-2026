@@ -9,11 +9,13 @@ import { OfflineBar } from "./OfflineBar";
 import { Sidebar } from "./Sidebar";
 import { showsTabs, TabBar } from "./TabBar";
 
+// Untyped navigations (a link inside a page, browser back) get "nav": a soft rise, or a slide
+// from the left when it's back (globals.css reads the mark useNavStack sets on popstate).
 const PAGE_MOTION = {
   tab: "tab",
   "nav-forward": "nav-forward",
   "nav-back": "nav-back",
-  default: "none",
+  default: "nav",
 };
 
 /**
@@ -99,9 +101,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           }}
         />
       </Suspense>
-      {/* Only navigations tagged with a direction animate (browser back and refreshes don't). */}
+      {/* Each navigation animates by its type: a tab, deeper, or back (see PAGE_MOTION). */}
       <ViewTransition update={PAGE_MOTION} default="none">
-        <div className={`flex min-w-0 flex-1 flex-col ${tabs ? "with-tabbar" : ""}`}>
+        <div id="page" className={`flex min-w-0 flex-1 flex-col ${tabs ? "with-tabbar" : ""}`}>
           <OfflineBar />
           {children}
         </div>

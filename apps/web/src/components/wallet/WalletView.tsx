@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, hashscanAccount, shortAddress, usdc, type WalletInfo } from "@/lib/api";
 import { PasskeyIcon, SettingsIcon } from "../icons";
+import { CardSkeleton } from "../Skeleton";
 import { DealDrop } from "./DealDrop";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
@@ -40,7 +41,15 @@ export function WalletView() {
   }, [making, load]);
 
   if (!info)
-    return <p className="p-10 text-center text-muted">{error ?? "Loading your wallet…"}</p>;
+    return error ? (
+      <p className="p-10 text-center text-muted">{error}</p>
+    ) : (
+      <main className="mx-auto flex w-full max-w-[800px] flex-col gap-4 px-4 pt-6 sm:px-6 sm:pt-8">
+        <h1 className="text-[28px] font-bold tracking-tight sm:text-[32px]">Wallet</h1>
+        <CardSkeleton label="Loading your wallet" />
+        <CardSkeleton label="Loading your wallet" />
+      </main>
+    );
   const w = info.wallet;
 
   return (
@@ -82,7 +91,7 @@ export function WalletView() {
           <button
             type="button"
             onClick={() => void load()}
-            className="flex min-h-10 items-center rounded-xl border border-line-2 bg-white px-4 font-semibold"
+            className="flex min-h-10 max-md:min-h-11 items-center rounded-xl border border-line-2 bg-white px-4 font-semibold"
           >
             Try again
           </button>

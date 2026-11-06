@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { PwaRegister } from "@/components/shell/Pwa";
 import "./globals.css";
+import "./motion.css"; // page slides, the success mark, reduced motion (after globals: it overrides)
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["latin"] });

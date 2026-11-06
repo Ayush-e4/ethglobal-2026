@@ -2,7 +2,7 @@
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { type RefObject, useRef } from "react";
+import { createContext, type RefObject, useRef } from "react";
 
 gsap.registerPlugin(useGSAP);
 
@@ -10,14 +10,27 @@ gsap.registerPlugin(useGSAP);
 const still = () =>
   typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** False inside a chat turn that was already there when the chat opened: history stays still. */
+export const FreshTurn = createContext(true);
+
+/** Lists that already rose in this session (by name): coming back to a tab, they're just there. */
+const played = new Set<string>();
+
 /**
  * The elements marked `data-enter` inside `scope` rise in one after another when it first shows
- * (offers, suggestions, trips): the eye follows them in order, as in a native list.
+ * (offers, suggestions, trips): the eye follows them in order, as in a native list. With `once`,
+ * only the first time this session; with `enabled` false, never.
  */
-export function useEnter(scope: RefObject<HTMLElement | null>, deps: unknown[] = []) {
+export function useEnter(
+  scope: RefObject<HTMLElement | null>,
+  deps: unknown[] = [],
+  { once, enabled = true }: { once?: string; enabled?: boolean } = {},
+) {
   useGSAP(
     () => {
-      if (still()) return;
+      if (!enabled || still() || (once && played.has(once))) return;
+      if (!scope.current?.querySelector("[data-enter]")) return; // nothing to show yet
+      if (once) played.add(once);
       gsap.from("[data-enter]", {
         y: 18,
         opacity: 0,

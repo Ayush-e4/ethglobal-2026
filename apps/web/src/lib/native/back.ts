@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
 /**
  * Back that behaves like an app's: Android's back button, the iPhone's edge swipe and the
@@ -50,12 +50,52 @@ const stack: string[] = [];
  */
 export function useNavStack(isTab: (path: string) => boolean) {
   const pathname = usePathname();
+  // Going back (in-app Back, Android's button, the iPhone's swipe) arrives as a popstate, which
+  // Next restores without a view transition. So start one here: the old screen is captured now,
+  // the new one once the path has changed, and the page (#page) slides in from the left.
+  const shown = useRef(pathname);
+  const arrived = useRef<(() => void) | null>(null);
+  useLayoutEffect(() => {
+    shown.current = pathname;
+    arrived.current?.();
+    arrived.current = null;
+  }, [pathname]);
+  useEffect(() => {
+    const onPop = () => {
+      const page = document.getElementById("page");
+      if (
+        !page ||
+        location.pathname === shown.current || // a sheet closing on the same screen
+        typeof document.startViewTransition !== "function" ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      )
+        return;
+      page.style.viewTransitionName = "page-back";
+      const t = document.startViewTransition(
+        () =>
+          new Promise<void>((done) => {
+            arrived.current = done;
+            setTimeout(done, 700); // never hold the screen longer than this
+          }),
+      );
+      void t.finished.finally(() => {
+        page.style.viewTransitionName = "";
+      });
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   useEffect(() => {
     if (stack.at(-1) === pathname) return;
     if (stack.at(-2) === pathname) stack.pop();
     else if (isTab(pathname)) stack.splice(0, stack.length, pathname);
     else stack.push(pathname);
   }, [pathname, isTab]);
+}
+
+/** Whether this page was reached from inside the app (so "back" returns there). */
+export function cameFromApp() {
+  return stack.length > 0;
 }
 
 /** Back to the previous screen in the app, or to `fallback` when the app was opened right here. */
