@@ -12,7 +12,8 @@
     "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts",
     "priceguard": "tsx --env-file-if-exists=../../.env src/hotels/main.ts priceguard",
     "skyhop": "tsx --env-file-if-exists=../../.env src/flights/main.ts",
-    "sign-listing": "tsx --env-file-if-exists=../../.env scripts/sign-listing.ts"
+    "sign-listing": "tsx --env-file-if-exists=../../.env scripts/sign-listing.ts",
+    "bankcheck": "tsx --env-file-if-exists=../../.env src/lookups/main.ts"
   },
   "dependencies": {
     "@app/arkiv": "workspace:*",

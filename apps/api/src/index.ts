@@ -138,6 +138,7 @@ const tools: ToolDeps = {
     void live.show(h.id);
     return h;
   },
+  ask: (user, chatId, agent, input) => hiring.ask(user, chatId, agent, input),
 };
 const concierge = claudeConcierge(tools);
 // The concierge in Telegram too: the same turns as the web, in the same chats.

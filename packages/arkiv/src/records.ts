@@ -30,6 +30,9 @@ export const ListingSchema = z.object({
   feeUnits: units,
   input: FormSchema.optional(),
   service: ServiceSchema.optional(), // how it does the job, if it says
+  // "lookup": answers at once for its fee per lookup, paid straight to it (GET /answer); else it
+  // books, paid into escrow (GET /quote, POST /book).
+  kind: z.enum(["booking", "lookup"]).optional(),
   // The traveller's details it needs besides name, email and phone (a flight: birth date, gender).
   // Only these are sent to it.
   guest: z

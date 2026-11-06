@@ -38,6 +38,7 @@ const agent = (name: string, over: Partial<MarketAgent> = {}): MarketAgent => ({
   agent: "0x00000000000000000000000000000000000000a1",
   endpoint: "http://x",
   feeUnits: "20000",
+  kind: "booking",
   delivered: 0,
   ...over,
 });

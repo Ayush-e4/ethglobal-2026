@@ -279,11 +279,13 @@ export type Limit = typeof limits.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 
-// Saved travellers.
 // The (mock) card issuer's ledger: agents pay hotels and airlines with one-time cards.
 export * from "./card-schema";
 // Deal drops: one claim per person (World ID).
 export * from "./deal-schema";
+// Saved travellers.
+// Questions to lookup agents (paid per lookup).
+export * from "./lookup-schema";
 // The marketplace's reviews of agents.
 export * from "./market-schema";
 // Apps connected to an account (OAuth): Claude, for one.

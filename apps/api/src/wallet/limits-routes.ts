@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { currentUser } from "../auth/current";
 import type { Db } from "../db/client";
-import { chats, type Limit, limits, quotes, type User } from "../db/schema";
+import { chats, type Limit, limits, lookups, quotes, type User } from "../db/schema";
 import { ApprovalSchema, type WalletApprovals, WalletOpError } from "./ops";
 import type { WalletService } from "./service";
 
@@ -54,13 +54,20 @@ export function walletLimitRoutes(
             .from(quotes)
             .where(and(eq(quotes.chatId, l.chatId), eq(quotes.agentAddress, l.payee)))
             .limit(1);
+          const [asked] = q
+            ? []
+            : await db
+                .select({ name: lookups.agentName })
+                .from(lookups)
+                .where(and(eq(lookups.chatId, l.chatId), eq(lookups.agentAddress, l.payee)))
+                .limit(1);
           const left =
             status === "active" ? await d.registry.remaining(l.mandateId).catch(() => null) : null;
           return {
             id: l.id,
             chatId: l.chatId,
             chatTitle,
-            agentName: q?.name ?? null,
+            agentName: q?.name ?? asked?.name ?? null,
             mandateId: l.mandateId.toString(),
             budgetUnits: l.budgetUnits.toString(),
             remainingUnits: left?.toString() ?? null,

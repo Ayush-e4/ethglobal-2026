@@ -2,6 +2,7 @@
 
 import type { Card } from "@app/shared";
 import { shortAddress, usdc, verifiedRating } from "@/lib/api";
+import { AnswerCard } from "./AnswerCard";
 import { HireCard } from "./HireCard";
 import { HumanCard } from "./HumanCard";
 import { LimitCard } from "./LimitCard";
@@ -48,6 +49,8 @@ export function CardView({ card, ctx }: { card: Card; ctx: CardCtx }) {
       return <TravellerCard card={card} ctx={ctx} />;
     case "sources":
       return <Sources card={card} />;
+    case "answer":
+      return <AnswerCard card={card} />;
   }
 }
 
@@ -59,7 +62,9 @@ function Agents({ card }: { card: Of<"agents"> }) {
     >
       <div className="flex items-center gap-2.5 bg-side px-4 py-3 text-[13px] font-semibold">
         From the market{card.skill !== "all" ? ` · ${card.skill}` : ""}
-        <span className="ml-auto font-normal text-ink-3">fee per job</span>
+        <span className="ml-auto font-normal text-ink-3">
+          {card.agents.every((a) => a.kind === "lookup") ? "fee per lookup" : "fee per job"}
+        </span>
       </div>
       <ul>
         {card.agents.map((a) => (
@@ -94,7 +99,9 @@ function Agents({ card }: { card: Of<"agents"> }) {
               )}
             </span>
             <span className="flex flex-col items-end gap-0.5">
-              <span className="font-mono text-[13px]">{usdc(a.priceUnits)} USDC</span>
+              <span className="font-mono text-[13px]">
+                {usdc(a.priceUnits)} USDC{a.kind === "lookup" ? " a lookup" : ""}
+              </span>
               <span className="font-mono text-[11px] text-muted">{shortAddress(a.agent)}</span>
             </span>
           </li>

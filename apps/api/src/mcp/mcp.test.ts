@@ -193,6 +193,7 @@ describe("AgentNet over MCP", () => {
     };
     expect(list.result.tools.map((t) => t.name).sort()).toEqual([
       "agent_input",
+      "ask_agent",
       "bookings",
       "find_agents",
       "get_quotes",

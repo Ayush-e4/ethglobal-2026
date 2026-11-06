@@ -23,6 +23,7 @@ export const AgentsCardSchema = z.object({
       delivered: z.number().optional(), // jobs it completed recently (its Arkiv records)
       disputes: z.number().optional(), // of those, how many a buyer reported (on Arkiv, by us)
       rating: z.object({ average: z.number(), count: z.number().int() }).optional(), // verified people
+      kind: z.enum(["booking", "lookup"]).optional(), // a lookup's fee is per lookup
     }),
   ),
 });
@@ -144,6 +145,18 @@ export const PhotosCardSchema = z.object({
     .max(3),
 });
 
+/** A lookup agent's answer, with what it cost and the payment on Hedera. */
+export const AnswerCardSchema = z.object({
+  type: z.literal("answer"),
+  agentName: z.string(),
+  skill: z.string(),
+  title: z.string(),
+  lines: z.array(z.object({ label: z.string(), value: z.string() })).max(12),
+  source: z.string(),
+  feeUnits: units,
+  payTx: z.string(),
+});
+
 export const CardSchema = z.discriminatedUnion("type", [
   AgentsCardSchema,
   OptionsCardSchema,
@@ -154,6 +167,7 @@ export const CardSchema = z.discriminatedUnion("type", [
   TravellerCardSchema,
   SourcesCardSchema,
   PhotosCardSchema,
+  AnswerCardSchema,
 ]);
 export type Card = z.infer<typeof CardSchema>;
 

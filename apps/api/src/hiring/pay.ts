@@ -1,4 +1,5 @@
 import type { MandateClient } from "@app/mandates";
+import { AnswerSchema } from "@app/shared";
 import { type HederaIds, MandateClientScheme, NETWORK, type SignedPayment } from "@app/x402";
 import { decodePaymentResponseHeader, wrapFetchWithPayment, x402Client } from "@x402/fetch";
 import type { LocalAccount } from "viem";
@@ -16,6 +17,47 @@ export const TEST_TRAVELLER = {
 const Accepted = z.object({ escrowId: z.string(), startsAt: z.number(), jobUrl: z.url() });
 
 export class PayError extends Error {}
+
+/**
+ * A lookup: the AI's key pays the agent's fee straight to it (no escrow: the answer is the
+ * delivery), and the answer comes back in the same request. A lookup with no answer is refused
+ * before any payment is asked for.
+ */
+export async function payForAnswer(d: {
+  registry: MandateClient;
+  ids: HederaIds;
+  concierge: LocalAccount;
+  mandateId: bigint;
+  ownerAccount: string;
+  endpoint: string;
+  input: Record<string, unknown>;
+}) {
+  const scheme = new MandateClientScheme({
+    agent: d.concierge,
+    mandateId: d.mandateId,
+    owner: d.ownerAccount,
+    registry: d.registry,
+    ids: d.ids,
+  });
+  const pay = wrapFetchWithPayment(fetch, new x402Client().register(NETWORK, scheme));
+  const url = new URL("answer", d.endpoint.endsWith("/") ? d.endpoint : `${d.endpoint}/`);
+  for (const [k, v] of Object.entries(d.input)) url.searchParams.set(k, String(v));
+  const res = await pay(url, { signal: AbortSignal.timeout(60_000) });
+  const json = (await res.json().catch(() => null)) as {
+    answer?: unknown;
+    message?: string;
+  } | null;
+  if (res.status === 404)
+    throw new AgentRefused(json?.message ?? "Nothing found: nothing was charged.");
+  const settled = res.headers.get("PAYMENT-RESPONSE");
+  const payment = settled ? decodePaymentResponseHeader(settled) : null;
+  const answer = AnswerSchema.safeParse(json?.answer);
+  if (!res.ok || !payment?.success || !answer.success)
+    throw new PayError(
+      payment && !payment.success ? (payment.errorReason ?? "refused") : `HTTP ${res.status}`,
+    );
+  return { answer: answer.data, payTx: payment.transaction };
+}
 /** The agent refused before anything was paid, and said why (e.g. a flight needs a birth date). */
 export class AgentRefused extends PayError {}
 

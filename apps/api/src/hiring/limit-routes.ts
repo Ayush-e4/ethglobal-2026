@@ -6,10 +6,11 @@ import { z } from "zod";
 import { currentUser } from "../auth/current";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
-import { limits, quotes, type User } from "../db/schema";
+import { limits, lookups, quotes, type User } from "../db/schema";
 import type { WalletChain } from "../wallet/chain";
 import { ApprovalSchema, type WalletApprovals, WalletOpError } from "../wallet/ops";
 import type { WalletService } from "../wallet/service";
+import { LOOKUP_TERMS } from "./limits";
 import type { HiringService } from "./service";
 
 const Prepare = z.object({ payee: z.string().regex(/^0x[0-9a-fA-F]{40}$/) });
@@ -20,7 +21,8 @@ const Run = z.object({ opId: z.uuid(), response: ApprovalSchema });
  * POST /chats/:id/limits/face-id { payee } → what the device signs (WebAuthn options), then
  * POST /chats/:id/limits { opId, response } → the wallet sets the limit on Hedera.
  * GET /chats/:id/limits lists the chat's live limits.
- * Only for an agent that quoted in this chat, on our standard terms, for our concierge's key.
+ * Only for an agent that quoted in this chat, on our standard terms, or a lookup agent this chat
+ * asked something, on the small lookup terms; always for our concierge's key.
  */
 export function limitRoutes(
   db: Db,
@@ -70,9 +72,17 @@ export function limitRoutes(
       .from(quotes)
       .where(and(eq(quotes.chatId, chat.id), eq(quotes.agentAddress, payee)))
       .limit(1);
-    if (quoted.length === 0)
+    const asked =
+      quoted.length > 0
+        ? []
+        : await db
+            .select({ id: lookups.id })
+            .from(lookups)
+            .where(and(eq(lookups.chatId, chat.id), eq(lookups.agentAddress, payee)))
+            .limit(1);
+    if (quoted.length === 0 && asked.length === 0)
       return c.json({ error: "unknown_agent", message: "That agent hasn't quoted here." }, 409);
-    const p = hiring.newLimit(payee as Address);
+    const p = hiring.newLimit(payee as Address, quoted.length > 0 ? undefined : LOOKUP_TERMS);
     const registry = hiring.registryAddress;
     const allowance = await chain.allowance(w.address as Address, registry);
     try {

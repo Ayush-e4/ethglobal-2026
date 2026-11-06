@@ -227,7 +227,11 @@ export const cardLine = (c: NonNullable<HireView["card"]>) =>
 export const rupeesOf = (units: string) => `₹${Number(units).toLocaleString("en-IN")}`;
 
 /** 20000 → "0.02". */
-export const usdc = (units: string | bigint) => (Number(units) / 1e6).toFixed(2);
+/** "0.05"; a lookup's tiny fee keeps its digits: "0.001". */
+export const usdc = (units: string | bigint) => {
+  const n = Number(units) / 1e6;
+  return n > 0 && n < 0.01 ? String(Number(n.toFixed(4))) : n.toFixed(2);
+};
 /** "★ 4.0 · 3 verified people": an agent's ratings by people who proved it with World ID. */
 export const verifiedRating = (r: { average: number; count: number }) =>
   `★ ${r.average.toFixed(1)} · ${r.count} verified ${r.count === 1 ? "person" : "people"}`;

@@ -24,6 +24,7 @@ export interface MarketAgent {
   disputes?: number; // its jobs a buyer reported a problem with, on Arkiv (written by us)
   hederaAccount?: string; // where it's paid
   guestFields?: ("bornOn" | "gender")[]; // the traveller's details it needs besides name, email, phone
+  kind: "booking" | "lookup"; // a job with a quote and escrow, or an answer paid per lookup
   profileKey?: `0x${string}`; // its Arkiv entities
   listingKey?: `0x${string}`;
 }
@@ -174,6 +175,7 @@ export function arkivMarket(
         disputes: disputed.get(a.agent.toLowerCase()) ?? 0,
         hederaAccount: a.hederaAccount,
         guestFields: l?.guest,
+        kind: l?.kind ?? "booking",
         profileKey: key,
         listingKey: found?.key,
       };
@@ -214,9 +216,15 @@ export function arkivMarket(
      */
     async quotes(skill: string, input: unknown) {
       const task = `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-      const quoting = rankAgents((await agents(skill)).filter((a) => a.form)).slice(0, MAX_ASKED);
+      const all = (await agents(skill)).filter((a) => a.form);
+      const quoting = rankAgents(all.filter((a) => a.kind !== "lookup")).slice(0, MAX_ASKED);
       const problems: string[] = [];
-      if (quoting.length === 0) problems.push(`No agent on the market quotes "${skill}" yet.`);
+      if (quoting.length === 0)
+        problems.push(
+          all.length > 0
+            ? `"${skill}" agents answer per lookup, without quotes: use ask_agent.`
+            : `No agent on the market quotes "${skill}" yet.`,
+        );
       const replies = await Promise.all(
         quoting.map(async (agent) => {
           const filled = checkForm(agent.form as Form, input);
