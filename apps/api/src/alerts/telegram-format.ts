@@ -68,12 +68,82 @@ export function offersByHotel(quotes: Offer[]) {
   return [...groups].map(([hotel, offers]) => ({ hotel, offers }));
 }
 
+type QuotesCard = Extract<Card, { type: "quotes" }>;
+
+/** The hotel's details for a carousel slide: name, why it's here, the stay, verified ratings. */
+function hotelCaption(hotel: string, offers: Offer[]) {
+  const q = offers[0] as Offer;
+  const samePrice = offers.every((o) => o.itemTotal === q.itemTotal);
+  const facts = [
+    samePrice && q.itemTotal !== undefined ? money(q.itemTotal, q.itemCurrency) : null,
+    q.rating?.stars ? `${q.rating.stars}-star` : null,
+    q.rating?.score ? `${q.rating.score}/10` : null,
+    q.location ?? null,
+    q.refundable ? "free cancellation" : null,
+  ].filter(Boolean);
+  const tags = [...new Set(offers.map((o) => o.tag).filter(Boolean))].join(" · ");
+  const rated = offers
+    .filter((o) => o.agentRating)
+    .map(
+      (o) =>
+        `${o.title.split(" · ")[1]} ★ ${o.agentRating?.average.toFixed(1)} (${o.agentRating?.count} verified)`,
+    );
+  return {
+    samePrice,
+    caption: [
+      `<b>${esc(hotel)}</b>${tags ? ` · ${esc(tags)}` : ""}`,
+      esc(facts.join(" · ")),
+      ...(q.note ? [esc(q.note)] : []),
+      ...(rated.length ? [esc(`Rated by verified people: ${rated.join(", ")}`)] : []),
+    ].join("\n"),
+  };
+}
+
+/** Which offers card a carousel button belongs to: its first quote's key, shortened. */
+export const carouselRef = (card: QuotesCard) => (card.quotes[0]?.key ?? "").slice(2, 14);
+
+/**
+ * One slide of the offers carousel, all in one message: hotel `h` (of up to 6 offers, grouped by
+ * hotel) with photo `p` of its own (up to 4), ◀ ▶ between hotels, 📷 between its photos, and a
+ * Book button per agent offering it. Indexes wrap around.
+ */
+export function slide(card: QuotesCard, h: number, p: number) {
+  const hotels = offersByHotel(card.quotes.slice(0, 6)).map((g) => ({
+    ...g,
+    photos: [...new Set(g.offers.flatMap((o) => o.images ?? []))].slice(0, 4),
+  }));
+  const n = hotels.length;
+  const i = ((h % n) + n) % n;
+  const { hotel, offers, photos } = hotels[i] as (typeof hotels)[number];
+  const j = photos.length ? ((p % photos.length) + photos.length) % photos.length : 0;
+  const { caption, samePrice } = hotelCaption(hotel, offers);
+  const ref = carouselRef(card);
+  const go = (hi: number, pi: number) => `c:${ref}:${(hi + n) % n}:${pi}`;
+  const rows: { text: string; callback_data: string }[][] = [];
+  if (n > 1)
+    rows.push([
+      { text: "◀", callback_data: go(i - 1, 0) },
+      { text: `Hotel ${i + 1} of ${n}`, callback_data: "n" },
+      { text: "▶", callback_data: go(i + 1, 0) },
+    ]);
+  if (photos.length > 1)
+    rows.push([
+      {
+        text: `📷 Photo ${j + 1} of ${photos.length} ›`,
+        callback_data: go(i, (j + 1) % photos.length),
+      },
+    ]);
+  for (const o of offers)
+    rows.push([{ text: bookLabel(o, !samePrice), callback_data: quoteButton(o.key) }]);
+  return { photo: photos[j] ?? null, caption, rows };
+}
+
 /** A quote's button data: "b:" and the first 40 hex digits of its key (Telegram allows 64 bytes). */
 export const quoteButton = (key: string) => `b:${key.slice(2, 42)}`;
 
 /**
- * A card as Telegram messages, the way the app shows it: each hotel as one photo message with its
- * details and a Book button per agent, choices as buttons. A hire is its own live message (live-hires.ts); a World ID
+ * A card as Telegram messages, the way the app shows it: offers as one carousel message (see
+ * `slide`), choices as buttons. A hire is its own live message (live-hires.ts); a World ID
  * approval is handled by the chat (it starts a check). `appLink` is the chat on the web.
  */
 export function cardMessages(card: Card, appLink: string | null): Send[] {
@@ -90,46 +160,23 @@ export function cardMessages(card: Card, appLink: string | null): Send[] {
     ? [[{ text: "Open in AgentNet", url: appLink }]]
     : undefined;
   switch (card.type) {
-    case "quotes":
-      return offersByHotel(card.quotes.slice(0, 6)).map(({ hotel, offers }) => {
-        const q = offers[0] as Offer;
-        const samePrice = offers.every((o) => o.itemTotal === q.itemTotal);
-        const facts = [
-          samePrice && q.itemTotal !== undefined ? money(q.itemTotal, q.itemCurrency) : null,
-          q.rating?.stars ? `${q.rating.stars}-star` : null,
-          q.rating?.score ? `${q.rating.score}/10` : null,
-          q.location ?? null,
-          q.refundable ? "free cancellation" : null,
-        ].filter(Boolean);
-        const tags = [...new Set(offers.map((o) => o.tag).filter(Boolean))].join(" · ");
-        const rated = offers
-          .filter((o) => o.agentRating)
-          .map(
-            (o) =>
-              `${o.title.split(" · ")[1]} ★ ${o.agentRating?.average.toFixed(1)} (${o.agentRating?.count} verified)`,
-          );
-        const caption = [
-          `<b>${esc(hotel)}</b>${tags ? ` · ${esc(tags)}` : ""}`,
-          esc(facts.join(" · ")),
-          ...(q.note ? [esc(q.note)] : []),
-          ...(rated.length ? [esc(`Rated by verified people: ${rated.join(", ")}`)] : []),
-        ].join("\n");
-        const rows = offers.map((o) => [
-          { text: bookLabel(o, !samePrice), callback_data: quoteButton(o.key) },
-        ]);
-        const img = offers.map((o) => o.images?.[0]).find(Boolean);
-        return img
+    case "quotes": {
+      const first = slide(card, 0, 0);
+      const markup = { inline_keyboard: first.rows };
+      return [
+        first.photo
           ? {
               method: "sendPhoto",
               body: {
-                photo: img,
-                caption,
+                photo: first.photo,
+                caption: first.caption,
                 parse_mode: "HTML",
-                reply_markup: { inline_keyboard: rows },
+                reply_markup: markup,
               },
             }
-          : msg(caption, rows);
-      });
+          : msg(first.caption, first.rows),
+      ];
+    }
     case "options":
       return [
         msg(

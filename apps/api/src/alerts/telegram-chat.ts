@@ -8,7 +8,16 @@ import { alertChannels, chats, messages, users } from "../db/schema";
 import type { WorldCheck } from "../world/checks";
 import type { CallbackQuery } from "./live-hires";
 import type { TelegramAlerts } from "./telegram";
-import { cardMessages, chunks, draftText, esc, html, quoteButton } from "./telegram-format";
+import {
+  cardMessages,
+  carouselRef,
+  chunks,
+  draftText,
+  esc,
+  html,
+  quoteButton,
+  slide,
+} from "./telegram-format";
 
 export interface TelegramChatDeps {
   db: Db;
@@ -145,11 +154,16 @@ export function telegramChat(d: TelegramChatDeps) {
         },
       });
       await store.add(chat.id, "assistant", reply.text, reply.cards);
-      for (const part of chunks(html(reply.text)))
-        await say(tgChatId, part, {
-          parse_mode: "HTML",
-          link_preview_options: { is_disabled: true },
-        });
+      const sayText = async () => {
+        for (const part of chunks(html(reply.text)))
+          await say(tgChatId, part, {
+            parse_mode: "HTML",
+            link_preview_options: { is_disabled: true },
+          });
+      };
+      // With offers, the hotels come first and the concierge's pick after them, to read on from.
+      const offersFirst = reply.cards.some((c) => c.type === "quotes");
+      if (!offersFirst) await sayText();
       const appLink = `${d.appOrigin}/chat/${chat.id}`;
       for (const card of reply.cards) {
         if (card.type === "human") await human(tgChatId, user.id, chat.id, card);
@@ -165,6 +179,7 @@ export function telegramChat(d: TelegramChatDeps) {
             }
           }
       }
+      if (offersFirst) await sayText();
     } catch (err) {
       log(`telegram chat ${tgChatId}: ${String(err).slice(0, 160)}`);
       await say(tgChatId, "Sorry, something went wrong. Please try again.");
@@ -173,10 +188,10 @@ export function telegramChat(d: TelegramChatDeps) {
     }
   }
 
-  /** The reply a button stands for, from the chat's latest cards. */
-  async function buttonReply(tgChatId: string, data: string): Promise<string | null> {
+  /** The latest cards in the Telegram chat's AgentNet chat (what its buttons stand for). */
+  async function recentCards(tgChatId: string): Promise<Card[]> {
     const l = await link(tgChatId);
-    if (!l?.appChatId) return null;
+    if (!l?.appChatId) return [];
     const rows = await db
       .select({ cards: messages.cards })
       .from(messages)
@@ -190,16 +205,53 @@ export function telegramChat(d: TelegramChatDeps) {
       )
       .orderBy(desc(messages.createdAt))
       .limit(10);
-    for (const { cards } of rows)
-      for (const c of cards) {
-        if (c.type === "quotes") {
-          const q = c.quotes.find((x) => quoteButton(x.key) === data);
-          if (q) return q.reply;
-        }
-        if (c.type === "options" && data.startsWith("o:"))
-          return c.options[Number(data.slice(2))]?.reply ?? null;
+    return rows.flatMap((r) => r.cards);
+  }
+
+  /** The reply a Book or choice button stands for. */
+  async function buttonReply(tgChatId: string, data: string): Promise<string | null> {
+    for (const c of await recentCards(tgChatId)) {
+      if (c.type === "quotes") {
+        const q = c.quotes.find((x) => quoteButton(x.key) === data);
+        if (q) return q.reply;
       }
+      if (c.type === "options" && data.startsWith("o:"))
+        return c.options[Number(data.slice(2))]?.reply ?? null;
+    }
     return null;
+  }
+
+  /** ◀ ▶ or 📷 on the offers carousel: the same message shows another hotel or photo. */
+  async function turnCarousel(cq: CallbackQuery) {
+    const [, ref, h = "0", p = "0"] = (cq.data ?? "").split(":");
+    const tgChatId = String(cq.message?.chat.id ?? "");
+    const card = (await recentCards(tgChatId)).find(
+      (c): c is Extract<Card, { type: "quotes" }> => c.type === "quotes" && carouselRef(c) === ref,
+    );
+    if (!card || !cq.message) return false;
+    const s = slide(card, Number(h), Number(p));
+    const target = { chat_id: tgChatId, message_id: cq.message.message_id };
+    const reply_markup = { inline_keyboard: s.rows };
+    const res = !cq.message.photo
+      ? await t.tg("editMessageText", {
+          ...target,
+          text: s.caption,
+          parse_mode: "HTML",
+          reply_markup,
+        })
+      : s.photo
+        ? await t.tg("editMessageMedia", {
+            ...target,
+            media: { type: "photo", media: s.photo, caption: s.caption, parse_mode: "HTML" },
+            reply_markup,
+          })
+        : await t.tg("editMessageCaption", {
+            ...target,
+            caption: s.caption,
+            parse_mode: "HTML",
+            reply_markup,
+          });
+    return res.ok;
   }
 
   return {
@@ -214,9 +266,21 @@ export function telegramChat(d: TelegramChatDeps) {
       await say(tgChatId, "New conversation: tell me what you need.");
     },
 
-    /** A Book or choice button under a reply. */
+    /** A button under a reply: the carousel's ◀ ▶ 📷, or Book, or a choice. */
     async onCallback(cq: CallbackQuery) {
       const tgChatId = String(cq.message?.chat.id ?? "");
+      if (cq.data === "n" || cq.data?.startsWith("c:")) {
+        const turned = cq.data !== "n" && (await turnCarousel(cq).catch(() => false));
+        await t
+          .tg("answerCallbackQuery", {
+            callback_query_id: cq.id,
+            ...(cq.data !== "n" && !turned
+              ? { text: "Those offers have expired: ask again." }
+              : {}),
+          })
+          .catch(() => null);
+        return;
+      }
       const reply = tgChatId ? await buttonReply(tgChatId, cq.data ?? "") : null;
       await t
         .tg("answerCallbackQuery", {

@@ -16,7 +16,7 @@ import type { TelegramAlerts } from "./telegram";
 export interface CallbackQuery {
   id: string;
   data?: string;
-  message?: { chat: { id: number }; message_id: number };
+  message?: { chat: { id: number }; message_id: number; photo?: unknown[] };
 }
 
 export interface LiveHiresDeps {
