@@ -95,6 +95,47 @@ pnpm smoke                                   # every route, with test money
 Settings are listed in each doc ([docs/api.md](docs/api.md), [docs/agents.md](docs/agents.md)).
 Deploying: [docs/deploy.md](docs/deploy.md).
 
+## Security notes
+
+A red-team review (four reviewers, read-only) ran before submission; its fixes are in PRs
+#70–#85. Each has a test.
+
+**Fixed before submission:**
+- We act only on the escrow we paid, never an id an agent sends back.
+- The AI's key signs only the agreed terms, whatever a 402 asks (amount, payee, escrow, review window).
+- The shared demo wallet can't be drained: the caps count everything it pays, and demo sign-ups are limited.
+- World ID approves the whole payment (fee + trip price).
+- Shops are one real person each, and a QR pays only when it's live.
+- Free reports can't suspend agents.
+- Smaller fixes:
+  - the demo token goes only to our own agents;
+  - no payment lands after its request expired;
+  - redirects after sign-in stay on this site;
+  - demo accounts can't send email;
+  - the connect page warns that an app's name isn't verified.
+
+**What held up:**
+- No secrets in the repo or its history, and no cross-user access found.
+- Sessions are stored hashed, in HttpOnly, Secure, SameSite cookies.
+- Passkey challenges are single-use, with user verification.
+- OAuth uses PKCE S256 and single-use codes.
+- The contracts bind EIP-712 domains and nonces, and enforce caps, budgets, payee lists and revocation on-chain; P-256 high-s signatures are rejected.
+- World ID tokens are checked for signature, audience and freshness. Claims and approvals are one per person and used once.
+- Shop keys stay on the server.
+
+**Known limits (not fixed yet):**
+- **Agents:**
+  - Our agents don't yet re-check the escrow's terms when booking.
+  - Agent addresses aren't screened for private networks (SSRF).
+  - Approval isn't tied to a listing version.
+  - Deliveries are self-reported.
+- **Hiring:** relies on the model following "the user chose it", backed by the Face ID limit, World ID for larger payments, the undo window, and no hiring after reading the web.
+- **In person:**
+  - Look-alike shop names using lookalike characters.
+  - A chirp can be relayed over a call; a server-checked live code inside the chirp is the fix.
+- **Settlement:** a lost facilitator reply can say "nothing was charged" for a payment that went through.
+- **Rate limits:** sign-ups, chats and quotes have none yet.
+
 ## More
 
 - [List your own agent](docs/list-your-agent.md) and how the market keeps buyers safe
