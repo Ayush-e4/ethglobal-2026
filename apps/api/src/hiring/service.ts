@@ -4,10 +4,10 @@ import { HederaIds } from "@app/x402";
 import { and, eq, gt } from "drizzle-orm";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Db } from "../db/client";
-import { type Hire, hires, quotes, type User } from "../db/schema";
+import { type Hire, hires, type Limit, quotes, type User } from "../db/schema";
 import { demoCapsAllow } from "./caps";
 import type { HiringConfig } from "./config";
-import { limitFor } from "./limits";
+import { demoLimitFor, LIMIT_TERMS, limitParams, liveLimit, NeedsLimit } from "./limits";
 import { PayError, payAgent } from "./pay";
 
 const USDC_TESTNET = "0.0.429274";
@@ -19,7 +19,12 @@ export class HireError extends Error {}
  * limit is found or made, then the AI pays over x402 into escrow. Every surface (web, Telegram,
  * Claude) calls this; the follower takes it from there (follow.ts).
  */
-export function hiringService(db: Db, cfg: HiringConfig) {
+/** A passkey account's own Face ID wallet, as the wallet service shows it. */
+export type OwnWallet = (
+  userId: string,
+) => Promise<{ address: string; hederaId: string | null; status: string } | null>;
+
+export function hiringService(db: Db, cfg: HiringConfig, ownWallet?: OwnWallet) {
   const registry = new MandateClient(cfg.registry);
   const ids = new HederaIds(cfg.mirrorUrl);
   const concierge = privateKeyToAccount(cfg.conciergeKey);
@@ -51,10 +56,29 @@ export function hiringService(db: Db, cfg: HiringConfig) {
         throw new HireError(
           "That quote has expired or isn't from this chat. Ask for fresh prices.",
         );
-      // Real accounts get their own Face ID wallet next; for now every account spends from the demo wallet.
-      const demo = true;
+      // Demo accounts spend from the shared demo wallet, within daily caps. Passkey accounts
+      // spend from their own Face ID wallet, through a limit they approved for this agent here.
+      const demo = user.isDemo;
       const blocked = demo ? await demoCapsAllow(db, user.id, quote.feeUnits, cfg.caps) : null;
       if (blocked) throw new HireError(blocked);
+      const payee = quote.agentAddress as `0x${string}`;
+      let own: Limit | null = null;
+      if (!demo) {
+        const w = await ownWallet?.(user.id);
+        if (w?.status !== "ready" || !w.hederaId)
+          throw new HireError("Your Face ID wallet is still being set up. Try again in a moment.");
+        own = await liveLimit(db, registry, chatId, payee, quote.feeUnits, w.address);
+        if (!own)
+          throw new NeedsLimit({
+            type: "limit",
+            agentName: quote.agentName,
+            payee,
+            budgetUnits: LIMIT_TERMS.budget.toString(),
+            capUnits: LIMIT_TERMS.cap.toString(),
+            hours: LIMIT_TERMS.hours,
+            reply: `Limit approved. Book ${quote.summary} (quote ${quoteKey.slice(0, 10)})`,
+          });
+      }
 
       const [hire] = await db
         .insert(hires)
@@ -70,20 +94,21 @@ export function hiringService(db: Db, cfg: HiringConfig) {
         .returning();
       if (!hire) throw new Error("could not save the hire");
       try {
-        const limit = await limitFor(
-          {
-            db,
-            registry,
-            owner: demoOwner,
-            ownerAccount: cfg.demoWallet.id,
-            concierge: concierge.address,
-            token,
-          },
-          chatId,
-          quote.agentAddress as `0x${string}`,
-          quote.feeUnits,
-          demo,
-        );
+        const limit =
+          own ??
+          (await demoLimitFor(
+            {
+              db,
+              registry,
+              owner: demoOwner,
+              ownerAccount: cfg.demoWallet.id,
+              concierge: concierge.address,
+              token,
+            },
+            chatId,
+            payee,
+            quote.feeUnits,
+          ));
         const paid = await payAgent({
           registry,
           ids,
@@ -132,6 +157,10 @@ export function hiringService(db: Db, cfg: HiringConfig) {
     },
 
     list: (chatId: string) => db.select().from(hires).where(eq(hires.chatId, chatId)),
+
+    /** A new limit's terms for this agent, and where the registry is (for Face ID approvals). */
+    newLimit: (payee: `0x${string}`) => limitParams(concierge.address, token, payee),
+    registryAddress: cfg.registry,
   };
 }
 

@@ -2,6 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { Card } from "@app/shared";
 import { z } from "zod";
 import type { User } from "../db/schema";
+import { NeedsLimit } from "../hiring/limits";
 import type { HotelQuote, Market } from "./market";
 
 const Day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -187,6 +188,11 @@ export async function runTool(
         },
       };
     } catch (err) {
+      if (err instanceof NeedsLimit)
+        return {
+          result: `Not booked yet: ${err.card.agentName} is paid from the user's own wallet, so they first approve a spending limit for it with Face ID (the card shows it: up to ${usdc(err.card.budgetUnits)} USDC in this chat for ${err.card.hours} hours). Ask them to approve it on the card; once they do, the app sends the booking again. Don't call book_quote again until then.`,
+          card: err.card,
+        };
       return {
         result: err instanceof Error ? err.message : "The booking failed. Nothing was charged.",
         isError: true,

@@ -56,6 +56,33 @@ export const passkeys = pgTable(
 
 export type WalletStatus = "creating" | "ready" | "failed";
 
+/** What a prepared Face ID approval is for, so its second step can be checked against it. */
+export type WalletOpMeta = {
+  kind: "limit";
+  chatId: string;
+  payee: string;
+  budgetUnits: string;
+  expiresAt: string; // ISO, the limit's
+};
+
+/**
+ * A move a Face ID wallet is about to make: the batch, and the digest its passkey signs. Kept
+ * here (not in memory) so an approval survives a restart; each one works once, for 5 minutes.
+ */
+export const walletOps = pgTable("wallet_ops", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  wallet: text("wallet").notNull(),
+  calls: jsonb("calls").$type<{ to: string; value: string; data: string }[]>().notNull(),
+  deadline: bigint("deadline", { mode: "bigint" }).notNull(), // unix seconds
+  digest: text("digest").notNull(),
+  meta: jsonb("meta").$type<WalletOpMeta>().notNull(),
+  expiresAt: at("expires_at").notNull(),
+  usedAt: at("used_at"),
+});
+
 /**
  * Each passkey account's Face ID wallet on Hedera: a contract only its passkeys control. Made at
  * sign-up by the sponsor (which pays the gas and gives `giftUnits` of test USDC to start).

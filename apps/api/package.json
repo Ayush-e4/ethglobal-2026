@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "hiring-setup": "tsx --env-file-if-exists=../../.env scripts/setup.ts",
-    "wallet-signup-demo": "tsx --env-file-if-exists=../../.env scripts/wallet-signup-demo.ts"
+    "wallet-signup-demo": "tsx --env-file-if-exists=../../.env scripts/wallet-signup-demo.ts",
+    "face-id-hire-demo": "tsx --env-file-if-exists=../../.env scripts/face-id-hire-demo.ts"
   },
   "dependencies": {
     "@app/shared": "workspace:*",

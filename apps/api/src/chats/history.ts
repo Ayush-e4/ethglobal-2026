@@ -17,6 +17,8 @@ export function cardNote(card: Card): string {
   if (card.type === "hire")
     return `[hired: ${card.title}, fee held in escrow, hire ${card.hireId}]`;
   if (card.type === "agents") return `[agents shown: ${card.agents.map((a) => a.name).join(", ")}]`;
+  if (card.type === "limit")
+    return `[asked the user to approve a spending limit for ${card.agentName} with Face ID]`;
   return `[choices shown: ${card.options.map((o) => o.label).join(" / ")}]`;
 }
 

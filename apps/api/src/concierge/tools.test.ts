@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { NeedsLimit } from "../hiring/limits";
 import type { Market } from "./market";
 import { stay } from "./quote-store";
 import { runTool } from "./tools";
@@ -66,6 +67,28 @@ describe("concierge tools", () => {
     const out = await runTool(deps, ctx, "book_quote", { quote: `0x${"cd".repeat(32)}` });
     expect(out.card).toMatchObject({ type: "hire", hireId: "h1", feeUnits: "20000" });
     expect((await runTool(deps, ctx, "book_quote", { quote: "first one" })).isError).toBe(true);
+  });
+
+  it("from the user's own wallet, with no limit yet: the Face ID limit card, not an error", async () => {
+    const card = {
+      type: "limit" as const,
+      agentName: "StayWise",
+      payee: `0x${"a7".repeat(20)}`,
+      budgetUnits: "100000",
+      capUnits: "50000",
+      hours: 24,
+      reply: "Limit approved. Book Sea Breeze (quote 0xcdcdcdcd)",
+    };
+    const needs = {
+      ...deps,
+      hire: async () => {
+        throw new NeedsLimit(card);
+      },
+    };
+    const out = await runTool(needs, ctx, "book_quote", { quote: `0x${"cd".repeat(32)}` });
+    expect(out.isError).toBeFalsy();
+    expect(out.card).toEqual(card);
+    expect(out.result).toMatch(/^Not booked yet/);
   });
 
   it("refuses inputs that don't validate (they can arrive truncated)", async () => {

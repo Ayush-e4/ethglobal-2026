@@ -12,13 +12,17 @@ import { hireFollower } from "./hiring/follow";
 import { hiringService } from "./hiring/service";
 import { hederaWalletChain } from "./wallet/chain";
 import { loadWalletConfig } from "./wallet/config";
+import { walletApprovals } from "./wallet/ops";
 import { walletService } from "./wallet/service";
 
 const config = loadConfig();
 const { db } = await connectDb(config.databaseUrl);
-const hiring = hiringService(db, loadHiringConfig());
 const walletCfg = loadWalletConfig();
-const wallets = walletService(db, hederaWalletChain(walletCfg), walletCfg);
+const walletChain = hederaWalletChain(walletCfg);
+const wallets = walletService(db, walletChain, walletCfg);
+const approvals = walletApprovals(db, walletChain, config.auth.site);
+// Passkey accounts pay from their own Face ID wallet; demo accounts from the demo wallet.
+const hiring = hiringService(db, loadHiringConfig(), (id) => wallets.get(id, false));
 const concierge = claudeConcierge({
   market: arkivMarket(arkivReader()),
   saveQuotes: (chatId, shown) => saveQuotes(db, chatId, shown),
@@ -31,6 +35,8 @@ const app = createApp({
   concierge,
   hiring,
   wallets,
+  walletChain,
+  approvals,
 });
 // Follows every open hire to the end, from the database: restarts lose nothing.
 await hireFollower(db, hiring.registry, chatStore(db)).start();

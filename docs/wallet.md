@@ -84,6 +84,39 @@ Hedera account on HashScan, and how to get more test USDC from Circle's faucet. 
   0.1 test USDC
 ```
 
+## Paying an agent from your own wallet
+
+A demo account pays from the shared demo wallet. A passkey account pays from **its own** wallet,
+so the first time the concierge books an agent in a chat, it asks for a limit instead:
+
+1. `book_quote` finds no limit with room for that agent in this chat → the **limit card**: up to
+   0.10 USDC in fees, 0.05 a payment, only to that agent, for 24 hours.
+2. **Approve with Face ID**: `POST /chats/:id/limits/face-id { payee }` prepares the wallet's batch
+   (let the registry pull the budget, then create the limit for the concierge's key) and returns
+   its digest as the WebAuthn challenge. The device signs it.
+3. `POST /chats/:id/limits { opId, response }`: the API checks the answer is for our site, our
+   challenge and one of the wallet's passkeys; the sponsor submits it; the **wallet contract
+   checks the signature itself** and creates the limit, owned by the wallet.
+4. The card sends the booking again; this time it's paid from the wallet's limit: held, booked,
+   and paid out by Hedera after the review window.
+
+Approvals are kept in the database (`wallet_ops`), work once, and expire after 5 minutes. Undo is
+still one tap: the concierge (the limit's AI key) can cancel during the window, no Face ID needed.
+
+Live (`pnpm --filter @app/api face-id-hire-demo`, a software passkey through the real API):
+
+```
+✓ signed up; Face ID wallet 0.0.11332147 holds 0.10 test USDC
+✓ got live quotes
+✓ the concierge asks for a limit: up to 0.10 USDC for StayWise
+✓ Face ID approved limit #19  https://hashscan.io/testnet/transaction/0xed5aef6da38cf4983db68af0ffda70eaa346427a6d09542fbb18fe43f1b953a3
+✓ hired; fee held  https://hashscan.io/testnet/transaction/0.0.11328382@1793924919.487715170
+  held
+  delivered (booking EkxE6m00a)
+  released (booking EkxE6m00a)
+✓ done: released; the wallet now holds 0.08 test USDC
+```
+
 ## Gotchas
 
 - **Reads lag the receipt.** Hedera's JSON-RPC answers reads from a mirror node a moment behind.
