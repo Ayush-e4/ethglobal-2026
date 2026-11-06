@@ -5,6 +5,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Db } from "../db/client";
 import { type Hire, hires, type Limit, quotes, type User } from "../db/schema";
+import { inPersonPayer } from "../inperson/pay";
 import { type Guest, type GuestGate, guestFor } from "../travellers/service";
 import type { HumanGate } from "../world/checkpoint";
 import { cancelBooking } from "./cancel-booking";
@@ -231,6 +232,17 @@ export function hiringService(
 
     /** Ask a lookup agent: its small fee is paid straight to it, the answer comes back (lookups.ts). */
     ask: lookupAsker({
+      db,
+      registry,
+      ids,
+      concierge,
+      token,
+      demo: { owner: demoOwner, accountId: cfg.demoWallet.id, caps: cfg.caps },
+      ownWallet,
+    }),
+
+    /** Paying a merchant in person, from a Live QR or a chirp (../inperson/pay.ts). */
+    inPerson: inPersonPayer({
       db,
       registry,
       ids,

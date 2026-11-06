@@ -283,6 +283,8 @@ export type Message = typeof messages.$inferSelect;
 export * from "./card-schema";
 // Deal drops: one claim per person (World ID).
 export * from "./deal-schema";
+// Paying in person: merchants and their payment requests.
+export * from "./inperson-schema";
 // Saved travellers.
 // Questions to lookup agents (paid per lookup).
 export * from "./lookup-schema";

@@ -12,6 +12,8 @@ import {
   MarketIcon,
   PlaneIcon,
   PlusIcon,
+  QrIcon,
+  ScanIcon,
   SearchIcon,
   WalletIcon,
 } from "../icons";
@@ -20,6 +22,8 @@ import { InstallApp } from "./Pwa";
 const MAIN = [
   { href: "/chat", label: "Chat", Icon: ChatIcon },
   { href: "/trips", label: "Trips", Icon: PlaneIcon },
+  { href: "/pay", label: "Pay", Icon: ScanIcon },
+  { href: "/get-paid", label: "Get paid", Icon: QrIcon },
   { href: "/agents", label: "Market", Icon: MarketIcon },
   { href: "/wallet", label: "Wallet", Icon: WalletIcon },
 ];
