@@ -16,7 +16,8 @@
     "status:testnet": "pnpm --filter @app/hedera run testnet-status",
     "db:up": "docker compose up -d --wait postgres",
     "db:down": "docker compose down",
-    "smoke": "pnpm --filter @app/api smoke"
+    "smoke": "pnpm --filter @app/api smoke",
+    "arkiv:query": "pnpm --filter @app/arkiv query"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

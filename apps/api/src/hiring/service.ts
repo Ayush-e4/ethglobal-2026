@@ -1,3 +1,4 @@
+import type { Receipt } from "@app/arkiv";
 import { MandateClient, tokenIdToEvmAddress } from "@app/mandates";
 import { formatUsdc } from "@app/shared";
 import { HederaIds } from "@app/x402";
@@ -46,6 +47,7 @@ export function hiringService(
     guest?: GuestGate; // who it's for: the chat's chosen traveller (asked first)
     human?: HumanGate; // larger hires: a person approves with World ID
     onDispute?: DisputeHook; // a reported problem, for the public record
+    onPaid?: (receipt: Receipt) => void; // every payment, for the public record (Arkiv)
   } = {},
 ) {
   const { human } = gates;
@@ -172,6 +174,16 @@ export function hiringService(
           undoUntil: new Date(paid.startsAt * 1000),
         };
         await save(hire.id, changes);
+        // Anyone can check it: a receipt on Arkiv pointing at the Hedera transaction.
+        gates.onPaid?.({
+          job: paid.escrowId,
+          task: `hire-${hire.id.slice(0, 8)}`,
+          mandateId: limit.mandateId.toString(),
+          payer: limit.ownerAccount,
+          payTo: cfg.registryId, // held in escrow until the agent delivers
+          amountUnits: total.toString(),
+          hederaTx: paid.payTx,
+        });
         return { ...hire, ...changes };
       } catch (err) {
         const note = err instanceof PayError ? `payment refused: ${err.message}` : "payment failed";
@@ -243,6 +255,7 @@ export function hiringService(
 
     /** Paying a merchant in person, from a Live QR or a chirp (../inperson/pay.ts). */
     inPerson: inPersonPayer({
+      onPaid: gates.onPaid,
       db,
       registry,
       ids,
