@@ -7,11 +7,14 @@ import { deviceLinks } from "./auth/device-links";
 import { type AuthConfig, authRoutes } from "./auth/routes";
 import { chatRoutes } from "./chats/routes";
 import type { Concierge } from "./concierge/concierge";
+import type { Market } from "./concierge/market";
 import type { ToolDeps } from "./concierge/tools";
 import type { Db } from "./db/client";
 import { limitRoutes } from "./hiring/limit-routes";
 import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
+import type { AgentReviewService } from "./market/reviews";
+import { marketRoutes } from "./market/routes";
 import { oauthRoutes } from "./mcp/oauth";
 import { mcpRoutes } from "./mcp/routes";
 import { travellerRoutes } from "./travellers/routes";
@@ -42,6 +45,7 @@ export type AppOptions = {
   alerts?: TelegramAlerts; // phone alerts in Telegram
   travellers?: TravellerService; // saved travellers: who bookings are for
   tools?: ToolDeps; // the concierge's tools, also offered to connected apps over MCP
+  market?: { market: Market; reviews: AgentReviewService }; // agent pages and listing
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -62,6 +66,7 @@ export function createApp(o: AppOptions) {
   app.route("/", chatRoutes(db, concierge));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (hiring) app.route("/", tripRoutes(db, hiring));
+  if (o.market) app.route("/", marketRoutes(db, o.market));
   // Connected apps (Claude): OAuth to connect, and the concierge's tools over MCP.
   app.route("/", oauthRoutes(db, appOrigin));
   if (hiring && o.tools) app.route("/", mcpRoutes(db, appOrigin, { tools: o.tools, hiring }));

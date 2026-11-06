@@ -18,6 +18,8 @@ import {
   RatingSchema,
   type Receipt,
   ReceiptSchema,
+  type Review,
+  ReviewSchema,
 } from "./records";
 import type { SafeArkivWriter } from "./safe-writer";
 import { LIFETIME, SCHEMAS, valuesFor } from "./schemas";
@@ -154,6 +156,19 @@ export function rateAgent(w: SafeArkivWriter, rating: Rating) {
       SCHEMAS.rating,
       valuesFor("rating", r),
       { expiration: LIFETIME.rating() },
+      tx,
+    ),
+  );
+}
+
+/** The platform records its review of an agent: the checks, and whether it's shown. */
+export function recordReview(w: SafeArkivWriter, review: Review) {
+  const r = ReviewSchema.parse(review);
+  return w.run(1, (tx) =>
+    w.client.createEntity(
+      SCHEMAS.review,
+      valuesFor("review", r),
+      { expiration: LIFETIME.review() },
       tx,
     ),
   );

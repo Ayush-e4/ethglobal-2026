@@ -77,6 +77,42 @@ export interface Receipt {
   links: { label: string; url: string }[];
 }
 
+/** The marketplace's review of an agent: shown only when approved. */
+export interface AgentReviewView {
+  status: "approved" | "failed" | "suspended";
+  operator: "agentnet" | "verified-person";
+  checks: { id: string; ok: boolean; note: string }[];
+  note: string | null;
+  checkedAt: string;
+  arkiv: string | null;
+}
+
+/** GET /market/agents: an agent on Arkiv, its record and our review of it. */
+export interface MarketAgentView {
+  address: string;
+  name: string;
+  skill: string;
+  title: string | null;
+  description: string;
+  feeUnits: string;
+  service: { model: string; promise: string; afterwards?: string } | null;
+  delivered: number;
+  disputes: number;
+  rating: { average: number; count: number } | null;
+  review: AgentReviewView | null;
+}
+
+/** GET /market/agents/:address: one agent's page. */
+export type AgentPageView = MarketAgentView & {
+  form: {
+    properties: Record<string, { type: string; description?: string }>;
+    required: string[];
+  } | null;
+  endpointHost: string;
+  hederaAccount: string | null;
+  links: { label: string; url: string }[];
+};
+
 /** GET /wallet: a passkey account's Face ID wallet. Demo accounts have none. */
 export interface WalletInfo {
   demo: boolean;

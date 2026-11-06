@@ -13,7 +13,12 @@ interface Grant {
 }
 
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", timeStyle: "short" });
+  new Date(iso).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 
 /**
  * Apps connected to this account (Claude, over MCP): what they've done shows in their chat, and

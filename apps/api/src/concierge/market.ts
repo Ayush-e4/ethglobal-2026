@@ -22,6 +22,9 @@ export interface MarketAgent {
   delivered: number; // jobs it completed recently, by its own Arkiv records
   rating?: { average: number; count: number }; // from verified people (World ID), on Arkiv
   disputes?: number; // its jobs a buyer reported a problem with, on Arkiv (written by us)
+  hederaAccount?: string; // where it's paid
+  profileKey?: `0x${string}`; // its Arkiv entities
+  listingKey?: `0x${string}`;
 }
 
 /** At most this many agents are asked for one job: the best rated and most reliable first. */
@@ -111,8 +114,10 @@ export function arkivMarket(
   reader: ArkivReader,
   fetchImpl: typeof fetch = fetch,
   platform?: `0x${string}`, // our Arkiv writer: the only one whose ratings count
+  shown?: () => Promise<Set<string>>, // the agents our review let in (lowercase addresses)
 ) {
-  async function agents(skill?: string): Promise<MarketAgent[]> {
+  /** The agents on Arkiv: only those our review let in, unless `all` (for the review itself). */
+  async function agents(skill?: string, all = false): Promise<MarketAgent[]> {
     const [found, done, rated, disputed] = await Promise.all([
       findAgents(reader, skill),
       // Reliability and ratings are ranking hints: without them, the market still works.
@@ -140,8 +145,13 @@ export function arkivMarket(
       const id = d.record.agent.toLowerCase();
       delivered.set(id, (delivered.get(id) ?? 0) + 1);
     }
-    return [...profiles.values()].map(({ record: a }) => {
-      const l = listings.get(a.agent.toLowerCase())?.record;
+    const allowed = all || !shown ? null : await shown();
+    const listed = [...profiles.values()].filter(
+      (p) => !allowed || allowed.has(p.record.agent.toLowerCase()),
+    );
+    return listed.map(({ record: a, key }) => {
+      const found = listings.get(a.agent.toLowerCase());
+      const l = found?.record;
       return {
         name: a.name,
         skill: a.skill,
@@ -155,12 +165,17 @@ export function arkivMarket(
         delivered: delivered.get(a.agent.toLowerCase()) ?? 0,
         rating: rated.get(a.agent.toLowerCase()),
         disputes: disputed.get(a.agent.toLowerCase()) ?? 0,
+        hederaAccount: a.hederaAccount,
+        profileKey: key,
+        listingKey: found?.key,
       };
     });
   }
 
   return {
     agents,
+    /** Every agent on Arkiv, reviewed or not: for the review and the agent pages. */
+    all: () => agents(undefined, true),
 
     /**
      * Agents that can quote, best match for a need in plain words first (all of them, most

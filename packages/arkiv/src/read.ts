@@ -2,7 +2,7 @@ import { and, eq, lte } from "@arkiv-network/sdk/query";
 import { addr, key, str, u64 } from "@arkiv-network/sdk/schema";
 import { type Hex, hexToBytes, isHex } from "viem";
 import type { ArkivReader } from "./config";
-import { type Kind, RECORDS, type RecordOf } from "./records";
+import { type Kind, RECORDS, type RecordOf, type Review } from "./records";
 import { SCHEMAS } from "./schemas";
 
 /** A record as read back: validated, with who wrote it and when it expires (in blocks). */
@@ -27,6 +27,7 @@ const AUTHOR: Record<Kind, (r: Record<string, unknown>) => string | null> = {
   delivery: (r) => r.agent as string,
   rating: () => null, // checked against the trusted writer instead
   dispute: () => null, // checked against the trusted writer instead
+  review: () => null, // checked against the trusted writer instead
 };
 
 /** A column as the SDK returns it: `{ type, value }` or the bare value. */
@@ -60,7 +61,8 @@ export function decodeRow<K extends Kind>(
   const creator = row.$creator.toLowerCase();
   const author = AUTHOR[kind](parsed.data as Record<string, unknown>);
   if (author !== null && author.toLowerCase() !== creator) return null;
-  const platformOnly = kind === "receipt" || kind === "rating" || kind === "dispute";
+  const platformOnly =
+    kind === "receipt" || kind === "rating" || kind === "dispute" || kind === "review";
   if (platformOnly && creator !== trustedWriter?.toLowerCase()) return null;
   return {
     key: row.$key,
@@ -160,6 +162,21 @@ export async function verifiedRatings(
     });
   }
   return byAgent;
+}
+
+/** The marketplace's newest review of each agent: only those our platform wrote. */
+export async function reviewsByAgent(
+  r: ArkivReader,
+  platform: Hex,
+): Promise<Map<string, Found<Review>>> {
+  const all = await find(r, "review", [], { createdBy: platform, trustedWriter: platform });
+  const newest = new Map<string, Found<Review>>();
+  for (const x of all) {
+    const id = x.record.agent.toLowerCase();
+    const had = newest.get(id);
+    if (!had || x.record.reviewedAt > had.record.reviewedAt) newest.set(id, x);
+  }
+  return newest;
 }
 
 /**
