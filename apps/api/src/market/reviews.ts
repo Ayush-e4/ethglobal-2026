@@ -66,7 +66,8 @@ export function agentReviewService(
       },
       {
         registryId: d.registryId,
-        allowLocalHttp: d.allowLocalHttp,
+        // Our own agents run beside the API on the server, at local addresses.
+        allowLocalHttp: d.allowLocalHttp || d.house.has(id),
         signedQuotes:
           d.signedQuotes ??
           (async (task) =>
