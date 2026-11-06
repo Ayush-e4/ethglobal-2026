@@ -16,6 +16,7 @@ export interface FlightQuote {
   changeable: boolean;
   emissionsKg?: number;
   feeUnits: string; // the agent's fee, in USDC units, held in escrow
+  priceUnits?: string; // the fare, held in escrow too (testnet scale, from the rupee price)
   expiresAtMs: number;
   tag: string; // "Cheapest", "Fastest", "Most flexible"
 }

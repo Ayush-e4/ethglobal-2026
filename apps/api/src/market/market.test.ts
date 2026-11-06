@@ -124,7 +124,7 @@ describe("checking an agent like a buyer would", () => {
     ],
     ["no real undo window", { undo: 5 }, /undo window is under 30 s/],
     ["no review window", { review: 60 }, /review window is under 10 minutes/],
-    ["a bigger fee than listed", { amount: "900000" }, /different fee/],
+    ["a bigger fee than listed", { amount: "900000" }, /other than its fee plus the quoted price/],
   ])("fails when %s", async (_, terms, why) => {
     const checks = await checkAgent(agent, {
       registryId: REGISTRY,

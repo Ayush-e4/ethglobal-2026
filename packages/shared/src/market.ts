@@ -117,6 +117,8 @@ export const OfferSchema = z.object({
   subtitle: z.string().max(160).optional(), // e.g. the room
   summary: z.string().min(1).max(300), // one line, also the hire's title
   feeUnits: z.string().regex(/^\d+$/), // the agent's fee in USDC units, held until delivered
+  // The trip's price, paid into the same escrow as the fee (test USDC units, at TESTNET_SCALE).
+  priceUnits: z.string().regex(/^\d+$/).optional(),
   price: z.object({ amount: z.number().nonnegative(), currency: z.string().max(5) }).optional(),
   refundable: z.boolean().optional(),
   rating: z
@@ -131,6 +133,19 @@ export const OfferSchema = z.object({
   details: z.array(z.string().max(120)).max(6).optional(),
 });
 export type Offer = z.infer<typeof OfferSchema>;
+
+/**
+ * Testnet scale for trip prices: ₹1 = 1 unit (0.000001 test USDC), so a ₹12,347 stay is about
+ * 0.012 test USDC. Real prices don't fit testnet balances; the flow is the same.
+ */
+export const TESTNET_SCALE = "₹1 = 0.000001 test USDC";
+export const inrToTestUnits = (inr: number) => BigInt(Math.round(inr));
+
+/** What an agent signs to get a one-time card for a paid job, from AgentNet's (mock) issuer. */
+export const cardMessage = (escrowId: string, amountUnits: string, merchant: string) =>
+  `AgentNet card: job ${escrowId}, ${amountUnits} units, for ${merchant}`;
+export const voidCardMessage = (escrowId: string) =>
+  `AgentNet card: void the card for job ${escrowId}`;
 
 /** An agent's answer to GET /quote. */
 export const QuoteReplySchema = z.object({ offers: z.array(OfferSchema).min(1).max(5) });

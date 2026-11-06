@@ -1,4 +1,5 @@
 import type { MandateClient } from "@app/mandates";
+import { parseUsdc } from "@app/shared";
 import { MandateServerScheme, NETWORK } from "@app/x402";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { paymentMiddleware, x402ResourceServer } from "@x402/hono";
@@ -20,6 +21,9 @@ const GuestBody = z.object({
   gender: z.enum(["f", "m"]).optional(),
 });
 const BookBody = z.object({ quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/), guest: GuestBody });
+
+/** Circle's test USDC on Hedera testnet: what fees and trip prices are paid in. */
+const USDC = "0.0.429274";
 
 export interface PaidJobConfig {
   feeUsd: string;
@@ -48,6 +52,9 @@ export function paidJobRoutes<Q extends QuoteBase, W extends WatchBase>(
     guestProblem?: (g: Guest) => string | null; // e.g. a flight needs the date of birth
   },
 ) {
+  const feeUnits = parseUsdc(d.config.feeUsd.replace("$", ""));
+  const totalFor = (key?: string) =>
+    (feeUnits + BigInt((key && d.quotes.get(key)?.priceUnits) || "0")).toString();
   const resource = new x402ResourceServer(
     new HTTPFacilitatorClient({ url: d.config.facilitatorUrl }),
   ).register(NETWORK, new MandateServerScheme([d.config.registryId]));
@@ -57,6 +64,12 @@ export function paidJobRoutes<Q extends QuoteBase, W extends WatchBase>(
     if (!b.success) return c.json({ error: "bad_request" }, 400);
     const q = d.quotes.get(b.data.quote);
     if (!q || q.expiresAtMs < Date.now()) return c.json({ error: "quote_expired" }, 410);
+    // The price is the fee plus this quote's trip price: the header names the quote it's for.
+    if (c.req.header("x-quote") !== b.data.quote)
+      return c.json(
+        { error: "bad_request", message: "x-quote must name the quote being booked" },
+        400,
+      );
     const problem = d.guestProblem?.(b.data.guest);
     if (problem) return c.json({ error: "guest_details", message: problem }, 422);
     await next();
@@ -69,7 +82,8 @@ export function paidJobRoutes<Q extends QuoteBase, W extends WatchBase>(
           accepts: {
             scheme: "exact",
             network: NETWORK,
-            price: d.config.feeUsd,
+            // Fee + trip price, in exact USDC units (no rounding through dollars).
+            price: (ctx) => ({ asset: USDC, amount: totalFor(ctx.adapter.getHeader("x-quote")) }),
             payTo: d.config.registryId, // held until the job is done
             extra: { escrow: { payee: d.payee, ...d.config.terms } },
           },
@@ -85,7 +99,11 @@ export function paidJobRoutes<Q extends QuoteBase, W extends WatchBase>(
     const { escrowId } = escrowIdFromHeader(c.req.header("PAYMENT-SIGNATURE") ?? "");
     const escrow = await d.registry.getEscrow(escrowId);
     const quote = d.quotes.get(b.quote) as Q;
-    if (escrow.state !== "held" || escrow.payee.toLowerCase() !== d.payee.toLowerCase()) {
+    if (
+      escrow.state !== "held" ||
+      escrow.payee.toLowerCase() !== d.payee.toLowerCase() ||
+      escrow.amount < BigInt(totalFor(b.quote))
+    ) {
       return c.json({ error: "payment_not_held" }, 402);
     }
     const job: PaidJob<W> = {
@@ -112,8 +130,14 @@ export function paidJobRoutes<Q extends QuoteBase, W extends WatchBase>(
   app.get("/jobs/:id", (c) => {
     const job = d.jobs.get(c.req.param("id"));
     if (!job) return c.json({ error: "not_found" }, 404);
-    const { guest: _private, ...shown } = job;
-    return c.json(shown);
+    const { guest: _private, card, ...shown } = job;
+    // Of its card, only what a receipt shows: never a number or code.
+    return c.json({
+      ...shown,
+      ...(card
+        ? { card: { last4: card.last4, merchant: card.merchant, status: card.status } }
+        : {}),
+    });
   });
 
   // The buyer cancels the booking after it was made, with a signature only the buyer can make.

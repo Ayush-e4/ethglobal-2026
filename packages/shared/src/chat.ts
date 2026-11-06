@@ -49,6 +49,7 @@ export const QuotesCardSchema = z.object({
       note: z.string(),
       feeUnits: units, // the agent's fee
       itemTotal: z.number().optional(), // what the room / ticket costs
+      priceUnits: units.optional(), // that price, paid into escrow with the fee (testnet scale)
       itemCurrency: z.string().optional(),
       reply: z.string(),
       // The offer at a glance (from the agent; images are https only).

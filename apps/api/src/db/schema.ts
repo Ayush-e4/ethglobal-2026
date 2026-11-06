@@ -168,6 +168,7 @@ export const quotes = pgTable("quotes", {
   image: text("image"), // the offer's first photo (https), for alerts
   // The traveller's details this agent needs besides name, email, phone (its listing says).
   guestFields: jsonb("guest_fields").$type<("bornOn" | "gender")[]>().notNull().default([]),
+  priceUnits: bigint("price_units", { mode: "bigint" }), // the trip price, paid into escrow with the fee
   expiresAt: at("expires_at").notNull(),
 });
 
@@ -217,6 +218,8 @@ export const hires = pgTable(
     agentName: text("agent_name").notNull(),
     title: text("title").notNull(),
     feeUnits: bigint("fee_units", { mode: "bigint" }).notNull(),
+    priceUnits: bigint("price_units", { mode: "bigint" }), // the trip price, in the same escrow
+    card: jsonb("card").$type<import("./card-schema").HireCardView>(), // how the agent paid the supplier
     demo: boolean("demo").notNull().default(false),
     status: text("status").$type<HireStatus>().notNull().default("paying"),
     escrowId: text("escrow_id"),
@@ -277,6 +280,8 @@ export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 
 // Saved travellers.
+// The (mock) card issuer's ledger: agents pay hotels and airlines with one-time cards.
+export * from "./card-schema";
 // Deal drops: one claim per person (World ID).
 export * from "./deal-schema";
 // The marketplace's reviews of agents.

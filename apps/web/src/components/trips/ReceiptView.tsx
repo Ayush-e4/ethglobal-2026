@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, type Receipt, usdc } from "@/lib/api";
+import { api, cardLine, type Receipt, rupeesOf, usdc } from "@/lib/api";
 
 const ESCROW: Record<string, string> = {
   held: "Held: the agent isn't paid until it books",
@@ -33,6 +33,19 @@ export function ReceiptView({ id }: { id: string }) {
     ...(r.guest ? ([["Guest", r.guest]] as [string, string][]) : []),
     ...(r.bookingRef ? ([["Reference", r.bookingRef]] as [string, string][]) : []),
     ["Agent's fee", `${usdc(r.feeUnits)} USDC`],
+    ...(r.priceUnits
+      ? ([
+          ["Trip price", `${rupeesOf(r.priceUnits)}, paid into the same escrow (testnet scale)`],
+        ] as [string, string][])
+      : []),
+    ...(r.card
+      ? ([
+          [
+            "Supplier paid with",
+            `a one-time card ${cardLine({ ...r.card, brand: "", expiresAt: "" })} (simulated)`,
+          ],
+        ] as [string, string][])
+      : []),
     ["The fee now", r.escrow ? (ESCROW[r.escrow.state] ?? r.escrow.state) : "Not on Hedera"],
     ...(r.bookingCancelled
       ? ([["Cancelled", "By the guest, afterwards"]] as [string, string][])

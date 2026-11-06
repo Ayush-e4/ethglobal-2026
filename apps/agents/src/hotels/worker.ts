@@ -5,6 +5,7 @@ import type { StoredQuote, Watch } from "./types";
 
 /** A hotel agent's supplier: LiteAPI books the prebooked room, and cancels it (all refundable). */
 export const hotelSupplier = (lite: LiteApiClient): Supplier<StoredQuote> => ({
+  merchant: (q) => ({ name: q.hotelName, amount: q.total, currency: q.currency }),
   book: async (q, guest, ref) => {
     const b = await lite.book(q.prebookId, guest, ref);
     return { bookingId: b.bookingId, confirmation: b.confirmationCode };

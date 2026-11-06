@@ -19,6 +19,8 @@ function fakeHiring(late = false) {
     title: "Park Inn · StayWise",
     feeUnits: BigInt(20000),
     demo: true,
+    priceUnits: null,
+    card: null,
     status,
     escrowId: "0xescrow",
     payTx: "0.0.5@1793920154.081520830",

@@ -50,7 +50,8 @@ export async function payAgent(d: {
   const url = new URL("book", d.endpoint.endsWith("/") ? d.endpoint : `${d.endpoint}/`);
   const res = await pay(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    // The agent prices the payment from this quote: its fee plus the trip price.
+    headers: { "Content-Type": "application/json", "x-quote": d.quoteKey },
     body: JSON.stringify({ quote: d.quoteKey, guest: d.guest }),
     signal: AbortSignal.timeout(120_000),
   });

@@ -34,6 +34,7 @@ export function loadFlightAgentConfig(env: Record<string, string | undefined> = 
         .startsWith("duffel_test_", "Duffel test token (duffel_test_…)"),
       MANDATE_REGISTRY_ID: z.string().regex(/^0\.0\.\d+$/),
       FACILITATOR_URL: z.url().default("http://localhost:8790"),
+      CARDS_URL: z.url().default("http://localhost:8787"), // AgentNet's (mock) card issuer
     })
     .safeParse(env);
   if (!parsed.success) {
@@ -49,6 +50,7 @@ export function loadFlightAgentConfig(env: Record<string, string | undefined> = 
     duffelToken: e.DUFFEL_ACCESS_TOKEN,
     registryId: e.MANDATE_REGISTRY_ID,
     facilitatorUrl: e.FACILITATOR_URL,
+    cardsUrl: e.CARDS_URL,
     port: e.SKYHOP_PORT,
     publicUrl: e.SKYHOP_URL ?? `http://localhost:${e.SKYHOP_PORT}`,
     dataDir: resolve(import.meta.dirname, "../../.data"),

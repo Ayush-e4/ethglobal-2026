@@ -74,7 +74,9 @@ export function hiringService(
       // Demo accounts spend from the shared demo wallet, within daily caps. Passkey accounts
       // spend from their own Face ID wallet, through a limit they approved for this agent here.
       const demo = user.isDemo;
-      const blocked = demo ? await demoCapsAllow(db, user.id, quote.feeUnits, cfg.caps) : null;
+      // What's paid: the agent's fee, plus the trip price when it's held in escrow too.
+      const total = quote.feeUnits + (quote.priceUnits ?? 0n);
+      const blocked = demo ? await demoCapsAllow(db, user.id, total, cfg.caps) : null;
       if (blocked) throw new HireError(blocked);
       const guest: Guest =
         (await gates.guest?.(user, chatId, {
@@ -96,7 +98,7 @@ export function hiringService(
         const w = await ownWallet?.(user.id);
         if (w?.status !== "ready" || !w.hederaId)
           throw new HireError("Your Face ID wallet is still being set up. Try again in a moment.");
-        own = await liveLimit(db, registry, chatId, payee, quote.feeUnits, w.address);
+        own = await liveLimit(db, registry, chatId, payee, total, w.address);
         if (!own)
           throw new NeedsLimit({
             type: "limit",
@@ -120,6 +122,7 @@ export function hiringService(
           agentName: quote.agentName,
           title: quote.summary,
           feeUnits: quote.feeUnits,
+          priceUnits: quote.priceUnits,
           demo,
           guestName: `${guest.firstName} ${guest.lastName}`,
           guestEmail: guest.email,
@@ -140,7 +143,7 @@ export function hiringService(
             },
             chatId,
             payee,
-            quote.feeUnits,
+            total,
           ));
         const paid = await payAgent({
           registry,
@@ -163,6 +166,7 @@ export function hiringService(
         return { ...hire, ...changes };
       } catch (err) {
         const note = err instanceof PayError ? `payment refused: ${err.message}` : "payment failed";
+        console.error(`hire ${hire.id.slice(0, 8)}: ${note}: ${String(err).slice(0, 240)}`);
         await save(hire.id, { status: "failed", note });
         if (err instanceof AgentRefused)
           throw new HireError(`${quote.agentName}: ${err.message} Nothing was charged.`);

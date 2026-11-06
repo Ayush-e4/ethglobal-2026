@@ -54,6 +54,16 @@ export function tripRoutes(db: Db, hiring: HiringService) {
       title: h.title,
       agentName: h.agentName,
       feeUnits: h.feeUnits.toString(),
+      priceUnits: h.priceUnits?.toString() ?? null,
+      card: h.card
+        ? {
+            last4: h.card.last4,
+            merchant: h.card.merchant,
+            amount: h.card.amount,
+            currency: h.card.currency,
+            status: h.card.status,
+          }
+        : null,
       status: h.status,
       bookedAt: h.createdAt.toISOString(),
       guest: initials(h.guestName),

@@ -123,7 +123,9 @@ function Offer({ q, first, ctx }: { q: Quote; first: boolean; ctx: CardCtx }) {
             </span>
             {q.refundable && <span className="text-xs font-medium text-ok">Free cancellation</span>}
             <span className="text-xs text-muted">
-              agent fee <span className="font-mono">{usdc(q.feeUnits)} USDC</span>, on delivery
+              {q.priceUnits ? "price + " : ""}agent fee{" "}
+              <span className="font-mono">{usdc(q.feeUnits)} USDC</span>
+              {q.priceUnits ? ", held in escrow" : ", on delivery"}
             </span>
           </span>
           <button

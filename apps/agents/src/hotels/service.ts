@@ -12,6 +12,7 @@ import { parseUsdc } from "@app/shared";
 import { LiteApiClient } from "@app/travel";
 import { privateKeyToAccount } from "viem/accounts";
 import { agentIdentity } from "../identity";
+import { cardIssuer } from "../jobs/cards";
 import { JsonStore } from "../store";
 import { hotelAgentApp } from "./app";
 import type { HotelAgentConfig } from "./config";
@@ -32,6 +33,7 @@ export async function startHotelAgent(config: HotelAgentConfig) {
   const quotes = new JsonStore<StoredQuote>(`${config.dataDir}/${config.id}-quotes.json`);
   const jobs = new JsonStore<Job>(`${config.dataDir}/${config.id}-jobs.json`);
   const worker = hotelWorker({
+    cards: cardIssuer(config.cardsUrl, agent),
     registry,
     agent,
     lite,

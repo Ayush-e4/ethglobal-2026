@@ -8,8 +8,8 @@ const Env = z.object({
   MANDATE_REGISTRY_ADDRESS: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
   MANDATE_REGISTRY_ID: z.string().regex(/^0\.0\.\d+$/),
   FACILITATOR_URL: z.url().default("http://localhost:8790"),
-  DEMO_PER_USER_PER_DAY: z.coerce.bigint().default(BigInt(60_000)), // 0.06 USDC of fees per demo account a day
-  DEMO_TOTAL_PER_DAY: z.coerce.bigint().default(BigInt(500_000)), // 0.50 USDC a day across all demo accounts
+  DEMO_PER_USER_PER_DAY: z.coerce.bigint().default(BigInt(250_000)), // 0.25 USDC (fees + trip prices at testnet scale) per demo account a day
+  DEMO_TOTAL_PER_DAY: z.coerce.bigint().default(BigInt(1_500_000)), // 1.50 USDC a day across all demo accounts
 });
 
 export interface HiringConfig {
