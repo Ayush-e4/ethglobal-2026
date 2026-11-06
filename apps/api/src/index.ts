@@ -97,7 +97,9 @@ const tgChat = telegramChat({
   check: checks ? (id, userId) => checks.get(id, userId) : undefined,
 });
 startTelegramBot(alerts, (line) => console.error(line), {
-  onCallback: (cq) => (/^[bo]:/.test(cq.data ?? "") ? tgChat.onCallback(cq) : live.onCallback(cq)),
+  // Book, choices and the offers carousel go to the chat; Undo and ratings to the hire's message.
+  onCallback: (cq) =>
+    /^([boc]:|n$)/.test(cq.data ?? "") ? tgChat.onCallback(cq) : live.onCallback(cq),
   status: (chatId) => statusText(db, chatId),
   onText: tgChat.turn,
   onNew: tgChat.fresh,

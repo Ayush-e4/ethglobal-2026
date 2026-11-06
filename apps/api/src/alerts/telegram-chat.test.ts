@@ -8,7 +8,7 @@ import { testDb } from "../test/db";
 import type { WorldCheck } from "../world/checks";
 import { telegramAlerts } from "./telegram";
 import { telegramChat } from "./telegram-chat";
-import { cardMessages, chunks, html, quoteButton } from "./telegram-format";
+import { cardMessages, chunks, html, quoteButton, slide } from "./telegram-format";
 
 type Call = { method: string; body: Record<string, unknown> };
 const KEY_A = `0x${"a1".repeat(32)}`;
@@ -108,27 +108,68 @@ describe("the concierge in Telegram", () => {
     expect(await db.select().from(chats)).toHaveLength(2); // /new: another one
   });
 
-  it("each hotel is one photo message with its details and a Book button, which books", async () => {
-    const { chat, sent, asked } = await setup({ cards: [QUOTES] });
+  it("offers come as one carousel: ◀ ▶ between hotels, then the pick; Book books", async () => {
+    const { chat, sent, calls, asked } = await setup({ cards: [QUOTES] });
     await chat.turn("42", "A hotel in Goa");
-    const photos = sent("sendPhoto");
-    expect(photos.map((p) => p.body.photo)).toEqual(["https://p/1.jpg", "https://p/2.jpg"]);
-    expect(photos[0]?.body.caption).toMatch(
+    const [first, ...more] = sent("sendPhoto");
+    expect(more).toEqual([]); // one message for all the hotels
+    expect(first?.body).toMatchObject({ photo: "https://p/1.jpg" });
+    expect(first?.body.caption).toMatch(
       /^<b>Park Inn<\/b>\n₹11,927[\s\S]*StayWise ★ 5\.0 \(1 verified\)/,
     );
-    const markup = photos[1]?.body.reply_markup as
-      | { inline_keyboard: { callback_data: string }[][] }
-      | undefined;
-    const rows = markup?.inline_keyboard;
-    expect(rows).toEqual([
-      [{ text: "Book with StayWise · 0.02 USDC", callback_data: quoteButton(KEY_B) }],
+    const rows = (
+      first?.body.reply_markup as
+        | { inline_keyboard: { text: string; callback_data: string }[][] }
+        | undefined
+    )?.inline_keyboard;
+    expect(rows?.[0]?.map((b) => b.text)).toEqual(["◀", "Hotel 1 of 2", "▶"]);
+    expect(rows?.[1]).toEqual([
+      { text: "Book with StayWise · 0.02 USDC", callback_data: quoteButton(KEY_A) },
     ]);
+    // The concierge's pick comes after the hotels.
+    const order = calls
+      .map((c) => c.method)
+      .filter((m) => m === "sendPhoto" || m === "sendMessage");
+    expect(order).toEqual(["sendPhoto", "sendMessage"]);
+    // ▶ shows the next hotel in the same message.
+    const next = rows?.[0]?.[2]?.callback_data ?? "";
     await chat.onCallback({
-      id: "cb",
-      data: quoteButton(KEY_B),
-      message: { chat: { id: 42 }, message_id: 1 },
+      id: "cb1",
+      data: next,
+      message: { chat: { id: 42 }, message_id: 7, photo: [{}] },
+    });
+    const turned = sent("editMessageMedia").at(-1)?.body;
+    if (!turned) throw new Error("not turned");
+    expect(turned).toMatchObject({
+      message_id: 7,
+      media: { type: "photo", media: "https://p/2.jpg" },
+    });
+    expect((turned.media as { caption: string }).caption).toMatch(/^<b>DoubleTree<\/b>/);
+    const turnedRows = (turned.reply_markup as { inline_keyboard: { callback_data: string }[][] })
+      .inline_keyboard;
+    await chat.onCallback({
+      id: "cb2",
+      data: turnedRows[1]?.[0]?.callback_data ?? "",
+      message: { chat: { id: 42 }, message_id: 7 },
     });
     expect(asked.at(-1)).toBe(`Book DoubleTree · StayWise (quote ${KEY_B.slice(0, 10)})`);
+  });
+
+  it("📷 steps through a hotel's own photos", () => {
+    const many: Card = {
+      ...QUOTES,
+      quotes: [
+        {
+          ...offer(KEY_A, "Park Inn · StayWise", "https://p/1.jpg"),
+          images: ["https://p/1.jpg", "https://p/1b.jpg"],
+        },
+      ],
+    };
+    if (many.type !== "quotes") throw new Error("quotes");
+    const a = slide(many, 0, 0);
+    expect(a.rows[0]?.[0]?.text).toBe("📷 Photo 1 of 2 ›"); // one hotel: no ◀ ▶
+    expect(slide(many, 0, 1).photo).toBe("https://p/1b.jpg");
+    expect(slide(many, 0, 2).photo).toBe("https://p/1.jpg"); // wraps around
   });
 
   it("a World ID approval opens from a button, and once it passes the booking carries on", async () => {
