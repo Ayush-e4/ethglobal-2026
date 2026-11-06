@@ -28,6 +28,12 @@ shows the same checked sheet: who, how much, "heard from the shop's device just 
 phone 20–50 cm away and still: the lab's maths and ~2,900 simulated rooms say audible chirps
 survive a hand moving up to ~1.3 m/s, and that close range beats echo.
 
+## Who can be a shop
+
+One real person per shop: setting up **Get paid** needs a World ID-verified person (the same
+check as Wallet → World ID), and shop names are unique (case and spacing ignored), so nobody can
+set up a look-alike "Chai Point, Bandra" to be paid in its place.
+
 ## Why a scanned QR can't be faked
 
 - **The request is signed.** Its 24 bytes (payee, amount, a one-time number, an expiry) carry a
@@ -37,7 +43,8 @@ survive a hand moving up to ~1.3 m/s, and that close range beats echo.
   carries a code that changes every 250 ms, made with a key for that one request. The scanner
   follows the flicker and the server checks the code is genuine and from the last 3 seconds. A
   sticker pasted over a shop's QR, or a screenshot sent on WhatsApp, shows an old code or none:
-  "could be a sticker or a screenshot", and only **Pay anyway** remains.
+  there's no way to pay it. The server refuses a QR payment without a current live code, whatever
+  the phone sends.
 - **Paid once.** A request is claimed before paying, so two phones can't both pay it, and it
   expires after 2 minutes.
 - **Nothing over the air uses elliptic curves**: the tags are HMAC-SHA256.

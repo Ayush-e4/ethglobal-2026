@@ -258,7 +258,7 @@ export async function runTool(
         };
       if (err instanceof NeedsHuman)
         return {
-          result: `Not booked yet: ${err.card.agentName}'s fee (${usdc(err.card.feeUnits)} USDC) is a larger payment, so a real person approves it first with World ID (the card shows it: they approve in the World ID app; it proves a person, nothing about who). Ask them to approve it on the card; once they do, the app sends the booking again. If they decline, nothing is paid. Don't call hire again until then. Their approval covers one payment to ${err.card.agentName} at this fee in this chat for 10 minutes, fresh quotes from it included: if this quote expires, get fresh prices from ${err.card.agentName} and hire the same offer, without asking them to approve again.`,
+          result: `Not booked yet: this booking (${usdc(err.card.feeUnits)} USDC into escrow: ${err.card.agentName}'s fee plus the trip price) is a larger payment, so a real person approves it first with World ID (the card shows it: they approve in the World ID app; it proves a person, nothing about who). Ask them to approve it on the card; once they do, the app sends the booking again. If they decline, nothing is paid. Don't call hire again until then. Their approval covers one payment to ${err.card.agentName} of this amount in this chat for 10 minutes, fresh quotes from it included: if this quote expires, get fresh prices from ${err.card.agentName} and hire the same offer, without asking them to approve again.`,
           card: err.card,
         };
       if (err instanceof NeedsLimit)

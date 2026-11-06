@@ -6,7 +6,7 @@ import { chats, worldChecks as checkRows, quotes, users } from "../db/schema";
 import { testDb } from "../test/db";
 import { fakeWorld, ISS, token } from "../test/world";
 import { approvalRoutes } from "./approval-routes";
-import { humanCheckpoint, NeedsHuman } from "./checkpoint";
+import { hireTotal, humanCheckpoint, NeedsHuman } from "./checkpoint";
 import { worldChecks } from "./checks";
 import type { Poll } from "./oidc";
 
@@ -92,6 +92,28 @@ describe("the human checkpoint before larger hires", () => {
     const { gate, account, quoteOf } = await setup();
     const { user, chat } = await account();
     expect(await gate(user, chat.id, quoteOf(OTHER, "StayWise", 20_000n))).toBeNull();
+  });
+
+  it("a cheap agent booking an expensive stay is a larger payment too: fee plus trip price", async () => {
+    const { db, call, account } = await setup();
+    const a = await account();
+    expect(hireTotal({ feeUnits: 20_000n, priceUnits: 58_000n })).toBe(78_000n);
+    const big = `0x${"7".repeat(64)}`;
+    await db.insert(quotes).values({
+      key: big,
+      chatId: a.chat.id,
+      agentName: "StayWise",
+      agentAddress: STAYWISE,
+      endpoint: "http://localhost:8801",
+      feeUnits: 20_000n, // under the 0.05 line on its own
+      priceUnits: 58_000n, // a ₹58,000 stay, at testnet scale
+      summary: "StayWise · a ₹58,000 stay",
+      expiresAt: new Date(Date.now() + 600_000),
+    });
+    const res = await call(`/chats/${a.chat.id}/human-checks`, a.cookie, { quoteKey: big });
+    expect(res.status).not.toBe(409); // it needs a person
+    const small = await call(`/chats/${a.chat.id}/human-checks`, a.cookie, { quoteKey: OTHER });
+    expect(small.status).toBe(409); // StayWise's fee alone, no trip price: no check
   });
 
   it("a larger one asks for World ID first, with a card for that very quote", async () => {

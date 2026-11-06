@@ -94,10 +94,11 @@ export function HumanCard({ card, ctx }: { card: HumanCardData; ctx: CardCtx }) 
         <span className="text-[15px] font-bold">Confirm it's you with World ID</span>
       </div>
       <p className="text-sm leading-relaxed text-[#5C3A00]">
-        <strong>{card.agentName}</strong> charges{" "}
-        <strong className="font-mono">{usdc(card.feeUnits)} USDC</strong>, a larger payment, so a
-        real person approves it first, in the World ID app. It proves you're a person, nothing about
-        who you are, and approves one payment to {card.agentName} in this chat, for 10 minutes.
+        This booking puts <strong className="font-mono">{usdc(card.feeUnits)} USDC</strong> into
+        escrow (<strong>{card.agentName}</strong>&apos;s fee plus the trip price), a larger payment,
+        so a real person approves it first, in the World ID app. It proves you're a person, nothing
+        about who you are, and approves one payment to {card.agentName} in this chat, for 10
+        minutes.
       </p>
       {passed ? (
         <div className="flex flex-wrap items-center gap-3">

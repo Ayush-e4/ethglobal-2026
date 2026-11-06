@@ -4,7 +4,7 @@ import type { User } from "../db/schema";
 import type { WorldChecks } from "./checks";
 
 const Env = z.object({
-  WORLD_CHECK_FEE_USDC: z.string().default("0.05"), // a hire's fee from which a person approves it
+  WORLD_CHECK_FEE_USDC: z.string().default("0.05"), // a hire's payment (fee + trip price) from which a person approves it
 });
 
 /** An approval is good for this long after it passed, and for one hire. */
@@ -22,17 +22,24 @@ export class NeedsHuman extends Error {
 }
 
 /**
- * What a "spend" check approves: one payment to this agent, at this fee, in this chat. Not the
+ * What a "spend" check approves: one payment to this agent, of this amount, in this chat. Not the
  * quote itself: quotes last minutes, so a fresh one from the same agent is still covered.
  */
 export const spendRef = (chatId: string, payee: string, feeUnits: bigint) =>
   `${chatId}:${payee.toLowerCase()}:${feeUnits}`;
 
+/**
+ * What a hire pays into escrow: the agent's fee plus the trip's price. The check is on this,
+ * not the fee alone: a cheap agent booking an expensive hotel is still a large payment.
+ */
+export const hireTotal = (q: { feeUnits: bigint; priceUnits?: bigint | null }) =>
+  q.feeUnits + (q.priceUnits ?? 0n);
+
 export interface GateQuote {
   key: string;
   agentName: string;
   agentAddress: string;
-  feeUnits: bigint;
+  feeUnits: bigint; // the whole payment: fee + trip price (hireTotal)
   summary: string;
 }
 

@@ -73,7 +73,7 @@ export function telegramChat(d: TelegramChatDeps) {
     if ("error" in r) return say(tgChatId, `Couldn't start World ID: ${r.error}.`);
     await say(
       tgChatId,
-      `<b>Confirm it's you with World ID</b>\n${esc(card.agentName)} charges ${(Number(card.feeUnits) / 1e6).toFixed(2)} USDC, a larger payment, so a real person approves it first. Code: <code>${esc(r.check.userCode)}</code>\n\nApprove in the World ID app, then come back to World's page: that finishes it.`,
+      `<b>Confirm it's you with World ID</b>\nThis booking puts ${(Number(card.feeUnits) / 1e6).toFixed(2)} USDC into escrow (${esc(card.agentName)}'s fee plus the trip price), a larger payment, so a real person approves it first. Code: <code>${esc(r.check.userCode)}</code>\n\nApprove in the World ID app, then come back to World's page: that finishes it.`,
       {
         parse_mode: "HTML",
         reply_markup: { inline_keyboard: [[{ text: "Approve with World ID", url: r.check.link }]] },

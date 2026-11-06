@@ -133,6 +133,10 @@ export function inPersonPayer(d: {
   async function pay(user: User, frameHex: string, o: { live?: string; how: "qr" | "sound" }) {
     const { row, view } = await check(frameHex, o.live);
     if (row.m.userId === user.id) throw new HireError("That's your own request.");
+    // A scanned QR pays only once its live layer proved it's the shop's screen right now: a
+    // sticker or a screenshot never does. (A chirp is heard live; it's paid once and expires.)
+    if (o.how === "qr" && !view.live?.ok)
+      throw new HireError("Not confirmed as the shop's live screen: keep the camera on their QR.");
     if (view.status !== "open")
       throw new HireError(
         view.status === "paid" ? "Already paid." : "This request has expired: ask for a new one.",

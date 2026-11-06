@@ -7,7 +7,14 @@ import { type SavedPasskey, softPasskey } from "../../src/test/passkey";
 import { onHedera } from "./demo";
 import { type Card, check, ORIGIN, part, Session, until } from "./http";
 
-const SAVED = resolve(import.meta.dirname, "../../.data/smoke-passkey.json");
+// One saved passkey per address: a passkey only works on the site it was made for.
+const host = new URL(ORIGIN).hostname;
+const SAVED = resolve(
+  import.meta.dirname,
+  host === "localhost"
+    ? "../../.data/smoke-passkey.json"
+    : `../../.data/smoke-passkey-${host}.json`,
+);
 type Device = ReturnType<typeof softPasskey>;
 
 async function signIn(s: Session): Promise<Device> {

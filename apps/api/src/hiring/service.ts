@@ -98,7 +98,7 @@ export function hiringService(
         key: quoteKey,
         agentName: quote.agentName,
         agentAddress: quote.agentAddress,
-        feeUnits: quote.feeUnits,
+        feeUnits: total, // fee + trip price: an expensive stay needs a person too
         summary: quote.summary,
       });
       const payee = quote.agentAddress as `0x${string}`;
