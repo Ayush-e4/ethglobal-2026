@@ -196,8 +196,11 @@ confirmation.
 - **Refunded**: the agent couldn't book it, or accepted a reported problem.
 - **Cancelled afterwards**: the reference, and that the agent's fee stays paid.
 
-Each says it's a sandbox booking. To the account's own traveller ("This is me"): a **security
-notice** when an app (Claude) is connected, with where to disconnect it. Off without
+Each says it's a sandbox booking, and **a copy goes to the account's own email** (Wallet →
+Email, `GET/PUT /account/email`) when the booking is for someone else. To the account's email (or,
+without one, the "This is me" traveller's): a **security notice** when an app (Claude) is
+connected, with where to disconnect it. `POST /account/email/test` sends a test and returns
+Resend's exact reason when it doesn't go. Off without
 `RESEND_API_KEY`; until a domain is verified at Resend, it delivers only to the Resend account's
 own email (and Resend's test address `delivered@resend.dev`).
 

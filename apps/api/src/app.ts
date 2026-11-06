@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { deviceRoutes } from "./account/devices";
+import { emailRoutes } from "./account/email";
 import { alertRoutes } from "./alerts/routes";
 import type { TelegramAlerts } from "./alerts/telegram";
 import { deviceLinks } from "./auth/device-links";
@@ -12,6 +13,7 @@ import type { ToolDeps } from "./concierge/tools";
 import type { Db } from "./db/client";
 import { dealRoutes } from "./deals/routes";
 import type { DealService } from "./deals/service";
+import type { Email, TryEmail } from "./email/resend";
 import { limitRoutes } from "./hiring/limit-routes";
 import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
@@ -52,6 +54,7 @@ export type AppOptions = {
   market?: { market: Market; reviews: AgentReviewService; erc8004?: Erc8004Market }; // agent pages, listing
   onAppConnected?: (userId: string, app: string) => Promise<unknown>; // the security email
   deals?: DealService; // deal drops: one claim per person (World ID)
+  email?: { available: boolean; tryEmail: TryEmail; test: (to: string) => Email }; // account email
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -74,6 +77,7 @@ export function createApp(o: AppOptions) {
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));
   if (o.deals) app.route("/", dealRoutes(db, o.deals));
+  if (o.email) app.route("/", emailRoutes(db, o.email));
   // Connected apps (Claude): OAuth to connect, and the concierge's tools over MCP.
   app.route("/", oauthRoutes(db, appOrigin, o.onAppConnected));
   app.route("/", grantRoutes(db));
