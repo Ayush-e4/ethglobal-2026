@@ -77,4 +77,40 @@ describe("hireFollower", () => {
     expect(await t.read()).toMatchObject({ status: "failed" });
     expect((await t.read())?.note).toMatch(/restart/);
   });
+
+  it("a watching agent: followed after delivery, and each rebook told in the chat once", async () => {
+    const rebook = {
+      from: 10000,
+      to: 9200,
+      saved: 800,
+      currency: "INR",
+      toBookingId: "B-new",
+      simulated: true,
+    };
+    const watching = { active: true, checkin: "2026-12-20", rebooks: [] as unknown[] };
+    const t = await setup("held", "held", {
+      status: "delivered",
+      bookingId: "B-old",
+      watch: watching,
+    });
+    await t.follower.tick();
+    expect(await t.read()).toMatchObject({
+      watching: true,
+      watchNote: "watching the price until 20 Dec",
+    });
+
+    watching.rebooks.push(rebook); // the agent rebooked it cheaper
+    await t.follower.tick();
+    await t.follower.tick(); // told once, not on every tick
+    const rebooks = t.posted.filter((p) => p.includes("rebooked"));
+    expect(rebooks).toHaveLength(1);
+    expect(rebooks[0]).toMatch(
+      /₹10,000 → ₹9,200, so ₹800 comes back to you\. New booking reference B-new\. \(A simulated/,
+    );
+    expect(await t.read()).toMatchObject({
+      bookingRef: "B-new",
+      rebooksSeen: 1,
+      watchNote: "Saved ₹800 · 1 rebook · watching the price until 20 Dec",
+    });
+  });
 });

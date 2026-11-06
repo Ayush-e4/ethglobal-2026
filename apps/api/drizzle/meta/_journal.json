@@ -43,6 +43,13 @@
       "when": 1793927163134,
       "tag": "0005_steady_puma",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793931001832,
+      "tag": "0006_funny_joseph",
+      "breakpoints": true
     }
   ]
 }

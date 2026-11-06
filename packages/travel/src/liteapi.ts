@@ -1,4 +1,11 @@
-import { z } from "zod";
+import {
+  BookResponse,
+  CancelResponse,
+  DetailsResponse,
+  PlacesResponse,
+  PrebookResponse,
+  RatesResponse,
+} from "./liteapi-schemas";
 
 /**
  * LiteAPI hotels, **sandbox only**: the key must start with `sand_`, and sandbox bookings paid
@@ -7,80 +14,6 @@ import { z } from "zod";
  */
 const API = "https://api.liteapi.travel/v3.0";
 const BOOK = "https://book.liteapi.travel/v3.0";
-
-const Money = z.object({ amount: z.number(), currency: z.string() });
-const RatesResponse = z.object({
-  // "No availability" is HTTP 200 with { error: { code: 2001 } }.
-  error: z.object({ code: z.number(), message: z.string().optional() }).optional(),
-  data: z
-    .array(
-      z.object({
-        hotelId: z.string(),
-        roomTypes: z.array(
-          z.object({
-            offerId: z.string(),
-            name: z.string().optional(),
-            offerRetailRate: z.union([Money, z.array(Money)]).optional(),
-            rates: z
-              .array(z.object({ name: z.string(), boardName: z.string().optional() }))
-              .optional(),
-          }),
-        ),
-      }),
-    )
-    .default([]),
-  hotels: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        main_photo: z.string().nullish(),
-        city_name: z.string().nullish(),
-        address: z.string().nullish(),
-        rating: z.number().nullish(), // guests' score out of 10
-        stars: z.number().nullish(),
-        review_count: z.number().nullish(),
-      }),
-    )
-    .optional(),
-});
-const PlacesResponse = z.object({
-  data: z.array(z.object({ placeId: z.string(), displayName: z.string().optional() })).default([]),
-});
-const DetailsResponse = z.object({
-  data: z.object({
-    hotelImages: z.array(z.object({ url: z.string() })).default([]),
-    hotelFacilities: z.array(z.string()).default([]),
-  }),
-});
-const PrebookResponse = z.object({
-  data: z.object({
-    prebookId: z.string(),
-    price: z.number(),
-    currency: z.string(),
-    roomTypes: z
-      .array(
-        z.object({
-          rates: z.array(
-            z.object({
-              cancellationPolicies: z.object({ refundableTag: z.string().optional() }).optional(),
-            }),
-          ),
-        }),
-      )
-      .optional(),
-  }),
-});
-const BookResponse = z.object({
-  data: z.object({
-    bookingId: z.string(),
-    status: z.string(),
-    hotelConfirmationCode: z.string().nullish(),
-    hotel: z.object({ name: z.string() }).partial().optional(),
-    price: z.number().optional(),
-    currency: z.string().optional(),
-  }),
-});
 
 export interface HotelOffer {
   offerId: string;
@@ -171,15 +104,22 @@ export class LiteApiClient {
   async searchHotels(q: {
     iataCode?: string;
     placeId?: string;
+    hotelIds?: string[]; // just these hotels (re-checking a booked one's price)
     checkin: string; // YYYY-MM-DD
     checkout: string;
     adults: number;
     refundableOnly?: boolean;
     limit?: number;
   }): Promise<HotelOffer[]> {
-    if (!q.iataCode && !q.placeId) throw new Error("LiteAPI: search needs an airport or a place");
+    if (!q.iataCode && !q.placeId && !q.hotelIds?.length)
+      throw new Error("LiteAPI: search needs an airport, a place or hotels");
+    const where = q.hotelIds?.length
+      ? { hotelIds: q.hotelIds }
+      : q.placeId
+        ? { placeId: q.placeId }
+        : { iataCode: q.iataCode };
     const json = await this.post(`${API}/hotels/rates`, {
-      ...(q.placeId ? { placeId: q.placeId } : { iataCode: q.iataCode }),
+      ...where,
       checkin: q.checkin,
       checkout: q.checkout,
       occupancies: [{ adults: q.adults }],
@@ -235,6 +175,22 @@ export class LiteApiClient {
       total: data.price,
       currency: data.currency,
       refundable: tag === undefined ? undefined : tag === "RFN",
+    };
+  }
+
+  /** Cancels a booking (refundable rates refund in full); says what came back. */
+  async cancel(bookingId: string) {
+    const res = await this.fetchImpl(`${BOOK}/bookings/${encodeURIComponent(bookingId)}`, {
+      method: "PUT",
+      headers: { "X-API-Key": this.apiKey },
+    });
+    if (!res.ok) throw new Error(`LiteAPI /bookings: HTTP ${res.status}`);
+    const { data } = CancelResponse.parse(await res.json());
+    return {
+      status: data.status,
+      fee: data.cancellation_fee ?? 0,
+      refund: data.refund_amount ?? 0,
+      currency: data.currency,
     };
   }
 

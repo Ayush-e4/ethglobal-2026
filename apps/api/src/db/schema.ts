@@ -1,5 +1,15 @@
 import type { Card } from "@app/shared";
-import { bigint, boolean, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 const at = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -199,6 +209,10 @@ export const hires = pgTable(
     jobUrl: text("job_url"),
     bookingRef: text("booking_ref"),
     note: text("note"),
+    // A watching agent (PriceGuard) keeps working after it's paid: followed until its watch ends.
+    watching: boolean("watching").notNull().default(false),
+    rebooksSeen: integer("rebooks_seen").notNull().default(0),
+    watchNote: text("watch_note"), // e.g. "Saved ₹800 · 1 rebook · watching until 20 Dec"
     createdAt: at("created_at").notNull().defaultNow(),
     updatedAt: at("updated_at").notNull().defaultNow(),
   },

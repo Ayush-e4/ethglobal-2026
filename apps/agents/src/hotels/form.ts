@@ -1,6 +1,6 @@
-import type { Form, Service } from "@app/shared";
+import type { Form } from "@app/shared";
 
-/** What StayWise needs to quote a stay. Published in its Arkiv listing; checked on /quote. */
+/** What a hotel agent needs to quote a stay (agents with a skill share its form). Published in its Arkiv listing; checked on /quote. */
 export const HOTEL_FORM: Form = {
   type: "object",
   properties: {
@@ -32,11 +32,4 @@ export const HOTEL_FORM: Form = {
     minStars: { type: "integer", minimum: 1, maximum: 5, description: "Optional: fewest stars" },
   },
   required: ["iata", "checkin", "checkout", "adults"],
-};
-
-/** How StayWise works, in its own words: what the user weighs against other hotel agents. */
-export const SERVICE: Service = {
-  model: "Book it, done",
-  promise:
-    "The cheapest firm, refundable rooms I can find, three to choose from. I book once and I'm done.",
 };

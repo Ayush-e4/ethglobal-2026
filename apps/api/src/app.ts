@@ -24,6 +24,7 @@ export type AppOptions = {
   wallets?: WalletService;
   walletChain?: WalletChain; // with `approvals`: Face ID approvals of spending limits
   approvals?: WalletApprovals;
+  demoToken?: string; // enables the "simulate a price drop" demo control
 };
 
 export function createApp(o: AppOptions) {
@@ -35,7 +36,7 @@ export function createApp(o: AppOptions) {
   const links = deviceLinks(); // "use this account on another device" codes
   app.route("/", authRoutes(db, auth, onSignUp, links));
   app.route("/", chatRoutes(db, concierge));
-  if (hiring) app.route("/", hireRoutes(db, hiring));
+  if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (wallets) app.route("/", walletRoutes(db, wallets));
   if (wallets && o.approvals)
     app.route("/", deviceRoutes(db, { wallets, approvals: o.approvals, links }));

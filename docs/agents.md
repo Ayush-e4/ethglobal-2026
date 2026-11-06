@@ -112,3 +112,27 @@ Live (6 Nov 2026, sandbox): Goa, 20–22 Dec, 2 adults → Park Inn Candolim ₹
 (Cheapest, 8.7), Fairfield by Marriott Calangute ₹22,321 (Best value, 9.4), The Westin Goa
 ₹58,666 (Best rated, 9.8, near Baga), in about 15 s. "5 star under ₹40,000" → Holiday Inn
 Candolim, Heritage Village, Hilton Candolim.
+
+## PriceGuard: "Book and keep watching"
+
+The second hotel agent: the same code as StayWise (`apps/agents/src/hotels`, one identity each:
+its own key, Hedera account and listing), fee **0.05 USDC**, and a promise in its listing: it books
+a firm, refundable room, then keeps checking that room's price until check-in, and if it gets
+cheaper, rebooks it and the difference goes back to the guest.
+
+- After delivery its **watch** starts: every `WATCH_EVERY_SECONDS` it re-checks the same hotel's
+  live rate for the same room. A rebook must be worth it (at least ₹200 and 2%). It **books the
+  cheaper rate first** (the guest is never without a room), then cancels the old booking
+  (refundable: refunded in full); if the old one won't cancel, it cancels the new one instead, so
+  the guest never holds two.
+- Its job keeps going **after Hedera pays it**: the API follows watching hires, posts each rebook
+  in the chat once ("₹11,927 → ₹11,127, so ₹800 comes back to you. New booking reference …"),
+  and the hire card shows "Saved ₹800 · 1 rebook · watching the price until 20 Dec".
+- **Demo:** sandbox prices don't move, so with `DEMO_TOKEN` set a watching hire's card has
+  "Simulate a price drop (demo)": the next check sees the room ₹800 cheaper. The rebook and the
+  cancellation are real sandbox operations; the chat says the drop was simulated.
+
+Live (6 Nov 2026): "Hotel in Goa, 20–22 Dec, and I'd like the price watched" → six offers, the
+same hotels from both agents; the concierge explained the two models and recommended PriceGuard.
+Hired → booked pPaf1ZKXZ → demo drop → rebooked jvSE0la7Q (old one cancelled), ₹800 saved, told
+in the chat. An earlier PriceGuard hire was paid out by Hedera and kept watching.

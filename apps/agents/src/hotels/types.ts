@@ -6,6 +6,7 @@ export interface StoredQuote {
   key: Hex; // the Arkiv quote entity
   task: string;
   prebookId: string;
+  hotelId?: string; // LiteAPI's, to re-check this hotel's price later
   hotelName: string;
   roomName: string;
   total: number; // the stay's price, paid to the hotel (simulated in the sandbox)
@@ -14,7 +15,7 @@ export interface StoredQuote {
   checkout: string;
   adults: number;
   refundable?: boolean;
-  feeUnits: string; // StayWise's fee, in USDC units, held in escrow
+  feeUnits: string; // the agent's fee, in USDC units, held in escrow
   expiresAtMs: number;
   // What the buyer sees: why it's offered, and the hotel at a glance.
   tag?: string; // "Cheapest", "Best rated", "Best value"
@@ -26,6 +27,35 @@ export interface StoredQuote {
   stars?: number;
   reviews?: number;
   facilities?: string[];
+}
+
+/** One rebook by a watching agent: the same room, cheaper, the difference back to the guest. */
+export interface Rebook {
+  at: number; // ms
+  fromBookingId: string;
+  toBookingId: string;
+  from: number; // what the stay cost before
+  to: number; // what it costs now
+  saved: number;
+  currency: string;
+  simulated: boolean; // a demo's simulated price drop, said so wherever it's shown
+}
+
+/** A watching agent's watch over a booked room, until check-in. */
+export interface Watch {
+  active: boolean;
+  hotelId: string;
+  roomName: string;
+  checkin: string;
+  checkout: string;
+  adults: number;
+  paid: number; // what the stay costs now (after any rebook)
+  currency: string;
+  checks: number;
+  lastCheckAt?: number;
+  demoDrop?: number; // demo only: the next check sees the price this much lower
+  rebooks: Rebook[];
+  note?: string;
 }
 
 export type JobStatus = "held" | "booking" | "delivered" | "refunded" | "cancelled" | "failed";
@@ -43,4 +73,5 @@ export interface Job {
   deliveredTx?: string;
   refundTx?: string;
   note?: string;
+  watch?: Watch; // a watching agent's, after delivery
 }
