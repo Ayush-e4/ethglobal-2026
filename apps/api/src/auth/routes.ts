@@ -6,6 +6,7 @@ import type { Db } from "../db/client";
 import { passkeys, users } from "../db/schema";
 import { type DeviceLinks, deviceLabel } from "./device-links";
 import { type PasskeySite, passkeyAuth, SignInError } from "./passkey";
+import { clientIp, rateLimit } from "./rate-limit";
 import { rolesFor } from "./roles";
 import { createSession, endSession, SESSION_COOKIE, SESSION_TTL_MS, userForToken } from "./session";
 
@@ -96,7 +97,19 @@ export function authRoutes(
     await signIn(c, user.id);
     return c.json({ id: user.id });
   });
+  // Demo accounts spend from one shared wallet: at most 30 new ones an hour per network address
+  // (generous: judges at a venue share one address), so a script can't mint accounts to drain it.
+  const demoSignups = rateLimit(30, 3600_000);
   app.post("/auth/demo", async (c) => {
+    const ip = clientIp((n) => c.req.header(n));
+    if (ip && !demoSignups(ip))
+      return c.json(
+        {
+          error: "rate_limited",
+          message: "Too many demo accounts from this network. Try again in a while.",
+        },
+        429,
+      );
     const [user] = await db.insert(users).values({ isDemo: true, displayName: "Demo" }).returning();
     if (!user) throw new Error("could not create the demo user");
     await signIn(c, user.id);

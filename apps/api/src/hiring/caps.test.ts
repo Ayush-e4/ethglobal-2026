@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chats, hires, users } from "../db/schema";
+import { chats, hires, lookups, users } from "../db/schema";
 import { testDb } from "../test/db";
 import { demoCapsAllow } from "./caps";
 
@@ -13,8 +13,14 @@ async function setup() {
     .insert(chats)
     .values({ userId: a?.id as string, title: "t" })
     .returning();
-  const hire = (userId: string, fee: number, status: "held" | "cancelled" = "held") =>
+  const hire = (
+    userId: string,
+    fee: number,
+    status: "held" | "cancelled" = "held",
+    price?: number,
+  ) =>
     db.insert(hires).values({
+      priceUnits: price === undefined ? null : BigInt(price),
       chatId: chat?.id as string,
       userId,
       quoteKey: "k",
@@ -24,7 +30,18 @@ async function setup() {
       demo: true,
       status,
     });
-  return { db, a: a?.id as string, b: b?.id as string, hire };
+  const lookup = (userId: string, fee: number) =>
+    db.insert(lookups).values({
+      userId,
+      chatId: chat?.id as string,
+      agentName: "Bank Check",
+      agentAddress: "0x00000000000000000000000000000000000000b1",
+      skill: "bank-check",
+      feeUnits: BigInt(fee),
+      input: {},
+      status: "answered",
+    });
+  return { db, a: a?.id as string, b: b?.id as string, hire, lookup };
 }
 
 describe("demo caps", () => {
@@ -46,5 +63,13 @@ describe("demo caps", () => {
     await hire(a, 50_000);
     await hire(b, 40_000);
     expect(await demoCapsAllow(db, b, BigInt(20_000), caps)).toMatch(/demo's daily budget/);
+  });
+
+  it("everything the demo wallet pays counts: the trip price with the fee, and lookups", async () => {
+    const { db, a, hire, lookup } = await setup();
+    await hire(a, 20_000, "held", 30_000); // a ₹30,000 stay with a 0.02 fee
+    await lookup(a, 5_000);
+    expect(await demoCapsAllow(db, a, BigInt(5_000), caps)).toBeNull(); // 55,000 + 5,000 = 60,000
+    expect(await demoCapsAllow(db, a, BigInt(5_001), caps)).toMatch(/daily spending/);
   });
 });

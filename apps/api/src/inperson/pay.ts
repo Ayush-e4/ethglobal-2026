@@ -7,6 +7,7 @@ import { keccak256, type LocalAccount, toHex } from "viem";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
 import { chats, merchants, payRequests, type User } from "../db/schema";
+import { demoCapsAllow } from "../hiring/caps";
 import { HireError } from "../hiring/errors";
 import { demoLimitFor, LIMIT_TERMS, liveLimit, NeedsLimit } from "../hiring/limits";
 import { PayError } from "../hiring/pay";
@@ -16,6 +17,8 @@ import { payMerchant } from "./settle";
 
 export const PAID_IN_PERSON = "Paid in person"; // the payer's chat that holds these limits
 export const DEMO_PAYS_A_DAY = 20;
+/** The most a demo account pays a shop at once (₹500, at testnet scale): the demo wallet is shared. */
+export const DEMO_MAX_UNITS = 500n;
 
 /**
  * The paying side: a scanned (or heard) request is checked here, never on the phone: the tag
@@ -101,6 +104,12 @@ export function inPersonPayer(d: {
         );
       if ((n?.n ?? 0) >= DEMO_PAYS_A_DAY)
         throw new HireError("This demo account's payments for today are used up.");
+      if (units > DEMO_MAX_UNITS)
+        throw new HireError(
+          "Demo accounts pay shops up to ₹500 at a time. Sign in with a passkey to pay more from your own wallet.",
+        );
+      const blocked = await demoCapsAllow(d.db, user.id, units, d.demo.caps);
+      if (blocked) throw new HireError(blocked);
       return demoLimitFor(
         {
           db: d.db,
