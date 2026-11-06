@@ -109,6 +109,7 @@ export function lookupAsker(d: {
         ownerAccount: limit.ownerAccount,
         endpoint: agent.endpoint,
         input,
+        expect: { maxAmount: fee, payee },
       });
       await done({ status: "answered", title: r.answer.title, payTx: r.payTx });
       d.onPaid?.({
