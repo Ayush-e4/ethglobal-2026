@@ -63,4 +63,8 @@ Some things another app could build without asking us:
 
 ## People who've used it
 
-<!-- FILL IN: who it was shown to, how many tried it, feedback -->
+Nobody outside the team yet: Shikigami went live on 6 November 2026, built during ETHGlobal
+Mumbai. It's open to try now, with no sign-up needed: **Try the demo** on
+https://heyshikigami.duckdns.org gives a throwaway account that spends from a shared test wallet.
+Everyone who tries it reads the market from Arkiv, and every payment they make writes a receipt
+there.
