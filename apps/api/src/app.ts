@@ -11,6 +11,8 @@ import type { Db } from "./db/client";
 import { limitRoutes } from "./hiring/limit-routes";
 import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
+import { travellerRoutes } from "./travellers/routes";
+import type { TravellerService } from "./travellers/service";
 import type { WalletChain } from "./wallet/chain";
 import { walletLimitRoutes } from "./wallet/limits-routes";
 import type { WalletApprovals } from "./wallet/ops";
@@ -34,6 +36,7 @@ export type AppOptions = {
   approvals?: WalletApprovals;
   demoToken?: string; // enables the "simulate a price drop" demo control
   alerts?: TelegramAlerts; // phone alerts in Telegram
+  travellers?: TravellerService; // saved travellers: who bookings are for
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -54,6 +57,7 @@ export function createApp(o: AppOptions) {
   app.route("/", chatRoutes(db, concierge));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (o.alerts) app.route("/", alertRoutes(db, o.alerts));
+  if (o.travellers) app.route("/", travellerRoutes(db, o.travellers));
   if (wallets) app.route("/", walletRoutes(db, wallets));
   if (wallets && o.world) app.route("/", worldRoutes(db, { ...o.world, wallets }));
   if (o.world) app.route("/", approvalRoutes(db, o.world.checks, o.world.minFeeUnits));

@@ -110,6 +110,24 @@ goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
 
 How a check is judged, and what's stored: [world-id.md](world-id.md).
 
+## Travellers (who a booking is for)
+
+| Route | |
+|-------|--|
+| `GET /travellers`, `POST /travellers` | Your saved travellers (up to 5: first and last name, email, phone, "me"), and adding one |
+| `PATCH /travellers/:id`, `DELETE /travellers/:id` | Change one, or remove one (a chat booking for them asks again) |
+| `GET /chats/:id/traveller`, `POST /chats/:id/traveller` `{ travellerId }` | Who this chat's bookings are for |
+
+Before paying, hiring asks who it's for (`src/travellers`): if the chat has no traveller yet,
+nothing is paid and the chat shows **Who is this booking for?** (saved travellers as buttons, or a
+form for someone new, saved for next time). Once one is chosen, the booking carries on; the
+order is: who it's for, then the World ID approval (larger fees), then the Face ID limit (your own
+wallet), then the payment. **Who keeps the details:** we do, on the account. A booking sends the
+chosen guest only to the agent it pays (and on to the hotel), never to Arkiv, and never to the
+concierge's model: the card holds no details, and in Telegram the guest's reply is caught before
+it reaches the concierge. Each hire keeps the guest's name and email for its receipt and
+confirmation.
+
 ## Phone alerts (Telegram)
 
 | Route | |

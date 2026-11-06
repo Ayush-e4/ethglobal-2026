@@ -5,11 +5,12 @@ import { and, eq, gt } from "drizzle-orm";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Db } from "../db/client";
 import { type Hire, hires, type Limit, quotes, type User } from "../db/schema";
+import type { GuestGate } from "../travellers/service";
 import type { HumanGate } from "../world/checkpoint";
 import { demoCapsAllow } from "./caps";
 import type { HiringConfig } from "./config";
 import { demoLimitFor, LIMIT_TERMS, limitParams, liveLimit, NeedsLimit } from "./limits";
-import { PayError, payAgent } from "./pay";
+import { PayError, payAgent, TEST_TRAVELLER } from "./pay";
 
 const USDC_TESTNET = "0.0.429274";
 
@@ -29,8 +30,12 @@ export function hiringService(
   db: Db,
   cfg: HiringConfig,
   ownWallet?: OwnWallet,
-  human?: HumanGate, // larger hires: a person approves with World ID first
+  gates: {
+    guest?: GuestGate; // who it's for: the chat's chosen traveller (asked first)
+    human?: HumanGate; // larger hires: a person approves with World ID
+  } = {},
 ) {
+  const { human } = gates;
   const registry = new MandateClient(cfg.registry);
   const ids = new HederaIds(cfg.mirrorUrl);
   const concierge = privateKeyToAccount(cfg.conciergeKey);
@@ -67,6 +72,12 @@ export function hiringService(
       const demo = user.isDemo;
       const blocked = demo ? await demoCapsAllow(db, user.id, quote.feeUnits, cfg.caps) : null;
       if (blocked) throw new HireError(blocked);
+      const guest =
+        (await gates.guest?.(user, chatId, {
+          key: quoteKey,
+          agentName: quote.agentName,
+          summary: quote.summary,
+        })) ?? TEST_TRAVELLER;
       const approval = await human?.(user, chatId, {
         key: quoteKey,
         agentName: quote.agentName,
@@ -105,6 +116,8 @@ export function hiringService(
           title: quote.summary,
           feeUnits: quote.feeUnits,
           demo,
+          guestName: `${guest.firstName} ${guest.lastName}`,
+          guestEmail: guest.email,
         })
         .returning();
       if (!hire) throw new Error("could not save the hire");
@@ -132,6 +145,7 @@ export function hiringService(
           ownerAccount: limit.ownerAccount,
           endpoint: quote.endpoint,
           quoteKey,
+          guest,
         });
         const changes = {
           status: "held" as const,

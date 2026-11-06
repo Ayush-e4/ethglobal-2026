@@ -3,6 +3,7 @@ import type { Card } from "@app/shared";
 import { z } from "zod";
 import type { User } from "../db/schema";
 import { NeedsLimit } from "../hiring/limits";
+import { NeedsTraveller } from "../travellers/service";
 import { NeedsHuman } from "../world/checkpoint";
 import type { Market, MarketOffer } from "./market";
 
@@ -260,6 +261,11 @@ export async function runTool(
         },
       };
     } catch (err) {
+      if (err instanceof NeedsTraveller)
+        return {
+          result: `Not booked yet: first, who is it for? The card shows the user's saved travellers, or a form for someone new; the details stay private (they go only to ${err.card.agentName}, for the booking), so don't ask for names, emails or phone numbers in chat. Ask them to choose on the card; once they do, the app sends the booking again. Don't call hire again until then.`,
+          card: err.card,
+        };
       if (err instanceof NeedsHuman)
         return {
           result: `Not booked yet: ${err.card.agentName}'s fee (${usdc(err.card.feeUnits)} USDC) is a larger payment, so a real person approves it first with World ID (the card shows it: they approve in the World ID app; it proves a person, nothing about who). Ask them to approve it on the card; once they do, the app sends the booking again. If they decline, nothing is paid. Don't call hire again until then. Their approval covers one payment to ${err.card.agentName} at this fee in this chat for 10 minutes, fresh quotes from it included: if this quote expires, get fresh prices from ${err.card.agentName} and hire the same offer, without asking them to approve again.`,

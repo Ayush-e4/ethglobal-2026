@@ -130,6 +130,7 @@ export const chats = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
+    travellerId: uuid("traveller_id"), // who this chat's bookings are for (travel-schema.ts)
     createdAt: at("created_at").notNull().defaultNow(),
     updatedAt: at("updated_at").notNull().defaultNow(),
   },
@@ -220,6 +221,8 @@ export const hires = pgTable(
     jobUrl: text("job_url"),
     bookingRef: text("booking_ref"),
     note: text("note"),
+    guestName: text("guest_name"), // who it's booked for, for its receipt and confirmation
+    guestEmail: text("guest_email"),
     // A watching agent (PriceGuard) keeps working after it's paid: followed until its watch ends.
     watching: boolean("watching").notNull().default(false),
     rebooksSeen: integer("rebooks_seen").notNull().default(0),
@@ -260,11 +263,14 @@ export const hireAlerts = pgTable("hire_alerts", {
 });
 
 export type User = typeof users.$inferSelect;
+export type AlertChannel = typeof alertChannels.$inferSelect;
 export type Hire = typeof hires.$inferSelect;
 export type Wallet = typeof wallets.$inferSelect;
 export type Limit = typeof limits.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 
+// Saved travellers.
+export * from "./travel-schema";
 // World ID: checks, the welcome bonus, verified ratings.
 export * from "./world-schema";

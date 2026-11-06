@@ -35,6 +35,8 @@ export function cardNote(card: Card): string {
       return `[limit card shown: the user approves with Face ID a spending limit from their own wallet: up to ${usdc(card.budgetUnits)} in this chat, at most ${usdc(card.capUnits)} a payment, only to ${card.agentName}, for ${card.hours} hours]`;
     case "human":
       return `[World ID card shown: before paying ${card.agentName} ${usdc(card.feeUnits)}, the user approves it in the World ID app (a real person, nothing about who). Once approved, it covers one payment to ${card.agentName} at that fee in this chat for 10 minutes, fresh quotes from it included: just book, don't ask them to approve again]`;
+    case "traveller":
+      return `[traveller card shown: the user picks who booking ${card.agentName} is for, from their saved travellers or someone new; the details stay private, so never ask for names, emails or phone numbers in chat]`;
     case "sources":
       return `[web sources shown: ${card.sources.map((x) => x.title).join("; ")}]`;
     case "options":

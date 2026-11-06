@@ -6,6 +6,7 @@ import { HireCard } from "./HireCard";
 import { HumanCard } from "./HumanCard";
 import { LimitCard } from "./LimitCard";
 import { QuotesCard } from "./QuotesCard";
+import { TravellerCard } from "./TravellerCard";
 
 /** What a card can do: send a reply as the user, and know whether it's the latest one. */
 export interface CardCtx {
@@ -43,6 +44,8 @@ export function CardView({ card, ctx }: { card: Card; ctx: CardCtx }) {
       return <LimitCard card={card} ctx={ctx} />;
     case "human":
       return <HumanCard card={card} ctx={ctx} />;
+    case "traveller":
+      return <TravellerCard card={card} ctx={ctx} />;
     case "sources":
       return <Sources card={card} />;
   }

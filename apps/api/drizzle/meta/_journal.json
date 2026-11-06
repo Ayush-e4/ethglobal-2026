@@ -92,6 +92,13 @@
       "when": 1793940930585,
       "tag": "0012_classy_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793948630696,
+      "tag": "0013_gray_lockjaw",
+      "breakpoints": true
     }
   ]
 }

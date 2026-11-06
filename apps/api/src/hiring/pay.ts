@@ -4,7 +4,7 @@ import { decodePaymentResponseHeader, wrapFetchWithPayment, x402Client } from "@
 import type { LocalAccount } from "viem";
 import { z } from "zod";
 
-/** Test travellers only: the app never sends real people's details to sandbox agents. */
+/** Who a booking is for when no traveller was chosen (scripts and tests): a test traveller. */
 export const TEST_TRAVELLER = {
   firstName: "Test",
   lastName: "Traveller",
@@ -29,6 +29,7 @@ export async function payAgent(d: {
   ownerAccount: string;
   endpoint: string;
   quoteKey: string;
+  guest: { firstName: string; lastName: string; email: string; phone: string }; // only to this agent
 }) {
   let signed: SignedPayment | undefined;
   const scheme = new MandateClientScheme({
@@ -47,7 +48,7 @@ export async function payAgent(d: {
   const res = await pay(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ quote: d.quoteKey, guest: TEST_TRAVELLER }),
+    body: JSON.stringify({ quote: d.quoteKey, guest: d.guest }),
     signal: AbortSignal.timeout(120_000),
   });
   const settled = res.headers.get("PAYMENT-RESPONSE");

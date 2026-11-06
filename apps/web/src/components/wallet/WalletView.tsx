@@ -7,6 +7,7 @@ import { Alerts } from "./Alerts";
 import { Devices } from "./Devices";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
+import { Travellers } from "./Travellers";
 import { WorldBonus } from "./WorldBonus";
 
 /**
@@ -62,6 +63,7 @@ export function WalletView() {
             You get a wallet only you control, with a little test USDC to start.
           </section>
           <Alerts />
+          <Travellers />
         </>
       ) : !w || w.status === "creating" ? (
         <p
@@ -130,6 +132,7 @@ export function WalletView() {
           )}
           <WorldBonus onBonus={load} />
           <Alerts />
+          <Travellers />
           <Limits />
           <Devices />
           <TopUp address={w.address} />

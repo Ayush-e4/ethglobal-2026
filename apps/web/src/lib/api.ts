@@ -51,6 +51,16 @@ export interface WalletInfo {
   };
 }
 
+/** A saved traveller: who a booking can be for (private to the account). */
+export interface Traveller {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  isSelf: boolean;
+}
+
 /** A "prove you're a person" check: approved in the World ID app, judged by our server. */
 export interface WorldCheck {
   id: string;
