@@ -40,6 +40,10 @@ The pieces of Hedera we use, in web2 terms, and how to set them up.
 - The mirror node lags consensus by a few seconds, so the demos poll briefly after writing.
 - Don't name a package script `setup`: `pnpm --filter <pkg> setup` runs pnpm's own built-in
   `setup` (it installs pnpm globally and edits your shell profile). Ours is `testnet-setup`.
+- **Fee estimates can come back in tinybars.** Hashio occasionally reports a block's base fee
+  1e10 times too small (126 instead of 1.26e12), so viem prices a transaction below the network
+  minimum and it's refused. `hederaTestnet` from `@app/mandates` prices from `eth_gasPrice`,
+  scaled up if that is in tinybars too (`packages/mandates/src/chain.ts`).
 
 ## Live test (testnet, 6 Nov 2026)
 

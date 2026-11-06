@@ -1,6 +1,28 @@
-import type { Address } from "viem";
+import { type Address, defineChain } from "viem";
+import { getGasPrice } from "viem/actions";
+import { hederaTestnet as viemHederaTestnet } from "viem/chains";
 
-export { hederaTestnet } from "viem/chains";
+const TINYBARS_TO_WEI = BigInt(10_000_000_000); // Hedera's JSON-RPC prices gas in "weibars"
+
+/**
+ * Hedera testnet, pricing gas from eth_gasPrice. Hashio now and then reports a block's base fee
+ * in tinybars (126 instead of 1.26e12), and a transaction priced from it is refused as below the
+ * network's minimum gas price. So: eth_gasPrice, scaled up if it comes back in tinybars too,
+ * plus 20% headroom (Hedera charges the network price, not the cap).
+ */
+export const hederaTestnet = defineChain({
+  ...viemHederaTestnet,
+  fees: {
+    async estimateFeesPerGas({ client, type }) {
+      let price = await getGasPrice(client);
+      if (price < BigInt(1_000_000_000)) price *= TINYBARS_TO_WEI;
+      const capped = (price * BigInt(12)) / BigInt(10);
+      return type === "legacy"
+        ? { gasPrice: capped }
+        : { maxFeePerGas: capped, maxPriorityFeePerGas: BigInt(0) };
+    },
+  },
+});
 
 const env: Record<string, string | undefined> = typeof process === "undefined" ? {} : process.env;
 
@@ -20,4 +42,15 @@ export function tokenIdToEvmAddress(tokenId: string): Address {
   const num = Number(tokenId.split(".")[2]);
   if (!Number.isInteger(num)) throw new Error(`Bad token id: ${tokenId}`);
   return `0x${num.toString(16).padStart(40, "0")}`;
+}
+
+/** Where the passkey wallet factory lives: set by `pnpm --filter @app/mandates deploy-wallets`. */
+export function walletFactoryAddress(e: Record<string, string | undefined> = env): Address {
+  const a = e.PASSKEY_WALLET_FACTORY_ADDRESS;
+  if (!a || !/^0x[0-9a-fA-F]{40}$/.test(a)) {
+    throw new Error(
+      "PASSKEY_WALLET_FACTORY_ADDRESS isn't set: run pnpm --filter @app/mandates deploy-wallets",
+    );
+  }
+  return a as Address;
 }

@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "deploy-registry": "tsx --env-file-if-exists=../../.env scripts/deploy-registry.ts",
-    "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts"
+    "demo": "tsx --env-file-if-exists=../../.env scripts/demo.ts",
+    "deploy-wallets": "tsx --env-file-if-exists=../../.env scripts/deploy-wallets.ts",
+    "wallet-demo": "tsx --env-file-if-exists=../../.env scripts/wallet-demo.ts"
   },
   "dependencies": {
     "viem": "2.57.7"

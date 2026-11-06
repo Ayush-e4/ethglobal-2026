@@ -37,6 +37,13 @@ during its window, only the owner can create or raise a limit, and the merchant 
 the window ends. The registry also holds a little HBAR that anyone can add to; it can only pay
 the fees of the payouts it schedules on Hedera.
 
+## Face ID wallets (PasskeyWallet)
+
+Each person's wallet answers **only to their passkeys** (Face ID, a fingerprint), one per device.
+Whoever submits a signed batch pays its gas but can't change it or move anything without one.
+The factory has no owner; we hold no admin or recovery key over any wallet. Details in
+[wallet.md](wallet.md#who-controls-what).
+
 ## x402 facilitator
 
 Our facilitator submits x402 payments with the **relayer** key: it pays the fee and wraps the
