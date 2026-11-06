@@ -272,6 +272,16 @@ pnpm --filter @app/api db:generate   # after changing src/db/schema.ts
 Tests run on PGlite (Postgres in memory) with the same migrations, and a software passkey that
 signs like a real device; no Docker needed.
 
+**Smoke test** (`pnpm smoke`, `apps/api/scripts/smoke`): every route on a running AgentNet, the
+way people and apps use them, with test money only. Public routes and refusals (each agent's
+health, card and ERC-8004 identity; a lookup that finds nothing isn't charged); the demo account
+(travellers, chats, a hotel undone, a hotel delivered then reported and refunded, a flight
+delivered then cancelled, a paid lookup checked on Hedera); a passkey account (sign-in, a second
+device, a Face ID lookup limit, a lookup paid from its own wallet, the limit revoked); and the
+Claude connector (OAuth, the MCP tools, disconnecting). Its passkey account is made once (a Face
+ID wallet with a small gift) and kept in `apps/api/.data`. About 10 minutes. `--only=public,demo,passkey`
+runs parts; `SMOKE_API` and `SMOKE_ORIGIN` point it at a deployed server.
+
 ## Live checks (6 Nov 2026)
 
 Hiring, with the facilitator, StayWise and the API running: "Find me a hotel in Goa for 2 adults,

@@ -1,5 +1,6 @@
 import {
   erc20Abi,
+  hederaRpc,
   hederaTestnet,
   type KeySig,
   type PasskeyKey,
@@ -7,7 +8,7 @@ import {
   type WalletCall,
 } from "@app/mandates";
 import { HederaIds } from "@app/x402";
-import { type Address, createWalletClient, type Hex, http } from "viem";
+import { type Address, createWalletClient, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { WalletConfig } from "./config";
 
@@ -36,7 +37,11 @@ export interface WalletChain {
 export function hederaWalletChain(cfg: WalletConfig): WalletChain {
   const sponsor = privateKeyToAccount(`0x${cfg.sponsor.key}`);
   const client = new PasskeyWalletClient(cfg.factory);
-  const writer = createWalletClient({ account: sponsor, chain: hederaTestnet, transport: http() });
+  const writer = createWalletClient({
+    account: sponsor,
+    chain: hederaTestnet,
+    transport: hederaRpc(),
+  });
   return {
     addressOf: (k) => client.addressOf(k),
     create: (k) => client.create(sponsor, k, cfg.usdc),

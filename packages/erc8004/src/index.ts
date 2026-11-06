@@ -1,11 +1,10 @@
-import { hederaTestnet } from "@app/mandates";
+import { hederaRpc, hederaTestnet } from "@app/mandates";
 import {
   type Address,
   createPublicClient,
   createWalletClient,
   decodeEventLog,
   type Hex,
-  http,
   type LocalAccount,
   type PublicClient,
   type TransactionReceipt,
@@ -67,7 +66,7 @@ export interface Feedback {
 export class Erc8004Client {
   readonly publicClient: PublicClient;
   constructor(readonly chain = hederaTestnet) {
-    this.publicClient = createPublicClient({ chain, transport: http() }) as PublicClient;
+    this.publicClient = createPublicClient({ chain, transport: hederaRpc() }) as PublicClient;
   }
 
   tokenURI(agentId: bigint) {
@@ -89,6 +88,43 @@ export class Erc8004Client {
   }
 
   /** The agent registers itself (its own key owns the identity). Returns its agentId. */
+  /**
+   * The identity this address already registered, from Hedera's mirror node: its register
+   * transactions and their Transfer from nobody to it. So a register that timed out while it
+   * was being sent (Hashio can be slow) is found instead of registered twice. Null if none.
+   */
+  async registeredId(
+    owner: Address,
+    mirror = process.env.MIRROR_URL ?? "https://testnet.mirrornode.hedera.com",
+  ): Promise<bigint | null> {
+    const get = async <T>(path: string) =>
+      (
+        await fetch(`${mirror}${path}`, { signal: AbortSignal.timeout(15_000) })
+      ).json() as Promise<T>;
+    // Its calls to the registry (a reverted one has no Transfer, so it's skipped by itself).
+    const sent = await get<{ results?: { hash: string }[] }>(
+      `/api/v1/contracts/${ERC8004.identity}/results?from=${owner}&limit=25&order=asc`,
+    );
+    for (const r of sent.results ?? []) {
+      const tx = await get<{ logs?: { topics: string[] }[] }>(
+        `/api/v1/contracts/results/${r.hash}`,
+      );
+      for (const l of tx.logs ?? []) {
+        const [sig, from, to, id] = l.topics;
+        if (
+          sig === TRANSFER &&
+          from &&
+          BigInt(from) === 0n &&
+          to &&
+          BigInt(to) === BigInt(owner) &&
+          id
+        )
+          return BigInt(id);
+      }
+    }
+    return null;
+  }
+
   async register(agent: LocalAccount, agentURI: string): Promise<{ agentId: bigint; tx: Hex }> {
     const receipt = await this.write(agent, ERC8004.identity, identityRegistryAbi, "register", [
       agentURI,
@@ -153,7 +189,7 @@ export class Erc8004Client {
       .estimateContractGas(request as never)
       .catch(() => BigInt(800_000));
     const gas = (estimate * BigInt(3)) / BigInt(2) + BigInt(50_000);
-    const wallet = createWalletClient({ account, chain: this.chain, transport: http() });
+    const wallet = createWalletClient({ account, chain: this.chain, transport: hederaRpc() });
     const hash = await wallet.writeContract({ ...(request as object), gas } as never);
     const receipt = await this.publicClient
       .waitForTransactionReceipt({ hash, timeout: 180_000 })
@@ -166,6 +202,9 @@ export class Erc8004Client {
     return receipt;
   }
 }
+
+/** ERC-721 Transfer(from, to, tokenId): minting an identity is a Transfer from address zero. */
+const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 
 /** The agentId from a register() receipt. */
 export function registeredId(receipt: Pick<TransactionReceipt, "logs">): bigint | null {

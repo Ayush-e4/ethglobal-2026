@@ -6,13 +6,12 @@ import {
   createWalletClient,
   decodeEventLog,
   type Hex,
-  http,
   type LocalAccount,
   type PublicClient,
   type TransactionReceipt,
 } from "viem";
 import { ESCROW_STATES, erc20Abi, mandateRegistryAbi } from "./abi";
-import { hederaTestnet } from "./chain";
+import { hederaRpc, hederaTestnet } from "./chain";
 import { type EscrowAuth, mandateDomain, type PaymentAuth, type SubMandateAuth } from "./signing";
 
 export interface MandateParams {
@@ -68,7 +67,7 @@ export class MandateClient {
   constructor(readonly registry: Address) {
     this.publicClient = createPublicClient({
       chain: this.chain,
-      transport: http(),
+      transport: hederaRpc(),
     }) as PublicClient;
   }
 
@@ -122,7 +121,11 @@ export class MandateClient {
 
   /** The owner lets the registry pull up to `amount` of `token` (only for allowed payments). */
   async approve(owner: LocalAccount, token: Address, amount: bigint) {
-    const wallet = createWalletClient({ account: owner, chain: this.chain, transport: http() });
+    const wallet = createWalletClient({
+      account: owner,
+      chain: this.chain,
+      transport: hederaRpc(),
+    });
     const hash = await wallet.writeContract({
       address: token,
       abi: erc20Abi,
@@ -206,7 +209,7 @@ export class MandateClient {
       .estimateContractGas(request as never)
       .catch(() => BigInt(1_000_000));
     const gas = (estimate * BigInt(3)) / BigInt(2) + BigInt(50_000);
-    const wallet = createWalletClient({ account, chain: this.chain, transport: http() });
+    const wallet = createWalletClient({ account, chain: this.chain, transport: hederaRpc() });
     return this.receipt(
       await wallet.writeContract({ ...(request as object), gas } as never),
       functionName,

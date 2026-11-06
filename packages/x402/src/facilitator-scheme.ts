@@ -1,5 +1,11 @@
 import { type Account, createClient } from "@app/hedera";
-import { hederaTestnet, mandateRegistryAbi, revertName, tokenIdToEvmAddress } from "@app/mandates";
+import {
+  hederaRpc,
+  hederaTestnet,
+  mandateRegistryAbi,
+  revertName,
+  tokenIdToEvmAddress,
+} from "@app/mandates";
 import { ContractExecuteTransaction, ContractId } from "@hiero-ledger/sdk";
 import type {
   Network,
@@ -15,7 +21,6 @@ import {
   encodeFunctionData,
   type Hex,
   hexToBytes,
-  http,
   keccak256,
   toHex,
 } from "viem";
@@ -44,7 +49,7 @@ export class MandateFacilitatorScheme implements SchemeNetworkFacilitator {
   readonly scheme = "exact";
   readonly caipFamily = "hedera:*";
   private readonly inFlight = new Set<string>();
-  private readonly reader = createPublicClient({ chain: hederaTestnet, transport: http() });
+  private readonly reader = createPublicClient({ chain: hederaTestnet, transport: hederaRpc() });
 
   constructor(
     private readonly o: {

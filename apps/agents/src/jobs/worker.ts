@@ -13,6 +13,9 @@ import type { PaidJob, QuoteBase, Supplier, WatchBase } from "./types";
  * refunds. Jobs live in a file, so a restart picks them up again; a booking whose outcome is
  * unknown is flagged, never booked twice.
  */
+const RETRY_MS = 20_000; // then 40 s, 60 s…
+const MAX_RETRIES = 8;
+
 export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
   constructor(
     private readonly d: {
@@ -27,11 +30,20 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
     },
   ) {}
 
-  schedule(job: PaidJob<W>): void {
-    const wait = Math.max(0, job.startsAt * 1000 - Date.now()) + 4000; // Hedera's clock can lag 2 s
+  schedule(job: PaidJob<W>, attempt = 0): void {
+    const wait =
+      attempt === 0
+        ? Math.max(0, job.startsAt * 1000 - Date.now()) + 4000 // Hedera's clock can lag 2 s
+        : RETRY_MS * attempt;
     setTimeout(
       () =>
-        void this.process(job.escrowId).catch((e) => console.error(`job ${job.escrowId}: ${e}`)),
+        void this.process(job.escrowId).catch((e) => {
+          // Hedera's RPC can fail for a moment: try again. Nothing is booked twice (the booking
+          // id is kept) and a delivery that did land is picked up (see process).
+          const again = attempt < MAX_RETRIES;
+          console.error(`job ${job.escrowId}: ${e}${again ? " (will retry)" : ""}`);
+          if (again) this.schedule(job, attempt + 1);
+        }),
       wait,
     );
   }
@@ -63,6 +75,9 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
       this.save(job, { status: "cancelled", note: "undone by the buyer: nothing booked" });
       return;
     }
+    // Marked delivered before, but the answer was lost (a timeout): just record it.
+    if (job.bookingId && ["delivered", "released"].includes(escrow.state))
+      return void (await this.delivered(job, job.bookingId, null));
     if (escrow.state !== "held") return;
     const quote = this.d.quotes.get(job.quoteKey);
     if (!quote) return void (await this.refund(job, "quote not found"));
@@ -117,10 +132,16 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
       escrowId,
       keccak256(toHex(bookingId)),
     );
-    const watch = this.d.watchFor?.(quote);
+    await this.delivered(job, bookingId, r.transactionHash);
+  }
+
+  /** Delivered on Hedera: the job says so, a watching agent starts watching, Arkiv records it. */
+  private async delivered(job: PaidJob<W>, bookingId: string, tx: Hex | null) {
+    const quote = this.d.quotes.get(job.quoteKey);
+    const watch = quote && this.d.watchFor?.(quote);
     job = this.save(job, {
       status: "delivered",
-      deliveredTx: r.transactionHash,
+      ...(tx ? { deliveredTx: tx } : {}),
       ...(watch ? { watch } : {}), // a watching agent's work goes on
     });
     await recordDelivery(this.d.arkiv, {
@@ -129,7 +150,7 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
       quote: job.quoteKey,
       status: "delivered",
       resultHash: keccak256(toHex(bookingId)),
-    }).catch((e) => console.error(`arkiv delivery for ${escrowId}: ${e}`));
+    }).catch((e) => console.error(`arkiv delivery for ${job.escrowId}: ${e}`));
   }
 
   /**

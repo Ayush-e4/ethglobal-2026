@@ -37,6 +37,7 @@ const agentView = (a: MarketAgent, r: AgentReview | null) => ({
   disputes: a.disputes ?? 0,
   rating: a.rating ?? null,
   guestFields: a.guestFields ?? [], // what it gets of a traveller, besides name, email, phone
+  kind: a.kind, // books a job, or answers per lookup
   review: reviewView(r),
 });
 

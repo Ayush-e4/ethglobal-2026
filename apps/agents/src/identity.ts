@@ -16,7 +16,7 @@ export function agentIdentity(d: {
   publicUrl: string;
   dataDir: string;
   agent: LocalAccount;
-  erc8004?: Pick<Erc8004Client, "register" | "setAgentURI">;
+  erc8004?: Pick<Erc8004Client, "register" | "setAgentURI" | "registeredId" | "tokenURI">;
   log?: (line: string) => void;
 }) {
   const file = `${d.dataDir}/${d.id}-erc8004.json`;
@@ -40,6 +40,14 @@ export function agentIdentity(d: {
     async ensure() {
       const reg = d.erc8004 ?? new Erc8004Client();
       try {
+        // Registered before but not written down (a send that timed out, a fresh deploy's
+        // empty data dir): use that identity, never a second one.
+        const found = saved ? null : await reg.registeredId(d.agent.address);
+        if (found !== null) {
+          saved = { agentId: found.toString(), uri: String(await reg.tokenURI(found)) };
+          writeFileSync(file, JSON.stringify(saved));
+          log(`${d.name}: found its ERC-8004 agent #${found} on Hedera`);
+        }
         if (!saved) {
           const r = await reg.register(d.agent, uri);
           saved = { agentId: r.agentId.toString(), uri };
