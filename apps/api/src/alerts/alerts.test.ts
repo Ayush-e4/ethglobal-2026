@@ -102,7 +102,7 @@ describe("Telegram alerts", () => {
     await vi.waitFor(() => expect(sent).toHaveLength(before + 1));
     expect(sent.at(-1)).toEqual({
       chat_id: "42",
-      text: `Goa, 20–22 Dec\n\nBooked: Park Inn. Booking reference LiugdfvpL.\n\nhttps://app.example/chat/${chat.id}`,
+      text: `Booked: Park Inn. Booking reference LiugdfvpL.\n\nhttps://app.example/chat/${chat.id}`,
       disable_web_page_preview: true,
     });
     expect(await db.select().from(messages)).toHaveLength(2); // both kept in the chat

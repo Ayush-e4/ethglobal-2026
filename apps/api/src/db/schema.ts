@@ -163,6 +163,7 @@ export const quotes = pgTable("quotes", {
   endpoint: text("endpoint").notNull(),
   feeUnits: bigint("fee_units", { mode: "bigint" }).notNull(),
   summary: text("summary").notNull(),
+  image: text("image"), // the offer's first photo (https), for alerts
   expiresAt: at("expires_at").notNull(),
 });
 
@@ -245,6 +246,17 @@ export const alertChannels = pgTable(
   },
   (t) => [uniqueIndex("alert_channels_chat_idx").on(t.telegramChatId)],
 );
+
+/** Each hire's live message in its owner's Telegram chat, edited as the hire moves on. */
+export const hireAlerts = pgTable("hire_alerts", {
+  hireId: uuid("hire_id")
+    .primaryKey()
+    .references(() => hires.id, { onDelete: "cascade" }),
+  telegramChatId: text("telegram_chat_id").notNull(),
+  messageId: integer("message_id").notNull(),
+  photo: boolean("photo").notNull().default(false), // edited as a caption, not as text
+  shown: text("shown").notNull(), // what it shows now, so unchanged hires aren't edited
+});
 
 export type User = typeof users.$inferSelect;
 export type Hire = typeof hires.$inferSelect;

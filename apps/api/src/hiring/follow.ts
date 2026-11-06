@@ -56,6 +56,7 @@ export function hireFollower(
   registry: MandateClient,
   chats: Pick<ChatStore, "add">,
   everyMs = 5000,
+  onChange?: (hireId: string) => Promise<unknown>, // after each look at a hire (Telegram's live message)
 ) {
   let running = false;
   const set = (id: string, changes: Partial<Hire>) =>
@@ -69,8 +70,10 @@ export function hireFollower(
     const escrow = await registry.getEscrow(hire.escrowId as `0x${string}`);
     if (hire.status === "held") {
       if (escrow.state === "refunded") {
-        await set(hire.id, { status: hire.note?.startsWith("undone") ? "cancelled" : "refunded" });
-        if (!hire.note?.startsWith("undone"))
+        // "undoing" / "undone": the user undid it (hiring.cancel), not the agent giving up.
+        const undone = hire.note?.startsWith("undo") ?? false;
+        await set(hire.id, { status: undone ? "cancelled" : "refunded" });
+        if (!undone)
           await chats.add(
             hire.chatId,
             "assistant",
@@ -136,9 +139,9 @@ export function hireFollower(
         .from(hires)
         .where(or(inArray(hires.status, ["held", "delivered"]), eq(hires.watching, true)));
       for (const hire of open)
-        await step(hire).catch((e) =>
-          console.error(`hire ${hire.id}: ${e instanceof Error ? e.message : e}`),
-        );
+        await step(hire)
+          .catch((e) => console.error(`hire ${hire.id}: ${e instanceof Error ? e.message : e}`))
+          .then(() => onChange?.(hire.id));
     } finally {
       running = false;
     }

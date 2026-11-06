@@ -8,7 +8,8 @@ import type { TelegramAlerts } from "./telegram";
 
 /**
  * The chat store, plus a phone alert to the chat's owner whenever the app writes in a chat on
- * its own (a booking, a refund, a cheaper rebook), with a link back to that chat.
+ * its own (a booking, a refund, a cheaper rebook), with a link back to that chat. No heading: a
+ * chat is named after its first message, which may be about another trip; the text says it all.
  */
 export function alertingChats(
   db: Db,
@@ -21,13 +22,12 @@ export function alertingChats(
       const m = await store.add(chatId, role, text, cards);
       if (role === "assistant") {
         const [chat] = await db
-          .select({ userId: chats.userId, title: chats.title })
+          .select({ userId: chats.userId })
           .from(chats)
           .where(eq(chats.id, chatId));
         if (chat)
           void t
             .send(chat.userId, {
-              title: chat.title.slice(0, 80) || "AgentNet",
               text: text.length > 500 ? `${text.slice(0, 497)}…` : text,
               url: `${appOrigin}/chat/${chatId}`,
             })

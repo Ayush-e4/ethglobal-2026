@@ -6,7 +6,12 @@ import { hireFollower } from "./follow";
 
 afterEach(() => vi.unstubAllGlobals());
 
-async function setup(status: "held" | "paying" | "delivered", escrowState: string, job: unknown) {
+async function setup(
+  status: "held" | "paying" | "delivered",
+  escrowState: string,
+  job: unknown,
+  note: string | null = null,
+) {
   const db = await testDb();
   const [u] = await db.insert(users).values({ isDemo: true }).returning();
   const [chat] = await db
@@ -25,6 +30,7 @@ async function setup(status: "held" | "paying" | "delivered", escrowState: strin
       status,
       escrowId: `0x${"ab".repeat(32)}`,
       jobUrl: "http://agent/jobs/1",
+      note,
       updatedAt: new Date(Date.now() - 10 * 60_000),
     })
     .returning();
@@ -68,6 +74,13 @@ describe("hireFollower", () => {
     await t.follower.tick();
     expect((await t.read())?.status).toBe("refunded");
     expect(t.posted[0]).toMatch(/refunded/);
+  });
+
+  it("an undo in progress isn't taken for the agent refunding", async () => {
+    const t = await setup("held", "refunded", {}, "undoing"); // Hedera refunded, the save is next
+    await t.follower.tick();
+    expect((await t.read())?.status).toBe("cancelled");
+    expect(t.posted).toEqual([]);
   });
 
   it("after a restart, a hire stuck mid-payment is flagged, never paid again", async () => {

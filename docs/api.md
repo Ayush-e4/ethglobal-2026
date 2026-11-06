@@ -123,6 +123,13 @@ Whenever the app writes in a chat by itself (booked, with the reference; refunde
 rebook by PriceGuard), the chat's owner gets that message in Telegram too, with a link back to the
 chat (`src/alerts`). The chat message is the record; the alert is a nudge, sent best effort.
 
+- **Each hire, live** (`src/alerts/live-hires.ts`): one Telegram message per hire, with the
+  hotel's photo, edited in place as it moves on (fee held, with **↩ Undo** in red until the
+  window ends → booked, with the reference → paid out → rebooked cheaper → rated). Booked and
+  paid-out hires get **1★–5★** buttons (a verified person's rating, as on the web: only with the
+  account's linked World ID), and every hire a **Payment** button (HashScan). Buttons work only
+  from the Telegram chat the hire's owner linked. Edits are silent; the chat's own messages are
+  the alerts that buzz.
 - **One thread per person.** A Telegram bot has one chat with each Telegram user, so alerts from
   all of an account's chats arrive in that one thread, each titled with its chat. One Telegram chat
   is connected to one account: connecting it to another account moves it.

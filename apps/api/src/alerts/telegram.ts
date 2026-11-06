@@ -2,9 +2,10 @@ import { randomBytes } from "node:crypto";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { alertChannels as table } from "../db/schema";
+import type { CallbackQuery } from "./live-hires";
 
 export interface Alert {
-  title: string; // the chat it's about
+  title?: string; // a heading, if any
   text: string;
   url?: string; // where to look: the chat
 }
@@ -56,7 +57,7 @@ export function telegramAlerts(db: Db, token: string | undefined, fetchImpl: typ
       if (!token || !r?.telegramChatId) return false;
       const sent = await tg("sendMessage", {
         chat_id: r.telegramChatId,
-        text: `${a.title}\n\n${a.text}${a.url ? `\n\n${a.url}` : ""}`,
+        text: [a.title, a.text, a.url].filter(Boolean).join("\n\n"),
         disable_web_page_preview: true,
       }).catch(() => null);
       return Boolean(sent?.ok);
@@ -109,13 +110,25 @@ export function telegramAlerts(db: Db, token: string | undefined, fetchImpl: typ
 
 export type TelegramAlerts = ReturnType<typeof telegramAlerts>;
 
-interface Update {
+/** What the bot does besides linking: button taps, and (later) people's messages. */
+export interface BotHandlers {
+  onCallback?: (cq: CallbackQuery) => Promise<unknown>;
+}
+
+export interface Update {
   update_id: number;
   message?: { chat: { id: number }; text?: string };
+  callback_query?: CallbackQuery;
 }
 
 /** What the bot does with one message: link with "/start <code>", stop with "/stop". */
-export async function handleUpdate(t: TelegramAlerts, u: Update) {
+export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers = {}) {
+  if (u.callback_query) {
+    if (h.onCallback) return h.onCallback(u.callback_query);
+    return t
+      .tg("answerCallbackQuery", { callback_query_id: u.callback_query.id })
+      .catch(() => null);
+  }
   const chatId = u.message?.chat.id;
   if (chatId === undefined) return;
   const text = u.message?.text?.trim() ?? "";
@@ -141,14 +154,18 @@ export async function handleUpdate(t: TelegramAlerts, u: Update) {
  * Reads the bot's messages by long polling: no public address needed, so it works on a laptop
  * too. Only one server may read a bot's messages, so each deployment needs its own bot.
  */
-export function startTelegramBot(t: TelegramAlerts, log: (line: string) => void) {
+export function startTelegramBot(
+  t: TelegramAlerts,
+  log: (line: string) => void,
+  h: BotHandlers = {},
+) {
   if (!t.on) return () => {};
   let running = true;
   let offset = 0;
   void (async () => {
     while (running) {
       const r = await t
-        .tg("getUpdates", { offset, timeout: 25, allowed_updates: ["message"] })
+        .tg("getUpdates", { offset, timeout: 25, allowed_updates: ["message", "callback_query"] })
         .catch(() => null);
       if (!r?.ok) {
         if (r?.description) log(`telegram: ${r.description.slice(0, 120)}`);
@@ -157,7 +174,7 @@ export function startTelegramBot(t: TelegramAlerts, log: (line: string) => void)
       }
       for (const u of (r.result as Update[]) ?? []) {
         offset = u.update_id + 1;
-        await handleUpdate(t, u).catch((err) => log(`telegram: ${String(err).slice(0, 120)}`));
+        await handleUpdate(t, u, h).catch((err) => log(`telegram: ${String(err).slice(0, 120)}`));
       }
     }
   })();
