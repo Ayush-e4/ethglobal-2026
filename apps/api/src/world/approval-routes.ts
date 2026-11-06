@@ -6,9 +6,43 @@ import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
 import { quotes } from "../db/schema";
 import { spendRef } from "./checkpoint";
-import { checkView as view, type WorldChecks } from "./checks";
+import { checkView as view, type WorldCheck, type WorldChecks } from "./checks";
 
 const Start = z.object({ quoteKey: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
+
+/**
+ * Starts (or finds the waiting) World ID approval of a quote's agent and fee in one of the
+ * user's chats: from the web card, or from Telegram. An expired quote is fine: it only says
+ * which agent and fee are being approved.
+ */
+export async function startSpendApproval(
+  db: Db,
+  checks: WorldChecks,
+  minFeeUnits: bigint,
+  userId: string,
+  chatId: string,
+  quoteKey: string,
+): Promise<{ check: WorldCheck; started: boolean } | { error: string; status: 404 | 409 | 502 }> {
+  const chat = await chatStore(db)
+    .get(userId, chatId)
+    .catch(() => null);
+  const [quote] = chat
+    ? await db
+        .select()
+        .from(quotes)
+        .where(and(eq(quotes.key, quoteKey), eq(quotes.chatId, chat.id)))
+    : [];
+  if (!chat || !quote) return { error: "No such quote in this chat", status: 404 };
+  if (quote.feeUnits < minFeeUnits)
+    return { error: "This booking doesn't need a World ID approval", status: 409 };
+  const ref = spendRef(chat.id, quote.agentAddress, quote.feeUnits);
+  const latest = await checks.latest(userId, "spend", ref);
+  if (latest?.status === "waiting" && latest.expiresAt > Date.now())
+    return { check: latest, started: false }; // one at a time
+  const check = await checks.start(userId, "spend", ref).catch((err: Error) => err);
+  if (check instanceof Error) return { error: check.message, status: 502 };
+  return { check, started: true };
+}
 
 /**
  * World ID approvals of larger hires, from the chat's card. POST starts a check for the agent and
@@ -25,26 +59,16 @@ export function approvalRoutes(db: Db, checks: WorldChecks | null, minFeeUnits: 
     if (!checks) return c.json({ error: "World ID isn't set up on this server" }, 503);
     const body = Start.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: "give the quote's 0x key" }, 400);
-    const chat = await store.get(user.id, c.req.param("id")).catch(() => null);
-    const [quote] = chat
-      ? await db
-          .select()
-          .from(quotes)
-          .where(
-            // An expired quote is fine here: it says which agent and fee are being approved.
-            and(eq(quotes.key, body.data.quoteKey), eq(quotes.chatId, chat.id)),
-          )
-      : [];
-    if (!chat || !quote) return c.json({ error: "No such quote in this chat" }, 404);
-    if (quote.feeUnits < minFeeUnits)
-      return c.json({ error: "This booking doesn't need a World ID approval" }, 409);
-    const ref = spendRef(chat.id, quote.agentAddress, quote.feeUnits);
-    const latest = await checks.latest(user.id, "spend", ref);
-    if (latest?.status === "waiting" && latest.expiresAt > Date.now())
-      return c.json({ check: view(latest) }); // one at a time
-    const check = await checks.start(user.id, "spend", ref).catch((err: Error) => err);
-    if (check instanceof Error) return c.json({ error: check.message }, 502);
-    return c.json({ check: view(check) }, 201);
+    const r = await startSpendApproval(
+      db,
+      checks,
+      minFeeUnits,
+      user.id,
+      c.req.param("id"),
+      body.data.quoteKey,
+    );
+    if ("error" in r) return c.json({ error: r.error }, r.status);
+    return c.json({ check: view(r.check) }, r.started ? 201 : 200);
   });
 
   /** The newest approval check for a quote's agent and fee in this chat (a reopened card). */

@@ -6,6 +6,7 @@ import type { TelegramAlerts } from "./telegram";
 
 /** Telegram's command menu (the "/" button). */
 export const COMMANDS = [
+  { command: "new", description: "Start a new conversation" },
   { command: "status", description: "Your bookings and price watches" },
   { command: "help", description: "What this bot does" },
   { command: "stop", description: "Stop alerts here" },
@@ -14,8 +15,9 @@ export const COMMANDS = [
 export const HELP = [
   "AgentNet books hotels through AI agents from an open market. They're paid on Hedera only when the job is done, and you can undo for about a minute.",
   "",
-  "Here you get each booking live: Undo while you can, the booking reference, the payment, PriceGuard's cheaper rebooks. Rate an agent from its booking (verified people only, with World ID).",
+  "Just type what you need (say, a hotel in Goa for two, 20 to 22 December) and the concierge answers here, as in the app. Each booking then shows up live: Undo while you can, the reference, the payment, PriceGuard's cheaper rebooks, and a rating (verified people only, with World ID).",
   "",
+  "/new: start a new conversation",
   "/status: your bookings and price watches",
   "/stop: no more alerts here",
 ].join("\n");
@@ -27,7 +29,7 @@ export async function setUpBotProfile(t: TelegramAlerts) {
     t.tg("setMyCommands", { commands: COMMANDS }),
     t.tg("setMyDescription", {
       description:
-        "AgentNet books hotels through AI agents from an open market, paid on Hedera only when the job is done. This bot shows each booking live: undo it, see its reference, rate the agent. Connect it in AgentNet: Wallet → Phone alerts.",
+        "AgentNet's concierge books hotels through AI agents from an open market, paid on Hedera only when the job is done. Chat with it here, and see each booking live: undo it, see its reference, rate the agent. Connect it in AgentNet: Wallet → Phone alerts.",
     }),
     t.tg("setMyShortDescription", {
       short_description:

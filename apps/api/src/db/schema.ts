@@ -242,6 +242,7 @@ export const alertChannels = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     telegramChatId: text("telegram_chat_id"),
     linkCode: text("link_code"),
+    appChatId: uuid("app_chat_id"), // the AgentNet chat their Telegram messages go to (/new: another)
     createdAt: at("created_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("alert_channels_chat_idx").on(t.telegramChatId)],

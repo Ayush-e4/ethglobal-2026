@@ -4,6 +4,7 @@ import { statusText } from "./alerts/commands";
 import { liveHires } from "./alerts/live-hires";
 import { alertingChats } from "./alerts/routes";
 import { startTelegramBot, telegramAlerts } from "./alerts/telegram";
+import { telegramChat } from "./alerts/telegram-chat";
 import { createApp } from "./app";
 import { chatStore } from "./chats/store";
 import { claudeConcierge } from "./concierge/concierge";
@@ -18,6 +19,7 @@ import { hederaWalletChain } from "./wallet/chain";
 import { loadWalletConfig } from "./wallet/config";
 import { walletApprovals } from "./wallet/ops";
 import { walletService } from "./wallet/service";
+import { startSpendApproval } from "./world/approval-routes";
 import { loadBonusOptions, worldBonus } from "./world/bonus";
 import { humanCheckpoint, loadCheckpointOptions } from "./world/checkpoint";
 import { worldChecks } from "./world/checks";
@@ -65,10 +67,6 @@ const live = liveHires({
   cancel: (user, chatId, hireId) => hiring.cancel(user, chatId, hireId),
   ratings,
 });
-startTelegramBot(alerts, (line) => console.error(line), {
-  onCallback: live.onCallback,
-  status: (chatId) => statusText(db, chatId),
-});
 const hiringLive = {
   ...hiring,
   async cancel(...a: Parameters<typeof hiring.cancel>) {
@@ -85,6 +83,24 @@ const concierge = claudeConcierge({
     void live.show(h.id);
     return h;
   },
+});
+// The concierge in Telegram too: the same turns as the web, in the same chats.
+const tgChat = telegramChat({
+  db,
+  t: alerts,
+  concierge,
+  appOrigin: config.appOrigin,
+  approve: checks
+    ? (userId, chatId, quoteKey) =>
+        startSpendApproval(db, checks, minFeeUnits, userId, chatId, quoteKey)
+    : undefined,
+  check: checks ? (id, userId) => checks.get(id, userId) : undefined,
+});
+startTelegramBot(alerts, (line) => console.error(line), {
+  onCallback: (cq) => (/^[bo]:/.test(cq.data ?? "") ? tgChat.onCallback(cq) : live.onCallback(cq)),
+  status: (chatId) => statusText(db, chatId),
+  onText: tgChat.turn,
+  onNew: tgChat.fresh,
 });
 const app = createApp({
   appOrigin: config.appOrigin,

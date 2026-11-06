@@ -115,6 +115,8 @@ export type TelegramAlerts = ReturnType<typeof telegramAlerts>;
 export interface BotHandlers {
   onCallback?: (cq: CallbackQuery) => Promise<unknown>;
   status?: (chatId: string) => Promise<string>; // "/status"
+  onText?: (chatId: string, text: string) => Promise<unknown>; // a message to the concierge
+  onNew?: (chatId: string) => Promise<unknown>; // "/new"
 }
 
 export interface Update {
@@ -147,11 +149,17 @@ export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers 
   }
   if (text === "/start" || text === "/help") return say(HELP);
   if (text === "/status") return say(h.status ? await h.status(String(chatId)) : HELP);
+  if (text === "/new" && h.onNew) return h.onNew(String(chatId));
   if (text === "/stop") {
     await t.unlinkChat(String(chatId));
     return say("Stopped: no more AgentNet alerts here.");
   }
-  return say("This bot sends AgentNet alerts. Connect it in AgentNet: Wallet → Phone alerts.");
+  if (h.onText && text && !text.startsWith("/")) {
+    // Not awaited: a turn can take a minute, and other people's messages shouldn't wait.
+    void h.onText(String(chatId), text.slice(0, 4000));
+    return;
+  }
+  return say(HELP);
 }
 
 /**
