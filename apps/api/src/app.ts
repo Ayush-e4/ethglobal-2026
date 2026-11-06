@@ -10,6 +10,8 @@ import type { Concierge } from "./concierge/concierge";
 import type { Market } from "./concierge/market";
 import type { ToolDeps } from "./concierge/tools";
 import type { Db } from "./db/client";
+import { dealRoutes } from "./deals/routes";
+import type { DealService } from "./deals/service";
 import { limitRoutes } from "./hiring/limit-routes";
 import { hireRoutes } from "./hiring/routes";
 import type { HiringService } from "./hiring/service";
@@ -48,6 +50,7 @@ export type AppOptions = {
   tools?: ToolDeps; // the concierge's tools, also offered to connected apps over MCP
   market?: { market: Market; reviews: AgentReviewService }; // agent pages and listing
   onAppConnected?: (userId: string, app: string) => Promise<unknown>; // the security email
+  deals?: DealService; // deal drops: one claim per person (World ID)
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -69,6 +72,7 @@ export function createApp(o: AppOptions) {
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));
+  if (o.deals) app.route("/", dealRoutes(db, o.deals));
   // Connected apps (Claude): OAuth to connect, and the concierge's tools over MCP.
   app.route("/", oauthRoutes(db, appOrigin, o.onAppConnected));
   app.route("/", grantRoutes(db));

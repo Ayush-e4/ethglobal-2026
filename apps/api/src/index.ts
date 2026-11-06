@@ -12,6 +12,8 @@ import { saveQuotes } from "./concierge/quote-store";
 import type { ToolDeps } from "./concierge/tools";
 import { loadConfig } from "./config";
 import { connectDb } from "./db/client";
+import { loadIdkitConfig } from "./deals/idkit";
+import { dealService } from "./deals/service";
 import { confirmations } from "./email/confirmations";
 import { resendEmail } from "./email/resend";
 import { loadHiringConfig } from "./hiring/config";
@@ -90,6 +92,13 @@ const confirm = confirmations(
   resendEmail(process.env.RESEND_API_KEY, process.env.RESEND_FROM),
   config.appOrigin,
 );
+// Deal drops: one claim per person (World ID through IDKit), paying back a booking's fee.
+const deals = dealService(db, {
+  idkit: loadIdkitConfig(),
+  wallets,
+  chain: walletChain,
+  chats: chatStore(db),
+});
 const hiringLive = {
   ...hiring,
   async cancel(...a: Parameters<typeof hiring.cancel>) {
@@ -150,6 +159,7 @@ const app = createApp({
   alerts,
   tools,
   market: { market, reviews },
+  deals,
   // An app (Claude) was connected: tell the account's own traveller ("me"), if it has one.
   async onAppConnected(userId, app) {
     const me = (await travellers.list(userId)).find((t) => t.isSelf);
@@ -169,6 +179,7 @@ await hireFollower(
     onBooked: confirm.booked,
     onRebooked: confirm.rebooked,
     onRefunded: confirm.refunded,
+    onReleased: deals.onReleased,
     onDisputeSettled: disputes.onSettled,
   },
 ).start();

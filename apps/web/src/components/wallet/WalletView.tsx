@@ -5,6 +5,7 @@ import { api, hashscanAccount, shortAddress, usdc, type WalletInfo } from "@/lib
 import { PasskeyIcon } from "../icons";
 import { Alerts } from "./Alerts";
 import { ConnectedApps } from "./ConnectedApps";
+import { DealDrop } from "./DealDrop";
 import { Devices } from "./Devices";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
@@ -133,6 +134,7 @@ export function WalletView() {
             </p>
           )}
           <WorldBonus onBonus={load} />
+          <DealDrop />
           <Alerts />
           <Travellers />
           <ConnectedApps />
