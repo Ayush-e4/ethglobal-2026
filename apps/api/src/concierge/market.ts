@@ -73,12 +73,18 @@ export const rankAgents = (agents: MarketAgent[]) =>
   );
 
 const words = (s: string) => s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+/** Words that say nothing about the job: "a flight from Mumbai" mustn't match "choose from". */
+const FILLER = new Set(
+  "the and for from with that this into onto near about around via book booking booked find need want get please can could will would just some any one two also then your our my me agent agents job jobs".split(
+    " ",
+  ),
+);
 /**
  * How well an agent matches a need in plain words: its skill counts most, then its listing and
  * how it works, then its description. Plain word overlap: enough for a market of hundreds.
  */
 export function matchScore(a: MarketAgent, need: string) {
-  const want = new Set(words(need).filter((w) => w.length > 2));
+  const want = new Set(words(need).filter((w) => w.length > 2 && !FILLER.has(w)));
   const hits = (text: string | undefined, weight: number) =>
     words(text ?? "").filter(
       (w) => want.has(w) || want.has(`${w}s`) || want.has(w.replace(/s$/, "")),
@@ -186,8 +192,11 @@ export function arkivMarket(
       const scored = need
         ? quoting.map((a) => ({ a, score: matchScore(a, need) })).filter((x) => x.score > 0)
         : [];
-      const found = scored.length
-        ? scored.sort((x, y) => y.score - x.score).map((x) => x.a)
+      // Only the agents that match about as well as the best one: no hotels for a flight.
+      const top = Math.max(0, ...scored.map((x) => x.score));
+      const close = scored.filter((x) => x.score * 2 >= top);
+      const found = close.length
+        ? close.sort((x, y) => y.score - x.score).map((x) => x.a)
         : rankAgents(quoting);
       return { agents: found.slice(0, limit), matched: scored.length > 0, total: quoting.length };
     },

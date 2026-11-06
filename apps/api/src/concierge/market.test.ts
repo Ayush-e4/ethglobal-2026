@@ -57,6 +57,11 @@ describe("finding agents by need", () => {
     expect(matchScore(guard, need)).toBeGreaterThan(matchScore(stay, need));
     expect(matchScore(fly, "cheap flights to Delhi")).toBeGreaterThan(0);
     expect(matchScore(stay, "cheap flights to Delhi")).toBe(0);
+    // Filler words don't count: StayWise's "three to choose from" isn't a match for a flight.
+    const chooser = agent("StayWise", {
+      service: { model: "Book it, done", promise: "Three rooms to choose from" },
+    });
+    expect(matchScore(chooser, "book a flight from Mumbai to Goa")).toBe(0);
   });
 
   it("asks the most reliable agents first, then the cheaper", () => {
