@@ -105,19 +105,20 @@ export class Erc8004Client {
     ).transactionHash;
   }
 
-  /** A client gives feedback on an agent it hired (never the agent's own owner). */
+  /**
+   * A client gives feedback on an agent it hired (never the agent's own owner). Returns the
+   * transaction once sent: a slow confirmation still counts as sent, so it's never sent twice.
+   */
   async giveFeedback(client: LocalAccount, f: Feedback) {
     return (
-      await this.write(client, ERC8004.reputation, reputationRegistryAbi, "giveFeedback", [
-        f.agentId,
-        f.value,
-        f.decimals,
-        f.tag1,
-        f.tag2,
-        f.endpoint,
-        f.feedbackURI,
-        f.feedbackHash,
-      ])
+      await this.write(
+        client,
+        ERC8004.reputation,
+        reputationRegistryAbi,
+        "giveFeedback",
+        [f.agentId, f.value, f.decimals, f.tag1, f.tag2, f.endpoint, f.feedbackURI, f.feedbackHash],
+        true,
+      )
     ).transactionHash;
   }
 
@@ -138,7 +139,8 @@ export class Erc8004Client {
     abi: typeof identityRegistryAbi | typeof reputationRegistryAbi,
     functionName: string,
     args: readonly unknown[],
-  ): Promise<TransactionReceipt> {
+    sentIsEnough = false, // a slow confirmation is fine: return the sent transaction
+  ): Promise<Pick<TransactionReceipt, "transactionHash" | "logs">> {
     const { request } = await this.publicClient.simulateContract({
       account,
       address,
@@ -153,7 +155,13 @@ export class Erc8004Client {
     const gas = (estimate * BigInt(3)) / BigInt(2) + BigInt(50_000);
     const wallet = createWalletClient({ account, chain: this.chain, transport: http() });
     const hash = await wallet.writeContract({ ...(request as object), gas } as never);
-    const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+    const receipt = await this.publicClient
+      .waitForTransactionReceipt({ hash, timeout: 180_000 })
+      .catch((err) => {
+        if (sentIsEnough) return null; // Hashio can be slow to confirm what Hedera already has
+        throw err;
+      });
+    if (!receipt) return { transactionHash: hash, logs: [] };
     if (receipt.status !== "success") throw new Error(`${functionName} reverted: ${hash}`);
     return receipt;
   }
