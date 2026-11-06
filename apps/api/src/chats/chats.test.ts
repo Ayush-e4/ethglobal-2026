@@ -41,7 +41,11 @@ const json = async (r: Response | Promise<Response>) => (await (await r).json())
 
 async function setup() {
   const fake = fakeConcierge();
+  const ready: unknown[][] = [];
   const app = createApp({
+    replyReady: async (...args) => {
+      ready.push(args);
+    },
     appOrigin: ORIGIN,
     db: await testDb(),
     auth: {
@@ -57,7 +61,7 @@ async function setup() {
       ?.split(";")[0] ?? "";
   const call = (path: string, cookie: string, init: RequestInit = {}) =>
     app.request(path, { ...init, headers: { "Content-Type": "application/json", Cookie: cookie } });
-  return { app, signIn, call, fake };
+  return { app, signIn, call, fake, ready };
 }
 
 const events = (body: string) =>
@@ -114,6 +118,31 @@ describe("chats", () => {
     await (await send({ text: "Book the same thing back" })).text();
     expect(JSON.stringify(fake.seen[1]?.history)).toMatch(/the user sent 1 photo/);
     expect(fake.seen[1]?.images).toEqual([]);
+  });
+
+  it("leaving before the reply is done gets a ping when it's saved; staying doesn't", async () => {
+    const { call, signIn, ready } = await setup();
+    const me = await signIn();
+    const chat = await json(
+      call("/chats", me, { method: "POST", body: JSON.stringify({ title: "Goa" }) }),
+    );
+    await (
+      await call(`/chats/${chat.id}/messages`, me, {
+        method: "POST",
+        body: JSON.stringify({ text: "Hi" }),
+      })
+    ).text();
+    expect(ready).toEqual([]);
+    const leave = new AbortController();
+    const res = await call(`/chats/${chat.id}/messages`, me, {
+      method: "POST",
+      body: JSON.stringify({ text: "Hotel?" }),
+      signal: leave.signal,
+    });
+    leave.abort(); // closed the tab
+    await res.body?.cancel().catch(() => {});
+    await new Promise((r) => setTimeout(r, 50));
+    expect(ready).toEqual([[expect.any(String), chat.id, "Goa", "Here are two rooms."]]);
   });
 
   it("the next turn remembers the quote keys it showed", async () => {

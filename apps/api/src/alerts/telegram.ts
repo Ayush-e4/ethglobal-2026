@@ -84,10 +84,12 @@ export function telegramAlerts(db: Db, token: string | undefined, fetchImpl: typ
       if (!token || !r?.telegramChatId) return false;
       const sent = await tg("sendMessage", {
         chat_id: r.telegramChatId,
-        text: [a.title, a.text, a.url].filter(Boolean).join("\n\n"),
-        disable_web_page_preview: true,
-      }).catch(() => null);
-      return Boolean(sent?.ok);
+        text: [a.title, a.text, a.url].filter(Boolean).join("\n\n").slice(0, 4000),
+        link_preview_options: { is_disabled: true },
+      }).catch((err) => ({ ok: false, description: String(err).slice(0, 120) }));
+      if (!sent.ok)
+        console.error(`telegram: alert not sent: ${sent.description ?? "no reason given"}`);
+      return sent.ok;
     },
 
     /** A one-time link to the bot; tapping Start there finishes it (`finishLink`). */

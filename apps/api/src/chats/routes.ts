@@ -12,7 +12,15 @@ import { chatStore } from "./store";
  * POST /chats/:id/messages: the user's text is saved first, then the reply streams as
  * Server-Sent Events (text deltas, cards, status) and is saved when it's complete.
  */
-export function chatRoutes(db: Db, concierge: Concierge) {
+/** Tells someone their reply is ready when they left before it finished (Telegram or email). */
+export type ReplyReady = (
+  userId: string,
+  chatId: string,
+  title: string,
+  reply: string,
+) => Promise<unknown>;
+
+export function chatRoutes(db: Db, concierge: Concierge, replyReady?: ReplyReady) {
   const store = chatStore(db);
   const app = new Hono();
 
@@ -57,6 +65,14 @@ export function chatRoutes(db: Db, concierge: Concierge) {
         writes = writes.then(() => sse.writeSSE({ data, event })).catch(() => {});
       };
       const emit = (event: unknown) => write(JSON.stringify(event));
+      // Left before the reply was done (closed the tab, locked the phone): they'll be told.
+      let away = false;
+      sse.onAbort(() => {
+        away = true;
+      });
+      c.req.raw.signal.addEventListener("abort", () => {
+        away = true;
+      });
       // Hiring can take a while; a ping every 10 s stops proxies closing a quiet stream.
       const ping = setInterval(() => write("{}", "ping"), 10_000);
       try {
@@ -71,6 +87,7 @@ export function chatRoutes(db: Db, concierge: Concierge) {
         });
         const saved = await store.add(chat.id, "assistant", reply.text, reply.cards);
         emit({ type: "done", messageId: saved.id });
+        if (away) void replyReady?.(user.id, chat.id, chat.title, reply.text).catch(() => {});
       } catch (err) {
         console.error(`chat ${chat.id}: ${err instanceof Error ? err.message : err}`);
         await store.add(chat.id, "assistant", "Sorry, something went wrong. Please try again.");
