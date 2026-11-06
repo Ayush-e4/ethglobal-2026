@@ -1,7 +1,8 @@
+import type { Receipt } from "@app/arkiv";
 import type { MandateClient } from "@app/mandates";
 import type { HederaIds } from "@app/x402";
 import { and, count, eq, gte } from "drizzle-orm";
-import type { LocalAccount } from "viem";
+import { keccak256, type LocalAccount, toHex } from "viem";
 import type { MarketAgent } from "../concierge/market";
 import type { Db } from "../db/client";
 import { lookups, type User } from "../db/schema";
@@ -27,6 +28,7 @@ export function lookupAsker(d: {
   ownWallet?: (
     userId: string,
   ) => Promise<{ status: string; address: string; hederaId?: string | null } | null>;
+  onPaid?: (receipt: Receipt) => void; // for the public record (Arkiv)
 }) {
   // The shared demo wallet pays demo lookups: a daily count per account on top of the caps.
   const demoAsked = async (userId: string) => {
@@ -109,6 +111,15 @@ export function lookupAsker(d: {
         input,
       });
       await done({ status: "answered", title: r.answer.title, payTx: r.payTx });
+      d.onPaid?.({
+        job: keccak256(toHex(row.id)), // this lookup
+        task: `lookup-${row.id.slice(0, 8)}`,
+        mandateId: limit.mandateId.toString(),
+        payer: limit.ownerAccount,
+        payTo: agent.hederaAccount ?? limit.ownerAccount,
+        amountUnits: fee.toString(),
+        hederaTx: r.payTx,
+      });
       return { ...r, feeUnits: fee };
     } catch (err) {
       await done({

@@ -244,6 +244,7 @@ export function hiringService(
 
     /** Ask a lookup agent: its small fee is paid straight to it, the answer comes back (lookups.ts). */
     ask: lookupAsker({
+      onPaid: gates.onPaid,
       db,
       registry,
       ids,
