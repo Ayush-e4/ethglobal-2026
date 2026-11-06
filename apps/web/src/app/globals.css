@@ -99,6 +99,9 @@ button,
 .fade-in {
   animation: fade-in 180ms ease-out both;
 }
+.tab-pill {
+  transition: transform 420ms cubic-bezier(0.3, 1.35, 0.4, 1);
+}
 @keyframes fade-in {
   from {
     opacity: 0;

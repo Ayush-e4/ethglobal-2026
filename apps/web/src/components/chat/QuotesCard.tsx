@@ -1,8 +1,9 @@
 "use client";
 
 import type { Card } from "@app/shared";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usdc, verifiedRating } from "@/lib/api";
+import { useEnter } from "@/lib/native/motion";
 import { PinIcon, StarIcon } from "../icons";
 import type { CardCtx } from "./Cards";
 
@@ -56,6 +57,7 @@ function Offer({ q, first, ctx }: { q: Quote; first: boolean; ctx: CardCtx }) {
   const hasPhotos = (q.images?.length ?? 0) > 0;
   return (
     <article
+      data-enter
       className={`flex w-[85%] flex-none snap-start flex-col overflow-hidden rounded-2xl bg-white sm:w-auto ${first ? "border-2 border-teal" : "border border-line"}`}
     >
       <Photos q={q} />
@@ -144,8 +146,10 @@ function Offer({ q, first, ctx }: { q: Quote; first: boolean; ctx: CardCtx }) {
 
 /** Firm offers for one job, each picked for a reason; tapping one tells the concierge which. */
 export function QuotesCard({ card, ctx }: { card: QuotesCardData; ctx: CardCtx }) {
+  const scope = useRef<HTMLElement>(null);
+  useEnter(scope);
   return (
-    <section aria-label={`${card.skill} offers`} className="flex flex-col gap-3">
+    <section ref={scope} aria-label={`${card.skill} offers`} className="flex flex-col gap-3">
       <span className="text-[13px] text-ink-3">
         <span className="font-semibold text-ink">Offers for {card.skill}</span> · {card.reason}
       </span>

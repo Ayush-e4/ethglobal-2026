@@ -22,26 +22,38 @@ export function showsTabs(pathname: string) {
 export function TabBar() {
   const pathname = usePathname();
   if (!showsTabs(pathname)) return null;
+  const at = TABS.findIndex((t) => t.href === pathname);
   return (
     <nav
       aria-label="Main"
       className="tabbar fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/90 backdrop-blur-xl md:hidden"
     >
-      <ul className="mx-auto flex max-w-[520px] items-stretch justify-around px-1">
+      <ul className="relative mx-auto flex max-w-[520px] items-stretch justify-around px-1">
+        {/* The highlight slides from tab to tab, springing a little, like iOS and Android's. */}
+        {at >= 0 && (
+          <span
+            aria-hidden
+            className="tab-pill pointer-events-none absolute top-[7px] left-1 flex h-7 justify-center"
+            style={{
+              width: `calc((100% - 0.5rem) / ${TABS.length})`,
+              transform: `translateX(${at * 100}%)`,
+            }}
+          >
+            <span className="h-full w-12 rounded-full bg-teal-soft" />
+          </span>
+        )}
         {TABS.map(({ href, label, Icon }) => {
           const here = pathname === href;
           return (
-            <li key={href} className="flex flex-1">
+            <li key={href} className="relative flex flex-1">
               <Link
                 href={href}
                 transitionTypes={["tab"]}
                 aria-current={here ? "page" : undefined}
                 onClick={() => !here && haptic("tap")}
-                className={`press flex min-h-[54px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold ${here ? "text-teal" : "text-muted"}`}
+                className={`press flex min-h-[54px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold transition-colors duration-200 ${here ? "text-teal" : "text-muted"}`}
               >
-                <span
-                  className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-200 ${here ? "bg-teal-soft" : ""}`}
-                >
+                <span className="flex h-7 w-12 items-center justify-center">
                   <Icon size={21} strokeWidth={here ? 2.2 : 1.8} />
                 </span>
                 {label}

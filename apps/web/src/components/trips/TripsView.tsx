@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type Trip } from "@/lib/api";
+import { useEnter } from "@/lib/native/motion";
 import { TripCard } from "./TripCard";
 
 /** A trip is one chat: its flight and stay together, the newest trip first. */
@@ -33,8 +34,13 @@ export function TripsView() {
       .catch(() => setError("Couldn't load your trips."));
   }, []);
 
+  const scope = useRef<HTMLElement>(null);
+  useEnter(scope, [trips === null]);
   return (
-    <main className="mx-auto flex w-full max-w-[800px] flex-col gap-6 px-4 pt-6 pb-14 sm:px-6 sm:pt-8">
+    <main
+      ref={scope}
+      className="mx-auto flex w-full max-w-[800px] flex-col gap-6 px-4 pt-6 pb-14 sm:px-6 sm:pt-8"
+    >
       <div className="flex flex-col gap-2">
         <h1 className="text-[28px] font-bold tracking-tight sm:text-[32px]">Trips</h1>
         <p className="text-[15px] leading-relaxed text-ink-3">
@@ -62,7 +68,9 @@ export function TripsView() {
               <span className="text-xs text-muted">{summary(g.trips)}</span>
             </div>
             {g.trips.map((t) => (
-              <TripCard key={t.id} trip={t} />
+              <div key={t.id} data-enter>
+                <TripCard trip={t} />
+              </div>
             ))}
           </section>
         ))

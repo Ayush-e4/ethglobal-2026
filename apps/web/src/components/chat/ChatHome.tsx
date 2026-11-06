@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, type ChatSummary } from "@/lib/api";
+import { useEnter } from "@/lib/native/motion";
 import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
 import { ChatIcon, HotelIcon, MarketIcon, UndoIcon } from "../icons";
@@ -60,6 +61,8 @@ export function ChatHome() {
   const { me, refreshChats } = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  useEnter(grid);
 
   const start = async (text: string, photos: Photo[] = []) => {
     setBusy(true);
@@ -96,9 +99,13 @@ export function ChatHome() {
           {error}
         </p>
       )}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-3">
+      <div
+        ref={grid}
+        className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-3"
+      >
         {SUGGESTIONS.map((s) => (
           <button
+            data-enter
             key={s.title}
             type="button"
             disabled={busy}

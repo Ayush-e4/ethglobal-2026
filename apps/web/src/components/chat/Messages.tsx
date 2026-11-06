@@ -1,6 +1,8 @@
 "use client";
 
 import type { Card } from "@app/shared";
+import { useRef } from "react";
+import { useNewIn } from "@/lib/native/motion";
 import type { CardCtx } from "./Cards";
 import { CardView } from "./Cards";
 import { Markdown } from "./Markdown";
@@ -28,8 +30,10 @@ export function Messages({
 }) {
   // Only the latest reply's cards can be acted on; older ones are history.
   const latest = turns.findLast((t) => t.role === "assistant")?.id;
+  const list = useRef<HTMLOListElement>(null);
+  useNewIn(list, turns.length);
   return (
-    <ol aria-label="Conversation" className="flex flex-col gap-7">
+    <ol ref={list} aria-label="Conversation" className="flex flex-col gap-7">
       {turns.map((t) =>
         t.role === "user" ? (
           <li
