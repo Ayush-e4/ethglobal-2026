@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs";
 import { createPublicClient, createWalletClient, type Hex, http, type LocalAccount } from "viem";
-import { mandateRegistryAbi } from "./abi";
 import { hederaTestnet } from "./chain";
 
 /**
- * Deploys MandateRegistry from Foundry's build output. It has no owner and no admin: once
- * deployed, nobody can change it. Returns its EVM address and its Hedera id (0.0.x).
+ * Deploys a contract from Foundry's build output (ours take no constructor arguments, and have
+ * no owner and no admin: once deployed, nobody can change them). Returns its EVM address and
+ * its Hedera id (0.0.x).
  */
-export async function deployRegistry(
+export async function deployArtifact(
   deployer: LocalAccount,
   artifactPath: string,
   mirrorUrl: string,
@@ -16,7 +16,7 @@ export async function deployRegistry(
   const wallet = createWalletClient({ account: deployer, chain: hederaTestnet, transport: http() });
   const reader = createPublicClient({ chain: hederaTestnet, transport: http() });
   const txHash = await wallet.deployContract({
-    abi: mandateRegistryAbi,
+    abi: [],
     bytecode: artifact.bytecode.object,
     gas: BigInt(5_000_000),
   });
@@ -36,3 +36,6 @@ export async function deployRegistry(
   }
   throw new Error(`deployed at ${address}, but the mirror hasn't shown its Hedera id yet`);
 }
+
+/** MandateRegistry: limits, escrow and payouts. */
+export const deployRegistry = deployArtifact;

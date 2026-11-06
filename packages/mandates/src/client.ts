@@ -24,6 +24,22 @@ export interface MandateParams {
   payees: readonly Address[];
 }
 
+/** A limit as the registry stores it. */
+export interface Mandate {
+  owner: Address; // whose money it is
+  agent: Address;
+  token: Address;
+  parentId: bigint;
+  budget: bigint;
+  spent: bigint;
+  delegated: bigint;
+  perPaymentCap: bigint;
+  expiresAt: bigint;
+  depth: number;
+  revoked: boolean;
+  restrictPayees: boolean;
+}
+
 type Write =
   | "createMandate"
   | "createSubMandate"
@@ -63,7 +79,7 @@ export class MandateClient {
   // Reads
 
   getMandate(id: bigint) {
-    return this.read("getMandate", [id]);
+    return this.read("getMandate", [id]) as Promise<Mandate>;
   }
 
   remaining(id: bigint) {

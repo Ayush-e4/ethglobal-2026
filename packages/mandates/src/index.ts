@@ -1,6 +1,25 @@
 export { ESCROW_STATES, type EscrowState, erc20Abi, mandateRegistryAbi } from "./abi";
-export { hederaTestnet, registryAddress, tokenIdToEvmAddress } from "./chain";
-export { MandateClient, type MandateParams, revertName } from "./client";
+export {
+  hederaTestnet,
+  registryAddress,
+  tokenIdToEvmAddress,
+  walletFactoryAddress,
+} from "./chain";
+export { type Mandate, MandateClient, type MandateParams, revertName } from "./client";
+export {
+  type Assertion,
+  addKeyCalls,
+  assertionFromWebAuthn,
+  type KeySig,
+  limitCalls,
+  type PasskeyKey,
+  PasskeyWalletClient,
+  passkeyWalletAbi,
+  passkeyWalletFactoryAbi,
+  removeKeyCalls,
+  revokeCalls,
+  type WalletCall,
+} from "./passkey-wallet";
 export {
   type EscrowAuth,
   encodeEscrowAuthorization,
