@@ -7,7 +7,7 @@ import { useBackToClose } from "@/lib/native/back";
 import { haptic } from "@/lib/native/haptics";
 import { useWakeLock } from "@/lib/native/wake-lock";
 import { useSession } from "@/lib/session";
-import { CheckIcon } from "../icons";
+import { SuccessMark } from "../SuccessMark";
 import { LiveQr } from "./LiveQr";
 import { chirp, preloadSound } from "./sound";
 
@@ -170,9 +170,7 @@ export function GetPaid() {
           <span className="text-[34px] font-bold tracking-tight">{rupees(req.inr)}</span>
           {paid ? (
             <div className="flex flex-col items-center gap-2 py-6">
-              <span className="flex size-16 items-center justify-center rounded-full bg-ok-soft text-ok">
-                <CheckIcon size={34} />
-              </span>
+              <SuccessMark />
               <span className="text-lg font-bold text-ok">Paid</span>
               {status?.payTx && (
                 <a

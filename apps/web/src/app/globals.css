@@ -161,7 +161,66 @@ button,
   }
 }
 
+/* The success mark: a coin pops and turns over, the tick draws itself, a ripple goes out. */
+.success-mark {
+  perspective: 400px;
+}
+.success-coin {
+  background: radial-gradient(circle at 30% 25%, #2fb37a, var(--color-ok) 70%);
+  box-shadow:
+    0 10px 24px -8px rgb(17 115 75 / 0.55),
+    inset 0 -3px 0 rgb(0 0 0 / 0.12);
+  animation: coin-in 760ms cubic-bezier(0.2, 1.3, 0.3, 1) both;
+}
+.success-tick {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tick-draw 360ms cubic-bezier(0.65, 0, 0.35, 1) 420ms forwards;
+}
+.success-ripple {
+  border: 2px solid var(--color-ok);
+  animation: ripple 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 300ms both;
+}
+@keyframes coin-in {
+  0% {
+    transform: scale(0.2) rotateY(0deg);
+    background: radial-gradient(circle at 30% 25%, #5aa1ec, #2775ca 70%);
+  }
+  55% {
+    transform: scale(1.12) rotateY(300deg);
+  }
+  100% {
+    transform: scale(1) rotateY(360deg);
+  }
+}
+@keyframes tick-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ripple {
+  from {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .success-coin,
+  .success-ripple {
+    animation: none;
+  }
+  .success-ripple {
+    opacity: 0;
+  }
+  .success-tick {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
   ::view-transition-group(*),
   ::view-transition-old(*),
   ::view-transition-new(*) {

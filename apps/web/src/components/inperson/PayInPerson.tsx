@@ -6,7 +6,7 @@ import { hashscanTx } from "@/lib/api";
 import { useBackToClose } from "@/lib/native/back";
 import { haptic } from "@/lib/native/haptics";
 import { LimitCard } from "../chat/LimitCard";
-import { CheckIcon } from "../icons";
+import { SuccessMark } from "../SuccessMark";
 import { Camera } from "./Camera";
 import { Shell } from "./GetPaid";
 import { Listening, LiveLine } from "./pay-lines";
@@ -170,9 +170,8 @@ export function PayInPerson() {
     return (
       <Shell title="Paid">
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-white p-6 text-center">
-          <span className="flex size-16 items-center justify-center rounded-full bg-ok-soft text-ok">
-            <CheckIcon size={34} />
-          </span>
+          <SuccessMark />
+          <span className="text-sm font-semibold text-ok">Paid</span>
           <span className="text-[30px] font-bold">₹{seen.inr.toLocaleString("en-IN")}</span>
           <span className="text-sm text-ink-2">to {seen.merchant.name}</span>
           <span className="text-xs text-muted">
