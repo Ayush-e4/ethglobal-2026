@@ -65,6 +65,8 @@ Face ID limit card first).
   played in both speeds through our modem is heard back exactly. In the app's page, ggwave loads
   from `/vendor` and round-trips a request in 0.70 s of sound.
 - Live against the API: a merchant on a real Face ID wallet (0.0.11341027), a ₹40 request, the
-  payer's check (live ✓, a screenshot's code refused, your own request refused). The payment
-  itself waits for Hedera's RPC (Hashio was down when this was built): it then says nothing was
-  charged.
+  payer's check (live ✓, a screenshot's code refused, your own request refused). **Paid on
+  Hedera** once Hashio was back: a demo payer's ₹40 (40 units) went from the demo wallet to the
+  shop ([tx](https://hashscan.io/testnet/transaction/0.0.11328382@1793987349.483841561)), the
+  shop's request turned `paid` (live: true), and paying it again was refused. The first payment
+  in a chat takes longer (~90 s): it also makes the payer's limit for that shop on Hedera.
