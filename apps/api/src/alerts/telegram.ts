@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { alertChannels as table } from "../db/schema";
+import { HELP, setUpBotProfile } from "./commands";
 import type { CallbackQuery } from "./live-hires";
 
 export interface Alert {
@@ -113,6 +114,7 @@ export type TelegramAlerts = ReturnType<typeof telegramAlerts>;
 /** What the bot does besides linking: button taps, and (later) people's messages. */
 export interface BotHandlers {
   onCallback?: (cq: CallbackQuery) => Promise<unknown>;
+  status?: (chatId: string) => Promise<string>; // "/status"
 }
 
 export interface Update {
@@ -143,6 +145,8 @@ export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers 
         : "That link has expired or was used already. Tap Connect Telegram in AgentNet again.",
     );
   }
+  if (text === "/start" || text === "/help") return say(HELP);
+  if (text === "/status") return say(h.status ? await h.status(String(chatId)) : HELP);
   if (text === "/stop") {
     await t.unlinkChat(String(chatId));
     return say("Stopped: no more AgentNet alerts here.");
@@ -160,6 +164,7 @@ export function startTelegramBot(
   h: BotHandlers = {},
 ) {
   if (!t.on) return () => {};
+  void setUpBotProfile(t);
   let running = true;
   let offset = 0;
   void (async () => {

@@ -130,6 +130,8 @@ chat (`src/alerts`). The chat message is the record; the alert is a nudge, sent 
   account's linked World ID), and every hire a **Payment** button (HashScan). Buttons work only
   from the Telegram chat the hire's owner linked. Edits are silent; the chat's own messages are
   the alerts that buzz.
+- **Commands** (`src/alerts/commands.ts`): the bot sets its menu (`/status`: the account's
+  latest bookings and price watches; `/help`; `/stop`) and what people see before tapping Start.
 - **One thread per person.** A Telegram bot has one chat with each Telegram user, so alerts from
   all of an account's chats arrive in that one thread, each titled with its chat. One Telegram chat
   is connected to one account: connecting it to another account moves it.
