@@ -16,6 +16,13 @@ const ES256 = -7; // P-256: what phones and laptops use, and what a wallet contr
 
 export class SignInError extends Error {}
 
+/**
+ * Why a device's answer was refused, from the WebAuthn library (a wrong origin, no user
+ * verification, a used-up challenge…): public facts about the answer, never a key.
+ */
+const reason = (err: unknown) =>
+  (err instanceof Error ? err.message : String(err)).replace(/\s+/g, " ").slice(0, 200);
+
 export interface PasskeySite {
   rpID: string; // the site's hostname: a passkey only works on the site that made it
   origin: string; // https://… (or http://localhost while developing)
@@ -58,7 +65,9 @@ export function passkeyAuth(db: Db, site: PasskeySite) {
         userName: label,
         userDisplayName: label,
         attestationType: "none",
-        authenticatorSelection: { residentKey: "required", userVerification: "preferred" },
+        // Required, not "preferred": with "preferred" some passkey apps (password-manager
+        // extensions) skip Face ID / PIN, and the wallet only accepts a verified answer anyway.
+        authenticatorSelection: { residentKey: "required", userVerification: "required" },
         supportedAlgorithmIDs: [ES256],
       });
       await remember(options.challenge);
@@ -72,10 +81,10 @@ export function passkeyAuth(db: Db, site: PasskeySite) {
         expectedChallenge: useUp,
         ...expected,
         supportedAlgorithmIDs: [ES256],
-      }).catch(() => {
-        throw new SignInError("passkey not accepted");
+      }).catch((err) => {
+        throw new SignInError(`passkey not accepted: ${reason(err)}`);
       });
-      if (!result.verified) throw new SignInError("passkey not accepted");
+      if (!result.verified) throw new SignInError("passkey not accepted: not verified");
       const c = result.registrationInfo.credential;
       return db.transaction(async (tx) => {
         const [user] = await tx.insert(users).values({ displayName: label }).returning();
@@ -96,7 +105,7 @@ export function passkeyAuth(db: Db, site: PasskeySite) {
     async authenticationOptions() {
       const options = await generateAuthenticationOptions({
         rpID: site.rpID,
-        userVerification: "preferred",
+        userVerification: "required",
       });
       await remember(options.challenge);
       return options;
@@ -121,10 +130,10 @@ export function passkeyAuth(db: Db, site: PasskeySite) {
           counter: row.key.counter,
           transports: (row.key.transports ?? undefined) as never,
         },
-      }).catch(() => {
-        throw new SignInError("passkey not accepted");
+      }).catch((err) => {
+        throw new SignInError(`passkey not accepted: ${reason(err)}`);
       });
-      if (!result.verified) throw new SignInError("passkey not accepted");
+      if (!result.verified) throw new SignInError("passkey not accepted: not verified");
       await db
         .update(passkeys)
         .set({ counter: result.authenticationInfo.newCounter, lastUsedAt: new Date() })

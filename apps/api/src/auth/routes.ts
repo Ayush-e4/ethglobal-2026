@@ -73,8 +73,10 @@ export function authRoutes(db: Db, cfg: AuthConfig, onSignUp?: (userId: string) 
   app.get("/me", me);
 
   app.onError((err, c) => {
-    if (err instanceof SignInError)
+    if (err instanceof SignInError) {
+      console.error(`auth: refused ${c.req.method} ${c.req.path}: ${err.message}`);
       return c.json({ error: "sign_in_failed", message: err.message }, 401);
+    }
     console.error(`auth: ${err.message}`);
     return c.json({ error: "internal" }, 500);
   });
