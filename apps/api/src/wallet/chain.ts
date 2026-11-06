@@ -1,4 +1,11 @@
-import { erc20Abi, hederaTestnet, type PasskeyKey, PasskeyWalletClient } from "@app/mandates";
+import {
+  erc20Abi,
+  hederaTestnet,
+  type KeySig,
+  type PasskeyKey,
+  PasskeyWalletClient,
+  type WalletCall,
+} from "@app/mandates";
 import { HederaIds } from "@app/x402";
 import { type Address, createWalletClient, type Hex, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -11,6 +18,14 @@ export interface WalletChain {
   hederaIdOf(wallet: Address): Promise<string | null>;
   gift(to: Address, units: bigint): Promise<Hex>;
   balanceOf(wallet: Address): Promise<bigint>;
+  allowance(owner: Address, spender: Address): Promise<bigint>;
+  digest(wallet: Address, calls: WalletCall[], deadline: bigint): Promise<Hex>;
+  execute(
+    wallet: Address,
+    calls: WalletCall[],
+    deadline: bigint,
+    sig: KeySig,
+  ): Promise<{ hash: Hex; mandateId?: bigint }>;
 }
 
 /**
@@ -44,5 +59,15 @@ export function hederaWalletChain(cfg: WalletConfig): WalletChain {
         functionName: "balanceOf",
         args: [wallet],
       }),
+    allowance: (owner, spender) =>
+      client.publicClient.readContract({
+        address: cfg.usdc,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [owner, spender],
+      }),
+    digest: (wallet, calls, deadline) => client.digest(wallet, calls, deadline),
+    execute: (wallet, calls, deadline, sig) =>
+      client.execute(sponsor, wallet, calls, deadline, sig),
   };
 }

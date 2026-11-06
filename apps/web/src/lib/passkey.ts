@@ -38,6 +38,19 @@ export async function signInWithPasskey(): Promise<void> {
   await api("/auth/passkey/login", { method: "POST", body: { response } });
 }
 
+/**
+ * A Face ID approval for your wallet: the server prepares the move and its challenge, the device
+ * signs it (Face ID), the server submits it to your wallet on Hedera.
+ */
+export async function withFaceId<T>(prepare: string, prepareBody: unknown, submit: string) {
+  const { opId, options } = await api<{
+    opId: string;
+    options: PublicKeyCredentialRequestOptionsJSON;
+  }>(prepare, { method: "POST", body: prepareBody });
+  const response = await startAuthentication({ optionsJSON: options });
+  return api<T>(submit, { method: "POST", body: { opId, response } });
+}
+
 /** The browser's way of saying "the person closed the prompt" (or it timed out). */
 export const cancelled = (err: unknown) =>
   err instanceof Error && (err.name === "NotAllowedError" || err.name === "AbortError");

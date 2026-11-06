@@ -27,6 +27,9 @@ function fakeChain(failCreate = false) {
       return "0xgift";
     },
     balanceOf: async (a) => gifts.filter((g) => g.to === a).reduce((s, g) => s + g.units, 0n),
+    allowance: async () => 0n,
+    digest: async () => `0x${"ab".repeat(32)}`,
+    execute: async () => ({ hash: "0xexecuted" }),
   };
   return { chain, made, gifts };
 }

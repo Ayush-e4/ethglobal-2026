@@ -64,11 +64,27 @@ export const HireCardSchema = z.object({
   payTx: z.string(), // the Hedera transaction that holds the fee
 });
 
+/**
+ * Before the concierge can pay an agent from the user's own (Face ID) wallet: a spending limit
+ * for that agent in this chat, approved with Face ID. Once approved, the app sends `reply` as the
+ * user, to carry on with what they asked.
+ */
+export const LimitCardSchema = z.object({
+  type: z.literal("limit"),
+  agentName: z.string(),
+  payee: z.string().regex(/^0x[0-9a-fA-F]{40}$/), // the one agent it may pay
+  budgetUnits: units,
+  capUnits: units, // the most for one payment
+  hours: z.number().int().positive(),
+  reply: z.string(),
+});
+
 export const CardSchema = z.discriminatedUnion("type", [
   AgentsCardSchema,
   OptionsCardSchema,
   QuotesCardSchema,
   HireCardSchema,
+  LimitCardSchema,
 ]);
 export type Card = z.infer<typeof CardSchema>;
 

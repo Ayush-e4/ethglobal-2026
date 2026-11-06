@@ -3,6 +3,7 @@
 import type { Card } from "@app/shared";
 import { shortAddress, usdc } from "@/lib/api";
 import { HireCard } from "./HireCard";
+import { LimitCard } from "./LimitCard";
 
 /** What a card can do: send a reply as the user, and know whether it's the latest one. */
 export interface CardCtx {
@@ -42,6 +43,8 @@ export function CardView({ card, ctx }: { card: Card; ctx: CardCtx }) {
       return <Quotes card={card} ctx={ctx} />;
     case "hire":
       return <HireCard card={card} ctx={ctx} />;
+    case "limit":
+      return <LimitCard card={card} ctx={ctx} />;
   }
 }
 

@@ -29,6 +29,13 @@
       "when": 1793923985674,
       "tag": "0003_quick_salo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793924614895,
+      "tag": "0004_nice_khan",
+      "breakpoints": true
     }
   ]
 }
