@@ -2,6 +2,7 @@ import { postQuotes, type SafeArkivWriter } from "@app/arkiv";
 import { type Offer, parseUsdc } from "@app/shared";
 import type { DuffelClient, FlightLeg, FlightOffer } from "@app/travel";
 import type { JsonStore } from "../store";
+import { type InrRate, rupees } from "./fx";
 import type { FlightQuote } from "./types";
 
 const QUOTE_SECONDS = 180;
@@ -85,11 +86,14 @@ export async function makeFlightQuotes(
     arkiv: SafeArkivWriter;
     quotes: JsonStore<FlightQuote>;
     feeUsd: string;
+    inrRate?: InrRate; // shows fares in rupees
   },
   q: { task: string; from: string; to: string; date: string; returnDate?: string },
 ): Promise<FlightQuote[]> {
   const shown = pickThree(await d.duffel.search(q));
   if (shown.length === 0) return [];
+  const rate = shown[0] ? await (d.inrRate?.(shown[0].offer.currency) ?? null) : null;
+  const inr = (o: FlightOffer) => (rate ? Math.round(o.total * rate) : undefined);
   const feeUnits = parseUsdc(d.feeUsd.replace("$", "")).toString();
   const { keys } = await postQuotes(
     d.arkiv,
@@ -98,7 +102,7 @@ export async function makeFlightQuotes(
       task: q.task,
       skill: "flights",
       feeUnits,
-      summary: `${flightSummary(offer)} · ${offer.currency} ${offer.total.toFixed(2)}`,
+      summary: `${flightSummary(offer)} · ${offer.currency} ${offer.total.toFixed(2)}${rate ? ` (about ${rupees(offer.total * rate)})` : ""}`,
     })),
     QUOTE_SECONDS,
   );
@@ -111,6 +115,7 @@ export async function makeFlightQuotes(
       legs: offer.legs,
       total: offer.total,
       currency: offer.currency,
+      inr: inr(offer),
       refundable: offer.refundable,
       changeable: offer.changeable,
       emissionsKg: offer.emissionsKg,
@@ -135,10 +140,12 @@ export function toFlightOffer(q: FlightQuote): Offer {
       : undefined,
     summary: flightSummary(q),
     feeUnits: q.feeUnits,
-    price: { amount: q.total, currency: q.currency },
+    // In rupees when we have today's rate; the details say what it's charged in.
+    price: q.inr ? { amount: q.inr, currency: "INR" } : { amount: q.total, currency: q.currency },
     refundable: q.refundable,
     details: [
       ...(back ? [`Back: ${legLine(back)}`] : []),
+      ...(q.inr ? [`Fare ${q.currency} ${q.total.toFixed(2)}, about ${rupees(q.inr)} today`] : []),
       q.changeable ? "Changes allowed" : "No changes",
       "Economy, one passenger",
       ...(q.emissionsKg ? [`${q.emissionsKg} kg CO₂`] : []),

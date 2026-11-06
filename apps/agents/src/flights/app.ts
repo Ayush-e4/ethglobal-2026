@@ -9,6 +9,7 @@ import type { JobWorker } from "../jobs/worker";
 import type { JsonStore } from "../store";
 import type { FlightAgentConfig } from "./config";
 import { FLIGHT_FORM } from "./form";
+import { inrRates } from "./fx";
 import { makeFlightQuotes, toFlightOffer } from "./quotes";
 import { passengerProblem } from "./supplier";
 import type { FlightJob, FlightQuote } from "./types";
@@ -26,6 +27,7 @@ export function flightAgentApp(d: {
   worker: JobWorker<FlightQuote>;
 }) {
   const app = new Hono();
+  const inrRate = inrRates();
   app.get("/health", (c) => c.json({ ok: true, agent: d.arkiv.address }));
 
   app.get("/quote", async (c) => {
@@ -42,7 +44,7 @@ export function flightAgentApp(d: {
     ].filter(Boolean);
     if (issues.length) return c.json({ error: "bad_request", issues }, 400);
     const quotes = await makeFlightQuotes(
-      { ...d, feeUsd: d.config.feeUsd },
+      { ...d, feeUsd: d.config.feeUsd, inrRate },
       { ...v, task: task.data },
     );
     if (quotes.length === 0) return c.json({ error: "no_flights" }, 404);
