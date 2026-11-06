@@ -132,6 +132,14 @@ chat (`src/alerts`). The chat message is the record; the alert is a nudge, sent 
   the alerts that buzz.
 - **Commands** (`src/alerts/commands.ts`): the bot sets its menu (`/status`: the account's
   latest bookings and price watches; `/help`; `/stop`) and what people see before tapping Start.
+- **The concierge in Telegram** (`src/alerts/telegram-chat.ts`): a connected Telegram chat talks to
+  one AgentNet chat, with the same turns, tools and payments as the web, saved in that chat (so the
+  web shows it too; `/new` starts another). The reply streams in as a draft (`sendMessageDraft`:
+  "Thinking…", the tool being used, then the text as it's written) and is then sent for good, in
+  Telegram's HTML. Offers come as a photo album and a list with **Book** buttons naming the agent;
+  choices as buttons. A World ID approval opens from a button, and once it passes the booking
+  carries on in Telegram. A spending limit needs Face ID, so it points to that chat on the web;
+  approved there, the booking carries on and its live message arrives in Telegram.
 - **One thread per person.** A Telegram bot has one chat with each Telegram user, so alerts from
   all of an account's chats arrive in that one thread, each titled with its chat. One Telegram chat
   is connected to one account: connecting it to another account moves it.
