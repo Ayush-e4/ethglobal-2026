@@ -1,4 +1,4 @@
-import { type Address, defineChain } from "viem";
+import { type Address, defineChain, http } from "viem";
 import { getGasPrice } from "viem/actions";
 import { hederaTestnet as viemHederaTestnet } from "viem/chains";
 
@@ -54,3 +54,10 @@ export function walletFactoryAddress(e: Record<string, string | undefined> = env
   }
   return a as Address;
 }
+
+/**
+ * How we reach Hedera's JSON-RPC (Hashio): 30 s before giving up (viem's 10 s default cut off
+ * slow but successful calls) and a few retries with backoff for timeouts and 5xx. A resent
+ * transaction is the same signed bytes, so it can't be paid twice.
+ */
+export const hederaRpc = () => http(undefined, { timeout: 30_000, retryCount: 4, retryDelay: 400 });

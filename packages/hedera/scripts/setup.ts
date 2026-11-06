@@ -1,5 +1,5 @@
 // Sets up testnet from the operator account: USDC opt-in, one account per role, the public log.
-// Safe to re-run: it only creates what's missing. New keys go straight into .env, never on screen.
+// Safe to re-run: it only creates what's missing, and tops up accounts low on HBAR. New keys go straight into .env, never on screen.
 // Run: pnpm setup:testnet
 import { resolve } from "node:path";
 import {
@@ -15,6 +15,7 @@ import {
   NETWORKS,
   ROLES,
   type Role,
+  transferHbar,
   transferToken,
   upsertEnv,
 } from "../src";
@@ -49,7 +50,15 @@ try {
   for (const [role, hbar] of Object.entries(FUNDING) as [Role, number][]) {
     const existing = config.roles[role];
     if (existing) {
-      console.log(`${role.padEnd(11)} ${existing.id} (already set up)`);
+      // Network fees use it up: below half its funding, it's topped up from the operator.
+      const tinybars = (await mirror.balances(existing.id))?.tinybars ?? BigInt(0);
+      if (tinybars < BigInt(hbar * 50_000_000)) {
+        const tx = await transferHbar(client, { from: operator.id, to: existing.id, hbar });
+        console.log(
+          `${role.padEnd(11)} ${existing.id} topped up with ${hbar} HBAR: ${link.tx(tx)}`,
+        );
+      } else
+        console.log(`${role.padEnd(11)} ${existing.id} ${formatHbar(tinybars)} (already set up)`);
       continue;
     }
     const a = await createAccount(client, { initialHbar: hbar, memo: `ethglobal-2026 ${role}` });

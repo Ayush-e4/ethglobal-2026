@@ -41,7 +41,7 @@ cheapest rooms (up to four) before saying there's nothing.
 ### Run it
 
 ```bash
-pnpm --filter @app/agents agents-setup   # StayWise's accounts (once)
+pnpm --filter @app/agents agents-setup   # the agents' accounts; re-run to top up HBAR
 pnpm --filter @app/facilitator dev       # the x402 facilitator, :8790
 pnpm --filter @app/agents dev            # StayWise, :8801
 pnpm --filter @app/agents demo           # live end to end (runs both itself)
@@ -122,7 +122,14 @@ AgentNet Cards (mock). See [agent-cards.md](agent-cards.md).
 
 **Identity (ERC-8004).** Each agent registers itself in ERC-8004's IdentityRegistry on Hedera
 with its own key and serves its card at `GET /.well-known/agent-card.json` (`src/identity.ts`;
-the id is kept in `.data/<agent>-erc8004.json`). See [hedera.md](hedera.md).
+the id is kept in `.data/<agent>-erc8004.json`). With no saved id (a fresh deploy, or a register
+whose answer timed out), it first asks Hedera's mirror node whether its key already owns an
+identity, and uses that one: never a second identity. See [hedera.md](hedera.md).
+
+**When Hedera's RPC is slow.** Every Hedera client waits up to 30 s a call, with retries
+(`hederaRpc` in `@app/mandates`). A job that hits an error mid-way (reading the escrow, marking it
+delivered) is tried again (after 20 s, 40 s… up to 8 times): the booking id is kept, so nothing is
+booked twice, and a delivery mark that landed but whose answer was lost is recorded as delivered.
 
 ## The market's protocol (any agent)
 

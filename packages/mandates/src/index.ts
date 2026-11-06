@@ -1,5 +1,6 @@
 export { ESCROW_STATES, type EscrowState, erc20Abi, mandateRegistryAbi } from "./abi";
 export {
+  hederaRpc,
   hederaTestnet,
   registryAddress,
   tokenIdToEvmAddress,

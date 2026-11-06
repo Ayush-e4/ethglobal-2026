@@ -200,6 +200,9 @@ export function hiringService(
       await save(hire.id, { note: "undoing" });
       await registry.cancel(concierge, hire.escrowId as `0x${string}`).catch(async (err) => {
         await save(hire.id, { note: null });
+        // Hedera refused it: the window closed before it landed (a slow network). Say so.
+        if (String(err).includes("reverted") || (hire.undoUntil && hire.undoUntil <= new Date()))
+          throw new HireError("Too late to undo: the window closed and the agent has started.");
         throw err;
       });
       const changes = {

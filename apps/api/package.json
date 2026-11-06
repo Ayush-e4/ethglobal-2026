@@ -14,7 +14,8 @@
     "wallet-signup-demo": "tsx --env-file-if-exists=../../.env scripts/wallet-signup-demo.ts",
     "face-id-hire-demo": "tsx --env-file-if-exists=../../.env scripts/face-id-hire-demo.ts",
     "device-link-demo": "tsx --env-file-if-exists=../../.env scripts/device-link-demo.ts",
-    "ratings-to-erc8004": "tsx --env-file-if-exists=../../.env scripts/ratings-to-erc8004.ts"
+    "ratings-to-erc8004": "tsx --env-file-if-exists=../../.env scripts/ratings-to-erc8004.ts",
+    "smoke": "tsx --env-file-if-exists=../../.env scripts/smoke/main.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.0.0",

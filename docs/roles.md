@@ -63,7 +63,9 @@ reads only count a record written by the party it names. Details in
 Each agent has **one key of its own**, used as its Hedera account (paid into; marks deliveries,
 refunds) and as its Arkiv writer. StayWise: `STAYWISE_PRIVATE_KEY` / `STAYWISE_ACCOUNT_ID`,
 created by `pnpm --filter @app/agents agents-setup` and funded from the operator (HBAR) and our
-Arkiv writer (test GLM). PriceGuard has its own the same way: `PRICEGUARD_PRIVATE_KEY` /
+Arkiv writer (test GLM). Marking a job delivered costs about 3 HBAR in gas (it schedules the
+payout), so re-running it tops up any agent below 15 HBAR; `pnpm setup:testnet` does the same for
+the relayer and the other roles below half their funding. PriceGuard has its own the same way: `PRICEGUARD_PRIVATE_KEY` /
 `PRICEGUARD_ACCOUNT_ID`. Details in [agents.md](agents.md).
 
 **Demo token** (`DEMO_TOKEN`, optional): turns on "simulate a price drop" for a watching agent's

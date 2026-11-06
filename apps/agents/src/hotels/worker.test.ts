@@ -154,6 +154,34 @@ describe("HotelWorker", () => {
     expect(t.jobs.get(ESCROW)).toMatchObject({ status: "delivered", bookingId: "B1" });
   });
 
+  it("a delivery mark that landed but whose answer was lost is recorded, not stuck", async () => {
+    const t = setup("delivered", async () => ({ bookingId: "B3" }));
+    t.jobs.set(ESCROW, { ...(t.jobs.get(ESCROW) as Job), status: "booking", bookingId: "B1" });
+    await t.worker.process(ESCROW);
+    expect(t.registry.markDelivered).not.toHaveBeenCalled();
+    expect(t.lite.book).not.toHaveBeenCalled();
+    expect(t.jobs.get(ESCROW)).toMatchObject({ status: "delivered", bookingId: "B1" });
+  });
+
+  it("a passing Hedera error is retried, not left stuck", async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup("held", async () => ({ bookingId: "B1" }));
+      t.registry.getEscrow
+        .mockRejectedValueOnce(new Error("The request took too long to respond."))
+        .mockResolvedValue({ state: "held" });
+      const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+      t.worker.schedule(t.jobs.get(ESCROW) as Job);
+      await vi.advanceTimersByTimeAsync(5_000); // the first try fails
+      expect(t.jobs.get(ESCROW)?.status).toBe("held");
+      await vi.advanceTimersByTimeAsync(20_000); // the retry books and delivers
+      expect(t.jobs.get(ESCROW)).toMatchObject({ status: "delivered", bookingId: "B1" });
+      quiet.mockRestore();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("a reported booking: only if Hedera says it's disputed; then cancelled and refunded", async () => {
     const t = setup("delivered", async () => ({}));
     t.jobs.set(ESCROW, { ...(t.jobs.get(ESCROW) as Job), status: "delivered", bookingId: "B1" });

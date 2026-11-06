@@ -11,6 +11,8 @@ describe("an agent's ERC-8004 identity", () => {
     const erc8004 = {
       register: vi.fn(async () => ({ agentId: 42n, tx: "0x1" as const })),
       setAgentURI: vi.fn(async () => "0x2" as const),
+      registeredId: vi.fn(async () => null),
+      tokenURI: vi.fn(async () => ""),
     };
     const agent = privateKeyToAccount(generatePrivateKey());
     const base = {
@@ -48,5 +50,29 @@ describe("an agent's ERC-8004 identity", () => {
       42n,
       "https://skyhop.example/.well-known/agent-card.json",
     );
+  });
+
+  it("finds an identity it registered but didn't write down, instead of a second one", async () => {
+    const uri = "http://localhost:8804/.well-known/agent-card.json";
+    const erc8004 = {
+      register: vi.fn(async () => ({ agentId: 99n, tx: "0x1" as const })),
+      setAgentURI: vi.fn(async () => "0x2" as const),
+      registeredId: vi.fn(async () => 161n),
+      tokenURI: vi.fn(async () => uri),
+    };
+    const a = agentIdentity({
+      id: "bankcheck",
+      name: "Bank Check",
+      description: "IFSC codes",
+      publicUrl: "http://localhost:8804",
+      dataDir: mkdtempSync(join(tmpdir(), "id-")),
+      agent: privateKeyToAccount(generatePrivateKey()),
+      erc8004,
+      log: () => {},
+    });
+    await a.ensure();
+    expect(erc8004.register).not.toHaveBeenCalled();
+    expect(erc8004.setAgentURI).not.toHaveBeenCalled(); // it already points here
+    expect(a.card().registrations).toMatchObject([{ agentId: 161 }]);
   });
 });

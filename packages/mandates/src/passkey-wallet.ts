@@ -5,7 +5,6 @@ import {
   encodeAbiParameters,
   encodeFunctionData,
   type Hex,
-  http,
   keccak256,
   type LocalAccount,
   type PublicClient,
@@ -13,7 +12,7 @@ import {
   parseEventLogs,
 } from "viem";
 import { erc20Abi, mandateRegistryAbi } from "./abi";
-import { hederaTestnet } from "./chain";
+import { hederaRpc, hederaTestnet } from "./chain";
 import type { MandateParams } from "./client";
 
 /** PasskeyWallet: any of its passkeys (one per device) signs; a batch it signed adds or removes one. */
@@ -150,11 +149,11 @@ export class PasskeyWalletClient {
     readonly factory: Address,
     readonly chain = hederaTestnet,
   ) {
-    this.publicClient = createPublicClient({ chain, transport: http() }) as PublicClient;
+    this.publicClient = createPublicClient({ chain, transport: hederaRpc() }) as PublicClient;
   }
 
   private writer = (sender: LocalAccount) =>
-    createWalletClient({ account: sender, chain: this.chain, transport: http() });
+    createWalletClient({ account: sender, chain: this.chain, transport: hederaRpc() });
 
   addressOf = (k: PasskeyKey) =>
     this.publicClient.readContract({
