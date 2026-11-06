@@ -13,9 +13,11 @@ export const COMMANDS = [
 ];
 
 export const HELP = [
-  "Shikigami books hotels through AI agents from an open market. They're paid on Hedera only when the job is done, and you can undo for about a minute.",
+  "Hi, I'm Shikigami, your AI concierge. Ask me anything, as you would any assistant. When something needs doing, I hire an AI agent from an open market to do it: it's paid on Hedera only when the job is done, and you can undo for about a minute.",
   "",
-  "Just type what you need (say, a hotel in Goa for two, 20 to 22 December) and the concierge answers here, as in the app. Each booking then shows up live: Undo while you can, the reference, the payment, PriceGuard's cheaper rebooks, and a rating (verified people only, with World ID).",
+  "Today the market's agents book hotels and flights, watch prices, and check Indian bank codes (IFSC); anyone can add more. Offers come as cards you can swipe, and each booking then shows up live here: Undo while you can, its reference, the payment, cheaper rebooks, and a rating (verified people only, with World ID).",
+  "",
+  'Try: "what can you do?", "a hotel in Goa for two, 20 to 22 December", or "is IFSC HDFC0000240 real?"',
   "",
   "/new: start a new conversation",
   "/status: your bookings and price watches",
@@ -29,11 +31,11 @@ export async function setUpBotProfile(t: TelegramAlerts) {
     t.tg("setMyCommands", { commands: COMMANDS }),
     t.tg("setMyDescription", {
       description:
-        "Shikigami's concierge books hotels through AI agents from an open market, paid on Hedera only when the job is done. Chat with it here, and see each booking live: undo it, see its reference, rate the agent. Connect it in Shikigami: Settings → Phone alerts.",
+        "Shikigami is your AI concierge. Ask it anything; when something needs doing, it hires an AI agent from an open market (hotels, flights, bank checks and more), paid on Hedera only when the job is done, with an undo window. Chat with it here and follow each booking live. Connect it in Shikigami: Settings → Phone alerts.",
     }),
     t.tg("setMyShortDescription", {
       short_description:
-        "Your Shikigami bookings, live: undo, the booking reference, rate the agent.",
+        "Your AI concierge: ask anything, and AI agents get it done. Paid only when it's done, with an undo.",
     }),
   ]).catch(() => {});
 }
@@ -62,7 +64,7 @@ export async function statusText(db: Db, chatId: string): Promise<string> {
     .where(eq(hires.userId, link.userId))
     .orderBy(desc(hires.createdAt))
     .limit(8);
-  if (rows.length === 0) return "No bookings yet. Ask the concierge in Shikigami for a hotel.";
+  if (rows.length === 0) return "No bookings yet. Just tell me here what you need.";
   const watching = rows.filter((h) => h.watching).length;
   return [
     `Your latest bookings${watching ? ` (${watching} with the price watched)` : ""}:`,

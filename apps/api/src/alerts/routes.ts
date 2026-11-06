@@ -62,7 +62,7 @@ export function alertRoutes(db: Db, t: TelegramAlerts) {
     if (!user) return c.json({ error: "signed_out" }, 401);
     const sent = await t.send(user.id, {
       title: "Shikigami",
-      text: "Alerts work: you'll hear here when an agent books, refunds, or finds your room cheaper.",
+      text: "Alerts work: you'll hear here when an agent books, refunds, or finds you a better price.",
     });
     return c.json({ sent });
   });

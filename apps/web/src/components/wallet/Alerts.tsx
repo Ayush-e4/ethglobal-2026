@@ -80,8 +80,8 @@ export function Alerts() {
       <div className="flex flex-col gap-1">
         <span className="font-semibold">Phone alerts</span>
         <span className="text-ink-3">
-          A Telegram message when an agent books, refunds, or finds your room cheaper, with a link
-          back to the chat.
+          Chat with Shikigami in Telegram, and get a message there when an agent books, refunds, or
+          finds you a better price.
         </span>
       </div>
       {s.linked ? (
