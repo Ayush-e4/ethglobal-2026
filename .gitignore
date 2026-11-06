@@ -30,3 +30,8 @@ packages/contracts/broadcast/
 !.vscode/extensions.json
 .idea/
 .claude/
+
+# labs
+labs/zkml-guard/build/
+labs/zkml-guard/.venv/
+labs/zkml-guard/evm/cache/
