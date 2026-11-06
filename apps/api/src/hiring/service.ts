@@ -5,6 +5,7 @@ import { and, eq, gt } from "drizzle-orm";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Db } from "../db/client";
 import { type Hire, hires, type Limit, quotes, type User } from "../db/schema";
+import type { HumanGate } from "../world/checkpoint";
 import { demoCapsAllow } from "./caps";
 import type { HiringConfig } from "./config";
 import { demoLimitFor, LIMIT_TERMS, limitParams, liveLimit, NeedsLimit } from "./limits";
@@ -24,7 +25,12 @@ export type OwnWallet = (
   userId: string,
 ) => Promise<{ address: string; hederaId: string | null; status: string } | null>;
 
-export function hiringService(db: Db, cfg: HiringConfig, ownWallet?: OwnWallet) {
+export function hiringService(
+  db: Db,
+  cfg: HiringConfig,
+  ownWallet?: OwnWallet,
+  human?: HumanGate, // larger hires: a person approves with World ID first
+) {
   const registry = new MandateClient(cfg.registry);
   const ids = new HederaIds(cfg.mirrorUrl);
   const concierge = privateKeyToAccount(cfg.conciergeKey);
@@ -61,6 +67,13 @@ export function hiringService(db: Db, cfg: HiringConfig, ownWallet?: OwnWallet) 
       const demo = user.isDemo;
       const blocked = demo ? await demoCapsAllow(db, user.id, quote.feeUnits, cfg.caps) : null;
       if (blocked) throw new HireError(blocked);
+      const approval = await human?.(user, chatId, {
+        key: quoteKey,
+        agentName: quote.agentName,
+        agentAddress: quote.agentAddress,
+        feeUnits: quote.feeUnits,
+        summary: quote.summary,
+      });
       const payee = quote.agentAddress as `0x${string}`;
       let own: Limit | null = null;
       if (!demo) {
@@ -80,6 +93,8 @@ export function hiringService(db: Db, cfg: HiringConfig, ownWallet?: OwnWallet) 
           });
       }
 
+      if (approval && !(await approval.use()))
+        throw new HireError("That World ID approval was already used. Ask to book it again.");
       const [hire] = await db
         .insert(hires)
         .values({

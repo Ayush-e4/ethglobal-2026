@@ -239,8 +239,9 @@ export type WorldCheckStatus =
   | "mismatch";
 
 /**
- * World ID checks ("prove you're a person"). The device code stays here, never in the browser,
- * and the check survives a restart: it's picked up again while it can still be approved.
+ * World ID checks ("prove you're a person"): for the welcome bonus, or to approve one larger
+ * payment. The device code stays here, never in the browser, and the check survives a restart:
+ * it's picked up again while it can still be approved.
  */
 export const worldChecks = pgTable(
   "world_checks",
@@ -249,7 +250,8 @@ export const worldChecks = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    purpose: text("purpose").$type<"bonus">().notNull(),
+    purpose: text("purpose").$type<"bonus" | "spend">().notNull(),
+    ref: text("ref"), // what it approves: for "spend", the chat and quote (`chatId:quoteKey`)
     userCode: text("user_code").notNull(),
     link: text("link").notNull(), // where the person approves it
     deviceCode: text("device_code").notNull(),
@@ -258,6 +260,8 @@ export const worldChecks = pgTable(
     expiresAt: at("expires_at").notNull(),
     status: text("status").$type<WorldCheckStatus>().notNull().default("waiting"),
     reason: text("reason"),
+    endedAt: at("ended_at"),
+    usedAt: at("used_at"), // a "spend" approval works once
     createdAt: at("created_at").notNull().defaultNow(),
   },
   (t) => [index("world_checks_user_idx").on(t.userId, t.createdAt)],

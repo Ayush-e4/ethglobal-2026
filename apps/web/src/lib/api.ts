@@ -56,6 +56,7 @@ export interface WorldCheck {
   id: string;
   status: "waiting" | "verified" | "denied" | "expired" | "failed" | "mismatch";
   reason?: string;
+  used: boolean; // an approval of a hire works once
   userCode: string;
   link: string; // World's page for this check (it opens the World ID app)
   expiresAt: string;

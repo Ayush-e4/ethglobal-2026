@@ -3,6 +3,7 @@
 import type { Card } from "@app/shared";
 import { shortAddress, usdc } from "@/lib/api";
 import { HireCard } from "./HireCard";
+import { HumanCard } from "./HumanCard";
 import { LimitCard } from "./LimitCard";
 import { QuotesCard } from "./QuotesCard";
 
@@ -40,6 +41,8 @@ export function CardView({ card, ctx }: { card: Card; ctx: CardCtx }) {
       return <HireCard card={card} ctx={ctx} />;
     case "limit":
       return <LimitCard card={card} ctx={ctx} />;
+    case "human":
+      return <HumanCard card={card} ctx={ctx} />;
     case "sources":
       return <Sources card={card} />;
   }
