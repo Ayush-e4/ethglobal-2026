@@ -124,6 +124,32 @@ Live (`pnpm --filter @app/api face-id-hire-demo`, a software passkey through the
 ✓ Face ID cancelled it: cancelled  https://hashscan.io/testnet/transaction/0xa1019a530fda48898dd4d63633287c5cb4c4d82ad1899e9b1d57c1c2b16b8337
 ```
 
+## One account on several devices
+
+Each device has its **own passkey** (passkeys can't be copied between devices, by design):
+
+1. On a signed-in device: Wallet → Your devices → **Add another device** shows a code and a QR of
+   `/link#CODE` (the code rides in the `#fragment`, so it never reaches a server log). Each code
+   works once, for 10 minutes, one at a time per account.
+2. The new device opens `/link`, makes its own passkey on the account with the code, and is
+   signed in. It can chat, but it **can't approve payments yet**.
+3. **Let it approve (Face ID)** on a device the wallet already trusts: a batch calling the
+   wallet's `addKey`. Only a trusted passkey can sign it.
+4. **Remove** a lost device: Face ID (`removeKey`), its passkey stops signing in, and other
+   sessions end. A device removing itself signs out only itself. The last device that can
+   approve can't be removed. Gas: 0.8M each (0.3M used).
+
+Live (`pnpm --filter @app/api device-link-demo`, software passkeys for a phone and a laptop; the
+laptop removing itself with its own signature proves Hedera added its key):
+
+```
+✓ phone signed up; Face ID wallet 0.0.11332582
+✓ laptop joined with code V5ZJ-ZNFN (HTTP 200); same account: true
+✓ phone let the laptop in  https://hashscan.io/testnet/transaction/0x7b79d51d05a19cf8260d39fcd1d5bc5c04abf01cac3970d2602d4c5797d59945
+✓ laptop shut itself out with its own Face ID  https://hashscan.io/testnet/transaction/0x36f48295d342798aea14f6c0685262c0314d4a8aa49c28e4b4b74a5d547eb1f6
+✓ phone still signed in: true; laptop signed out: true; devices left: 1
+```
+
 ## Gotchas
 
 - **Reads lag the receipt.** Hedera's JSON-RPC answers reads from a mirror node a moment behind.

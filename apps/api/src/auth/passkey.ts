@@ -5,6 +5,7 @@ import {
   type RegistrationResponseJSON,
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
+  type WebAuthnCredential,
 } from "@simplewebauthn/server";
 import { isoBase64URL } from "@simplewebauthn/server/helpers";
 import { and, eq, gt, isNull } from "drizzle-orm";
@@ -15,6 +16,9 @@ const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const ES256 = -7; // P-256: what phones and laptops use, and what a wallet contract can check
 
 export class SignInError extends Error {}
+
+/** A passkey just made on a device, checked, not yet saved. */
+export type NewPasskey = WebAuthnCredential;
 
 /**
  * Why a device's answer was refused, from the WebAuthn library (a wrong origin, no user
@@ -56,14 +60,44 @@ export function passkeyAuth(db: Db, site: PasskeySite) {
     ).length > 0;
   const expected = { expectedOrigin: site.origin, expectedRPID: site.rpID };
 
+  /** Checks a new passkey's answer to its challenge (used up here, so it can't be replayed). */
+  async function verifyNew(response: RegistrationResponseJSON): Promise<NewPasskey> {
+    const result = await verifyRegistrationResponse({
+      response,
+      expectedChallenge: useUp,
+      ...expected,
+      supportedAlgorithmIDs: [ES256],
+    }).catch((err) => {
+      throw new SignInError(`passkey not accepted: ${reason(err)}`);
+    });
+    if (!result.verified) throw new SignInError("passkey not accepted: not verified");
+    return result.registrationInfo.credential;
+  }
+  const passkeyRow = (userId: string, c: NewPasskey, label: string | null) => ({
+    id: c.id,
+    userId,
+    publicKey: isoBase64URL.fromBuffer(c.publicKey),
+    counter: c.counter,
+    transports: c.transports ?? null,
+    label,
+  });
+
   return {
-    async registrationOptions(name?: string) {
+    /** Options for a new passkey; `existing` are the account's own (a device can't add one twice). */
+    async registrationOptions(
+      name?: string,
+      existing: { id: string; transports: string[] | null }[] = [],
+    ) {
       const label = name?.trim() || `${site.name} ${new Date().toISOString().slice(0, 10)}`;
       const options = await generateRegistrationOptions({
         rpName: site.name,
         rpID: site.rpID,
         userName: label,
         userDisplayName: label,
+        excludeCredentials: existing.map((k) => ({
+          id: k.id,
+          transports: (k.transports ?? undefined) as never,
+        })),
         attestationType: "none",
         // Required, not "preferred": with "preferred" some passkey apps (password-manager
         // extensions) skip Face ID / PIN, and the wallet only accepts a verified answer anyway.
@@ -76,29 +110,21 @@ export function passkeyAuth(db: Db, site: PasskeySite) {
 
     /** Checks a new passkey's answer to its challenge, then creates its account. */
     async register(response: RegistrationResponseJSON, label: string | null = null): Promise<User> {
-      const result = await verifyRegistrationResponse({
-        response,
-        expectedChallenge: useUp,
-        ...expected,
-        supportedAlgorithmIDs: [ES256],
-      }).catch((err) => {
-        throw new SignInError(`passkey not accepted: ${reason(err)}`);
-      });
-      if (!result.verified) throw new SignInError("passkey not accepted: not verified");
-      const c = result.registrationInfo.credential;
+      const c = await verifyNew(response);
       return db.transaction(async (tx) => {
         const [user] = await tx.insert(users).values({ displayName: label }).returning();
         if (!user) throw new Error("could not create the user");
-        await tx.insert(passkeys).values({
-          id: c.id,
-          userId: user.id,
-          publicKey: isoBase64URL.fromBuffer(c.publicKey),
-          counter: c.counter,
-          transports: c.transports ?? null,
-          label,
-        });
+        await tx.insert(passkeys).values(passkeyRow(user.id, c, label));
         return user;
       });
+    },
+
+    verifyNew,
+
+    /** Another device's passkey for an existing account (it signs in; paying needs Face ID). */
+    async addDevice(user: User, c: NewPasskey, label: string | null): Promise<User> {
+      await db.insert(passkeys).values(passkeyRow(user.id, c, label));
+      return user;
     },
 
     /** Options for signing in: any passkey this site made, picked on the device. */

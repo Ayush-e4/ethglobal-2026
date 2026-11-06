@@ -65,7 +65,8 @@ export type WalletOpMeta =
       budgetUnits: string;
       expiresAt: string; // ISO, the limit's
     }
-  | { kind: "revoke"; limitId: string };
+  | { kind: "revoke"; limitId: string }
+  | { kind: "device"; passkeyId: string; add: boolean }; // let a device approve, or shut it out
 
 /**
  * A move a Face ID wallet is about to make: the batch, and the digest its passkey signs. Kept

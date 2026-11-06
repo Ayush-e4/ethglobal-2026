@@ -84,6 +84,10 @@ failed sign-up can be told apart.
 | `GET /chats/:id/limits` | The chat's live limits (payee, budget, expiry): how a limit card knows it was approved |
 | `GET /wallet/limits` | Your Face ID wallet's limits: agent, chat, budget, what's left (from Hedera), expiry, `active` / `expired` / `cancelled` |
 | `POST /wallet/limits/:id/revoke/face-id` → device → `POST /wallet/limits/:id/revoke` `{ opId, response }` | Cancel a limit with Face ID: the wallet revokes it on Hedera |
+| `GET /account/devices`, `POST /account/devices/link` | Your devices (passkeys), and a one-time code for adding one |
+| `POST /auth/passkey/link/options` `{ code }` → new device → `POST /auth/passkey/link` | The new device makes its own passkey on the account and is signed in |
+| `POST /account/devices/:id/wallet/face-id` `{ action: add \| remove }` → trusted device → `POST /account/devices/:id/wallet` | Let a device approve payments, or shut it out (Face ID on a device the wallet trusts) |
+| `DELETE /account/devices/:id` | Forget a passkey that can't approve payments |
 
 Signing up with a passkey starts making the wallet in the background (`src/wallet`): the sponsor
 calls the factory (the address comes from the passkey, so it's known up front), waits for the
