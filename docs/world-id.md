@@ -130,11 +130,11 @@ What we built on Agent Pass (sandbox issuer, OIDC device flow, our own server ch
 bonus once per person, a human checkpoint before larger agent payments (with the decline and
 timeout paths), and ratings on Arkiv that count only from verified people.
 
-**Time to first success.** We reused the Agent Pass app from our practice build, so no new
-registration. From the first line of code to the first approved check validated on our server:
-about 20 minutes. To the first protected action (the bonus paid on Hedera after a validated
-check): about 40 minutes. The checkpoint, with a live decline and a live approval, took about an
-hour more, most of it on the two issues marked ★ below.
+**Time to first success.** We reused the Agent Pass app and the client code from our practice
+build, so no new registration. About 20 minutes after starting, the first approved check was
+validated on our server and its protected action ran (the bonus, paid on Hedera). The checkpoint
+before payments, with a live decline and a live approval, took under an hour more; most of that
+went on the two issues marked ★ below.
 
 **Friction.**
 
