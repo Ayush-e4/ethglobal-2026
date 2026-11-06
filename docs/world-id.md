@@ -123,3 +123,51 @@ passkey", but only for a World ID that already has a passkey; it doesn't make a 
   "Continue with World ID" and "Deny connection". "Continue with World ID" leads to **Open World
   ID app**, a `worldidsandbox://` link, plus "Show QR code instead". On an iPad with the app
   installed, the link opened it and the approval came through (`acr` Orb).
+
+## Integration debrief (for World)
+
+What we built on Agent Pass (sandbox issuer, OIDC device flow, our own server checks): a welcome
+bonus once per person, a human checkpoint before larger agent payments (with the decline and
+timeout paths), and ratings on Arkiv that count only from verified people.
+
+**Time to first success.** We reused the Agent Pass app and the client code from our practice
+build, so no new registration. About 20 minutes after starting, the first approved check was
+validated on our server and its protected action ran (the bonus, paid on Hedera). The checkpoint
+before payments, with a live decline and a live approval, took under an hour more; most of that
+went on the two issues marked ★ below.
+
+**Friction.**
+
+1. ★ **An approval reaches the token endpoint only after World's page is opened again.** The
+   person approves in the World ID app; until World's authorize page is loaded again ("Return
+   here to finish verification"), our server's polls keep getting `authorization_pending`. In a
+   device flow (RFC 8628) the device shouldn't depend on the browser coming back, and nothing in
+   the docs says this step is required. We now tell people on our card to go back to World's page.
+2. ★ **Which app?** The App Store now has "World ID — Proof of Human" and "World Money" (which
+   used to be World App), and the docs and prize page say "World App". The sandbox page's **Open
+   World ID app** is a `worldidsandbox://` link, so it opens only the TestFlight sandbox app; on a
+   phone without it, the button does nothing (no store link, no message). Whether the public World
+   ID app can approve sandbox requests isn't stated anywhere we found.
+3. **"Continue with a passkey"** on the sandbox page only signs in an existing World ID passkey.
+   With none, the browser just says there are no passkeys for `sandbox.auth.world.org`; the page
+   doesn't say how to get one.
+4. **The prize page says proofs are mocked and the sandbox app isn't needed**, but the sandbox
+   page still sends people to the sandbox app, and we found no mocked path that works without it.
+5. **A sandbox token looks like a production one**: `acr` = Orb, `amr` = `["pop"]`. Only `iss`
+   tells them apart, so code has to check the issuer to keep sandbox approvals out of production.
+6. Still true from our first build: the sandbox app needs TestFlight's public link (opening
+   TestFlight directly asks for an invitation), Developer options → v4 protocol and credential
+   issuance, and about an hour before the test credential works.
+
+**Missing capability or documentation.**
+
+- A documented way to approve sandbox requests without installing anything (a "mock approve"
+  button on the sandbox page), so judges and teammates can try a flow in a minute.
+- Showing *what* is being approved: the device flow has no `binding_message`, so World's page
+  and app show only our app's name and a code. We bind the approval to one payment ourselves.
+- A fallback for the `worldidsandbox://` link (a store or TestFlight link, or a web approval).
+- The "return to this page" step, documented for device-flow clients.
+
+**The one improvement with the greatest impact:** a no-install way to complete sandbox Agent Pass
+requests (mock approve on the sandbox page). Every hackathon judge would then be able to try the
+World ID part of a project themselves, instead of watching a video of it.
