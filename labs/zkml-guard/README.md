@@ -33,6 +33,7 @@ skipped, or computed with a different model, without trusting us.
 | Verify on Hedera testnet: real proof | **Accepted**, ≈ 591k gas ([0.0.11344909](https://hashscan.io/testnet/contract/0.0.11344909)) |
 | Same proof, score lowered by one step | **Rejected** |
 | Same proof, payment amount changed | **Rejected** |
+| Runs like the VM (Docker `python:3.12-alpine`, linux/arm64, 2 CPUs): EZKL's only ARM64 Linux wheel is musl, so Alpine, not Debian or Ubuntu | **2.0 s** a proof, **340 MB** peak; its proof is accepted on Hedera too |
 | Proving key size | 138 MB (logrows 15). With a sigmoid in the circuit it was 654 MB and 3.1 s, so the circuit outputs the logit and the UI applies the sigmoid |
 
 The model is trained on a synthetic "teacher" rule (97.8% agreement). It's a demo model, not a

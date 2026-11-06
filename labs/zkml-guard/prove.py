@@ -9,6 +9,7 @@ import asyncio
 import inspect
 import json
 import os
+import resource
 import sys
 import tempfile
 import time
@@ -43,7 +44,13 @@ async def main() -> None:
     scale = json.load(open(B("settings.json")))["model_output_scales"][0]
     logit = ezkl.felt_to_float(witness["outputs"][0][0], scale)
     ms["total"] = round((time.perf_counter() - t0) * 1000)
-    json.dump({"logit": logit, "scale": scale, "calldata": "0x" + bytes(calldata).hex(), "ms": ms}, sys.stdout)
+    # Peak memory of this process (ru_maxrss is bytes on macOS, KiB on Linux).
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    peak_mb = round(rss / (1 << 20) if sys.platform == "darwin" else rss / 1024)
+    json.dump(
+        {"logit": logit, "scale": scale, "calldata": "0x" + bytes(calldata).hex(), "ms": ms, "peak_mb": peak_mb},
+        sys.stdout,
+    )
 
 
 asyncio.run(main())
