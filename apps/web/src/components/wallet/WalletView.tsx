@@ -6,6 +6,7 @@ import { PasskeyIcon } from "../icons";
 import { Devices } from "./Devices";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
+import { WorldBonus } from "./WorldBonus";
 
 /**
  * Your Face ID wallet: its test USDC and its Hedera account. Only your passkeys can move what's
@@ -123,6 +124,7 @@ export function WalletView() {
               It started with {usdc(w.giftUnits)} test USDC from us, to try things out.
             </p>
           )}
+          <WorldBonus onBonus={load} />
           <Limits />
           <Devices />
           <TopUp address={w.address} />

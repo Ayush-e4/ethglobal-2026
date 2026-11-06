@@ -14,6 +14,9 @@ import { walletLimitRoutes } from "./wallet/limits-routes";
 import type { WalletApprovals } from "./wallet/ops";
 import { walletRoutes } from "./wallet/routes";
 import type { WalletService } from "./wallet/service";
+import type { WorldBonus } from "./world/bonus";
+import type { WorldChecks } from "./world/checks";
+import { worldRoutes } from "./world/routes";
 
 export type AppOptions = {
   appOrigin: string;
@@ -25,6 +28,7 @@ export type AppOptions = {
   walletChain?: WalletChain; // with `approvals`: Face ID approvals of spending limits
   approvals?: WalletApprovals;
   demoToken?: string; // enables the "simulate a price drop" demo control
+  world?: { checks: WorldChecks | null; bonus: WorldBonus }; // World ID: "prove you're a person"
 };
 
 export function createApp(o: AppOptions) {
@@ -38,6 +42,7 @@ export function createApp(o: AppOptions) {
   app.route("/", chatRoutes(db, concierge));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (wallets) app.route("/", walletRoutes(db, wallets));
+  if (wallets && o.world) app.route("/", worldRoutes(db, { ...o.world, wallets }));
   if (wallets && o.approvals)
     app.route("/", deviceRoutes(db, { wallets, approvals: o.approvals, links }));
   if (hiring && wallets && o.walletChain && o.approvals) {
