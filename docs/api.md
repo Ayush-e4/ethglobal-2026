@@ -96,6 +96,15 @@ mirror to show its Hedera id, then sends the gift. Safe to repeat: a visit to `/
 failed try or one a restart cut off, and the gift is recorded **before** it's sent, so it never
 goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
 
+## World ID
+
+| Route | |
+|-------|--|
+| `GET /world` | World ID on this account: `available` (set up on this server), `verified`, the welcome `bonus` (`sending` / `sent` / `failed`, with its transaction), and the newest bonus `check` |
+| `POST /world/bonus` | Start a World ID check that sends the bonus when it passes: `{ check: { id, status, userCode, link, expiresAt } }`. One at a time (a waiting check is returned again). 409 for demo accounts, a wallet that isn't ready, or a bonus already had |
+
+How a check is judged, and what's stored: [world-id.md](world-id.md).
+
 ## Roles
 
 `user` for everyone; `admin` for account ids listed in `ADMIN_USERS` (server settings only, so

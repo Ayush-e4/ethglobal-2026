@@ -51,6 +51,25 @@ export interface WalletInfo {
   };
 }
 
+/** A "prove you're a person" check: approved in the World ID app, judged by our server. */
+export interface WorldCheck {
+  id: string;
+  status: "waiting" | "verified" | "denied" | "expired" | "failed" | "mismatch";
+  reason?: string;
+  userCode: string;
+  link: string; // World's page for this check (it opens the World ID app)
+  expiresAt: string;
+}
+
+/** GET /world: World ID on this account, and its welcome bonus. */
+export interface WorldInfo {
+  available: boolean; // false: World ID isn't set up on this server
+  verified?: boolean;
+  bonusUnits?: string;
+  bonus?: { units: string; status: "sending" | "sent" | "failed"; tx: string | null } | null;
+  check?: WorldCheck | null; // the newest bonus check
+}
+
 /** GET /wallet/limits: what the concierge may spend from your wallet, and where. */
 export interface WalletLimit {
   id: string;

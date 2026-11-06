@@ -6,20 +6,31 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
 const at = (name: string) => timestamp(name, { withTimezone: true });
 
-/** A person using the app: a passkey account, or a demo account from "Try the demo". */
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  isDemo: boolean("is_demo").notNull().default(false),
-  displayName: text("display_name"),
-  createdAt: at("created_at").notNull().defaultNow(),
-});
+/**
+ * A person using the app: a passkey account, or a demo account from "Try the demo". Their World
+ * ID, once they prove they're a person with it: one World ID per account, one account per World ID.
+ */
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    isDemo: boolean("is_demo").notNull().default(false),
+    displayName: text("display_name"),
+    worldIss: text("world_iss"),
+    worldSub: text("world_sub"), // the same person always gets the same one, for this app only
+    createdAt: at("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("users_world_idx").on(t.worldIss, t.worldSub)],
+);
 
 /** One-time challenges a passkey signs. Each works once, for 5 minutes. */
 export const authChallenges = pgTable("auth_challenges", {
@@ -217,6 +228,54 @@ export const hires = pgTable(
     updatedAt: at("updated_at").notNull().defaultNow(),
   },
   (t) => [index("hires_chat_idx").on(t.chatId), index("hires_status_idx").on(t.status)],
+);
+
+export type WorldCheckStatus =
+  | "waiting"
+  | "verified"
+  | "denied"
+  | "expired"
+  | "failed"
+  | "mismatch";
+
+/**
+ * World ID checks ("prove you're a person"). The device code stays here, never in the browser,
+ * and the check survives a restart: it's picked up again while it can still be approved.
+ */
+export const worldChecks = pgTable(
+  "world_checks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    purpose: text("purpose").$type<"bonus">().notNull(),
+    userCode: text("user_code").notNull(),
+    link: text("link").notNull(), // where the person approves it
+    deviceCode: text("device_code").notNull(),
+    intervalS: integer("interval_s").notNull(),
+    startedAtS: bigint("started_at_s", { mode: "number" }).notNull(),
+    expiresAt: at("expires_at").notNull(),
+    status: text("status").$type<WorldCheckStatus>().notNull().default("waiting"),
+    reason: text("reason"),
+    createdAt: at("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("world_checks_user_idx").on(t.userId, t.createdAt)],
+);
+
+/** The welcome bonus, once per person (their World ID): recorded before it's sent. */
+export const worldBonuses = pgTable(
+  "world_bonuses",
+  {
+    worldIss: text("world_iss").notNull(),
+    worldSub: text("world_sub").notNull(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    units: bigint("units", { mode: "bigint" }).notNull(),
+    status: text("status").$type<"sending" | "sent" | "failed">().notNull().default("sending"),
+    tx: text("tx"),
+    createdAt: at("created_at").notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.worldIss, t.worldSub] })],
 );
 
 export type User = typeof users.$inferSelect;
