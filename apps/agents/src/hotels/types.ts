@@ -16,6 +16,7 @@ export interface StoredQuote {
   adults: number;
   refundable?: boolean;
   feeUnits: string; // the agent's fee, in USDC units, held in escrow
+  priceUnits?: string; // the stay's price, held in escrow too (testnet scale)
   expiresAtMs: number;
   // What the buyer sees: why it's offered, and the hotel at a glance.
   tag?: string; // "Cheapest", "Best rated", "Best value"

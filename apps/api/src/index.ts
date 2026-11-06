@@ -9,6 +9,7 @@ import { alertingChats } from "./alerts/routes";
 import { startTelegramBot, telegramAlerts } from "./alerts/telegram";
 import { telegramChat } from "./alerts/telegram-chat";
 import { createApp } from "./app";
+import { cardIssuer } from "./cards/issuer";
 import { chatStore } from "./chats/store";
 import { claudeConcierge } from "./concierge/concierge";
 import { saveQuotes } from "./concierge/quote-store";
@@ -113,6 +114,8 @@ const deals = dealService(db, {
   chain: walletChain,
   chats: chatStore(db),
 });
+// AgentNet Cards (a mock issuer): agents pay hotels and airlines with one-time cards.
+const cards = cardIssuer(db, hiring.registry);
 const hiringLive = {
   ...hiring,
   async cancel(...a: Parameters<typeof hiring.cancel>) {
@@ -173,6 +176,7 @@ const app = createApp({
   alerts,
   tools,
   market: { market, reviews, erc8004 },
+  cards,
   deals,
   // An app (Claude) was connected: tell the account's own traveller ("me"), if it has one.
   async onAppConnected(userId, app) {
@@ -210,8 +214,14 @@ await hireFollower(
     onChange: live.show,
     onBooked: confirm.booked,
     onRebooked: confirm.rebooked,
-    onRefunded: confirm.refunded,
-    onReleased: deals.onReleased,
+    async onRefunded(h, why) {
+      await cards.voidFor(h.escrowId ?? "");
+      await confirm.refunded(h, why);
+    },
+    async onReleased(h) {
+      await cards.capture(h.escrowId ?? ""); // the card's charge is settled from the escrow
+      await deals.onReleased(h);
+    },
     onDisputeSettled: disputes.onSettled,
   },
 ).start();

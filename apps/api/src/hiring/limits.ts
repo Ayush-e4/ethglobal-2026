@@ -6,7 +6,8 @@ import type { Db } from "../db/client";
 import { type Limit, limits } from "../db/schema";
 
 /** A chat's limit for one agent: up to 0.10 USDC, 0.05 a payment, for a day. */
-export const LIMIT_TERMS = { budget: parseUsdc("0.10"), cap: parseUsdc("0.05"), hours: 24 };
+// Room for a trip price (at testnet scale) as well as the fee.
+export const LIMIT_TERMS = { budget: parseUsdc("0.50"), cap: parseUsdc("0.20"), hours: 24 };
 
 /**
  * No limit with room for this agent in this chat yet, and the money is the user's own: they
@@ -60,7 +61,12 @@ export async function liveLimit(
     .orderBy(desc(limits.createdAt));
   for (const l of rows) {
     if (l.owner.toLowerCase() !== owner.toLowerCase()) continue;
-    if ((await registry.remaining(l.mandateId)) >= fee && (await registry.isActive(l.mandateId)))
+    // Room left, and a per-payment cap that fits (older limits had a lower cap).
+    if (
+      (await registry.remaining(l.mandateId)) >= fee &&
+      (await registry.getMandate(l.mandateId)).perPaymentCap >= fee &&
+      (await registry.isActive(l.mandateId))
+    )
       return l;
   }
   return null;

@@ -118,6 +118,21 @@ export function hireFollower(
         );
         if (ref) await tell("email", hooks.onBooked?.(hire, ref));
       }
+    } else if (hire.status === "delivered" && escrow.state === "refunded") {
+      // Cancelled in the review window with the trip price in escrow: the agent gave it all back.
+      await set(hire.id, {
+        status: "refunded",
+        watching: false,
+        bookingCancelledAt: hire.bookingCancelledAt ?? new Date(),
+        note: "cancelled in the review window: everything refunded",
+      });
+      await chats.add(
+        hire.chatId,
+        "assistant",
+        `${hire.agentName} cancelled ${hire.title} and refunded everything: the trip price and its fee.`,
+      );
+      await tell("email", hooks.onRefunded?.({ ...hire, status: "refunded" }, "not_booked"));
+      return;
     } else if (hire.status === "disputed" && escrow.state === "refunded") {
       // The agent settled the buyer's report by giving the fee back.
       const res = hire.jobUrl

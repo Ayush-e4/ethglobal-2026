@@ -34,6 +34,7 @@ export interface PaidJob<W extends WatchBase = WatchBase> {
   refundTx?: string;
   note?: string;
   watch?: W; // a watching agent's, after delivery
+  card?: AgentCard; // how it paid the supplier
 }
 
 /** A quote an agent stored when it offered it, as the paid-job code needs it. */
@@ -41,10 +42,25 @@ export interface QuoteBase {
   key: Hex;
   task: string;
   expiresAtMs: number;
+  priceUnits?: string; // the trip price, paid into escrow with the fee (testnet scale)
+}
+
+/** The one-time card an agent pays the hotel or airline with (a mock issuer, for now). */
+export interface AgentCard {
+  id: string;
+  last4: string;
+  brand: string;
+  merchant: string;
+  amount: number;
+  currency: string;
+  expiresAt: number; // ms
+  status: "authorized" | "voided";
 }
 
 /** Where the job is actually done: a hotel or an airline, through its API. */
 export interface Supplier<Q> {
+  /** Who gets paid, and how much, for this quote (the card is locked to exactly that). */
+  merchant?(quote: Q): { name: string; amount: number; currency: string };
   book(
     quote: Q,
     guest: Guest,

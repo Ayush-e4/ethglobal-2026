@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { hashscanTx, type Trip, usdc } from "@/lib/api";
+import { cardLine, hashscanTx, rupeesOf, type Trip, usdc } from "@/lib/api";
 import { RateAgent } from "../chat/RateAgent";
 import { ReportProblem } from "../chat/ReportProblem";
 import { CancelBooking } from "./CancelBooking";
@@ -58,6 +58,24 @@ export function TripCard({ trip }: { trip: Trip }) {
           <>
             <dt className="text-muted">Reference</dt>
             <dd className="font-mono">{t.bookingRef}</dd>
+          </>
+        )}
+        {t.priceUnits && (
+          <>
+            <dt className="text-muted">In escrow</dt>
+            <dd>
+              {rupeesOf(t.priceUnits)} + fee{" "}
+              <span className="text-xs text-muted">(testnet scale)</span>
+            </dd>
+          </>
+        )}
+        {t.card && (
+          <>
+            <dt className="text-muted">Paid with</dt>
+            <dd>
+              One-time card {cardLine(t.card)}{" "}
+              <span className="text-xs text-muted">(simulated)</span>
+            </dd>
           </>
         )}
         {t.watchNote && (

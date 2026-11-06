@@ -43,8 +43,74 @@ function setup(state: string, book: () => Promise<unknown>) {
   const lite = { book: vi.fn(book), cancel: vi.fn(async () => ({})) };
   const arkiv = { address: agent.address, run: vi.fn(async () => ({ txHash: "0x1" })) };
   const worker = hotelWorker({ registry, agent, lite, arkiv, jobs, quotes } as never);
-  return { worker, jobs, registry, lite };
+  return { worker, jobs, quotes, registry, lite };
 }
+
+describe("paying the hotel with a one-time card", () => {
+  it("gets a card locked to the hotel and the escrowed price before booking; a failed booking voids it", async () => {
+    const cardCalls: unknown[] = [];
+    const cards = {
+      issue: vi.fn(async (r: unknown) => {
+        cardCalls.push(r);
+        return {
+          id: "c1",
+          last4: "4821",
+          brand: "Visa (simulated)",
+          merchant: "Park Inn",
+          amount: 12347,
+          currency: "INR",
+          expiresAt: 0,
+          status: "authorized" as const,
+        };
+      }),
+      void: vi.fn(async () => {}),
+    };
+    const make = (book: () => Promise<unknown>) => {
+      const t = setup("held", book);
+      t.quotes.set(QUOTE, {
+        key: QUOTE,
+        prebookId: "pre1",
+        hotelName: "Park Inn",
+        total: 12347,
+        currency: "INR",
+        priceUnits: "12347",
+      } as StoredQuote);
+      const worker = hotelWorker({
+        registry: t.registry,
+        agent,
+        lite: t.lite,
+        arkiv: { address: agent.address, run: vi.fn(async () => ({ txHash: "0x1" })) },
+        jobs: t.jobs,
+        quotes: t.quotes,
+        cards,
+      } as never);
+      return { ...t, worker };
+    };
+    const ok = make(async () => ({ bookingId: "B1" }));
+    await ok.worker.process(ESCROW);
+    expect(cardCalls[0]).toEqual({
+      escrowId: ESCROW,
+      merchant: "Park Inn",
+      amount: 12347,
+      currency: "INR",
+      amountUnits: "12347",
+    });
+    expect(ok.jobs.get(ESCROW)).toMatchObject({
+      status: "delivered",
+      card: { last4: "4821", status: "authorized" },
+    });
+
+    const failed = make(async () => {
+      throw new Error("sold out");
+    });
+    await failed.worker.process(ESCROW);
+    expect(cards.void).toHaveBeenCalledWith(ESCROW);
+    expect(failed.jobs.get(ESCROW)).toMatchObject({
+      status: "refunded",
+      card: { status: "voided" },
+    });
+  });
+});
 
 describe("HotelWorker", () => {
   it("books after the window, then marks it delivered", async () => {

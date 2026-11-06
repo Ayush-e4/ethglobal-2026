@@ -6,6 +6,7 @@ import { alertRoutes } from "./alerts/routes";
 import type { TelegramAlerts } from "./alerts/telegram";
 import { deviceLinks } from "./auth/device-links";
 import { type AuthConfig, authRoutes } from "./auth/routes";
+import type { CardIssuerService } from "./cards/issuer";
 import { chatRoutes, type ReplyReady } from "./chats/routes";
 import type { Concierge } from "./concierge/concierge";
 import type { Market } from "./concierge/market";
@@ -56,6 +57,7 @@ export type AppOptions = {
   deals?: DealService; // deal drops: one claim per person (World ID)
   email?: { available: boolean; tryEmail: TryEmail; test: (to: string) => Email }; // account email
   replyReady?: ReplyReady; // a slow reply finished after its reader left: nudge them
+  cards?: CardIssuerService; // the (mock) issuer of agents' one-time cards
   replyReadyAfterMs?: number; // how long a reply must take to be worth it (tests: 0)
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
@@ -79,6 +81,7 @@ export function createApp(o: AppOptions) {
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));
   if (o.deals) app.route("/", dealRoutes(db, o.deals));
+  if (o.cards) app.route("/", o.cards.routes);
   if (o.email) app.route("/", emailRoutes(db, o.email));
   // Connected apps (Claude): OAuth to connect, and the concierge's tools over MCP.
   app.route("/", oauthRoutes(db, appOrigin, o.onAppConnected));

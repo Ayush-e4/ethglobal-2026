@@ -1,5 +1,5 @@
 import { postQuotes, type SafeArkivWriter } from "@app/arkiv";
-import { type Offer, parseUsdc, stay } from "@app/shared";
+import { inrToTestUnits, type Offer, parseUsdc, stay } from "@app/shared";
 import type { HotelOffer, LiteApiClient } from "@app/travel";
 import type { JsonStore } from "../store";
 import type { StoredQuote } from "./types";
@@ -139,6 +139,8 @@ export async function makeQuotes(
       roomName: offer.roomName,
       total: pre.total,
       currency: pre.currency,
+      // The stay's price goes into escrow with the fee, at testnet scale (rupees only).
+      ...(pre.currency === "INR" ? { priceUnits: inrToTestUnits(pre.total).toString() } : {}),
       checkin: q.checkin,
       checkout: q.checkout,
       adults: q.adults,
@@ -173,6 +175,7 @@ export function toOffer(q: StoredQuote): Offer {
     summary: `${q.hotelName} · ${stay(q.checkin, q.checkout)}`,
     feeUnits: q.feeUnits,
     price: { amount: q.total, currency: q.currency },
+    priceUnits: q.priceUnits,
     refundable: q.refundable,
     rating: q.score || q.stars ? { stars: q.stars, score: q.score, reviews: q.reviews } : undefined,
     // The area, and the street only when it's short (some are survey numbers and pin codes).

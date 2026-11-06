@@ -1,5 +1,5 @@
 import { postQuotes, type SafeArkivWriter } from "@app/arkiv";
-import { type Offer, parseUsdc } from "@app/shared";
+import { inrToTestUnits, type Offer, parseUsdc } from "@app/shared";
 import type { DuffelClient, FlightLeg, FlightOffer } from "@app/travel";
 import type { JsonStore } from "../store";
 import { type InrRate, rupees } from "./fx";
@@ -116,6 +116,7 @@ export async function makeFlightQuotes(
       total: offer.total,
       currency: offer.currency,
       inr: inr(offer),
+      ...(inr(offer) ? { priceUnits: inrToTestUnits(inr(offer) as number).toString() } : {}),
       refundable: offer.refundable,
       changeable: offer.changeable,
       emissionsKg: offer.emissionsKg,
@@ -142,6 +143,7 @@ export function toFlightOffer(q: FlightQuote): Offer {
     feeUnits: q.feeUnits,
     // In rupees when we have today's rate; the details say what it's charged in.
     price: q.inr ? { amount: q.inr, currency: "INR" } : { amount: q.total, currency: q.currency },
+    priceUnits: q.priceUnits,
     refundable: q.refundable,
     details: [
       ...(back ? [`Back: ${legLine(back)}`] : []),

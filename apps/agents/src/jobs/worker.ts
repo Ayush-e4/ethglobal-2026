@@ -3,6 +3,7 @@ import type { MandateClient } from "@app/mandates";
 import { cancelBookingMessage } from "@app/shared";
 import { type Hex, keccak256, type LocalAccount, recoverMessageAddress, toHex } from "viem";
 import type { JsonStore } from "../store";
+import type { CardIssuer } from "./cards";
 import type { PaidJob, QuoteBase, Supplier, WatchBase } from "./types";
 
 /**
@@ -18,6 +19,7 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
       registry: MandateClient;
       agent: LocalAccount;
       supplier: Supplier<Q>;
+      cards?: CardIssuer; // pays the hotel or airline with a one-time card, from the escrowed price
       arkiv: SafeArkivWriter;
       jobs: JsonStore<PaidJob<W>>;
       quotes: JsonStore<Q>;
@@ -67,6 +69,34 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
 
     if (!job.bookingId) {
       job = this.save(job, { status: "booking" });
+      // The trip price is in escrow: the agent pays the supplier with a card locked to exactly it.
+      const m = this.d.supplier.merchant?.(quote);
+      if (quote.priceUnits && m && this.d.cards && !job.card) {
+        try {
+          const issued = await this.d.cards.issue({
+            escrowId,
+            merchant: m.name,
+            amount: m.amount,
+            currency: m.currency,
+            amountUnits: quote.priceUnits,
+          });
+          // The number and code are used to pay, never kept (here or on the job's page).
+          const {
+            number: _number,
+            cvc: _cvc,
+            ...card
+          } = issued as typeof issued & {
+            number?: string;
+            cvc?: string;
+          };
+          job = this.save(job, { card });
+        } catch (e) {
+          return void (await this.refund(
+            job,
+            `no card to pay ${m.name}: ${e instanceof Error ? e.message : e}`,
+          ));
+        }
+      }
       try {
         const b = await this.d.supplier.book(quote, job.guest, escrowId.slice(0, 18));
         job = this.save(job, {
@@ -150,9 +180,20 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
     if (!signer || !buyers.includes(signer.toLowerCase()))
       return { outcome: "not_the_buyer" as const };
     await this.d.supplier.cancel(job.bookingId);
+    // Still in the review window with the price in escrow: everything goes back, fee included.
+    if (job.card && escrow.state === "delivered") {
+      await this.refund(
+        { ...job, bookingCancelled: true },
+        "The guest cancelled it in the review window: the booking is cancelled and everything refunded",
+      );
+      return { outcome: "cancelled" as const };
+    }
     this.save(job, {
       bookingCancelled: true,
-      note: "The guest cancelled it; the booking is cancelled",
+      ...(job.card ? { card: { ...job.card, status: "voided" as const } } : {}),
+      note: job.card
+        ? "The guest cancelled it: the booking is cancelled and the hotel refunds the card (simulated)"
+        : "The guest cancelled it; the booking is cancelled",
       ...(job.watch
         ? { watch: { ...job.watch, active: false, note: "Stopped: the booking was cancelled" } }
         : {}),
@@ -162,7 +203,17 @@ export class JobWorker<Q extends QuoteBase, W extends WatchBase = WatchBase> {
 
   private async refund(job: PaidJob<W>, note: string): Promise<void> {
     const r = await this.d.registry.refund(this.d.agent, job.escrowId);
-    this.save(job, { status: "refunded", refundTx: r.transactionHash, note });
+    // Its card is no longer needed: the price went back with the escrow.
+    if (job.card?.status === "authorized")
+      await this.d.cards
+        ?.void(job.escrowId)
+        .catch((e) => console.error(`card void ${job.escrowId}: ${e}`));
+    this.save(job, {
+      status: "refunded",
+      refundTx: r.transactionHash,
+      note,
+      ...(job.card ? { card: { ...job.card, status: "voided" as const } } : {}),
+    });
     await recordDelivery(this.d.arkiv, {
       task: job.task,
       agent: this.d.arkiv.address,

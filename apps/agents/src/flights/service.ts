@@ -12,6 +12,7 @@ import { parseUsdc } from "@app/shared";
 import { DuffelClient } from "@app/travel";
 import { privateKeyToAccount } from "viem/accounts";
 import { agentIdentity } from "../identity";
+import { cardIssuer } from "../jobs/cards";
 import { JobWorker } from "../jobs/worker";
 import { JsonStore } from "../store";
 import { flightAgentApp } from "./app";
@@ -35,6 +36,7 @@ export async function startFlightAgent(config: FlightAgentConfig) {
     jobs,
     quotes,
     supplier: flightSupplier(duffel),
+    cards: cardIssuer(config.cardsUrl, agent),
   });
 
   const reader = arkivReader();

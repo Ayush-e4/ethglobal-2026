@@ -152,7 +152,7 @@ export async function checkAgent(
   const book = first
     ? await get(new URL("book", base), {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-quote": first.key },
         body: JSON.stringify({ quote: first.key, guest: PROBE_GUEST }),
         signal: AbortSignal.timeout(15_000),
       }).catch(() => null)
@@ -172,7 +172,8 @@ export async function checkAgent(
         t.payTo !== d.registryId && "the fee doesn't go into our escrow",
         String(escrow?.payee ?? "").toLowerCase() !== a.agent.toLowerCase() &&
           "the escrow pays someone else",
-        t.amount !== a.feeUnits && "it asks a different fee from its listing",
+        t.amount !== (BigInt(a.feeUnits) + BigInt(first?.priceUnits ?? "0")).toString() &&
+          "it asks something other than its fee plus the quoted price",
         !(Number(escrow?.undoSeconds) >= MIN_UNDO_SECONDS) &&
           `the undo window is under ${MIN_UNDO_SECONDS} s`,
         !(Number(escrow?.reviewSeconds) >= MIN_REVIEW_SECONDS) &&

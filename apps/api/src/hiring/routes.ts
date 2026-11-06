@@ -17,6 +17,8 @@ export const show = (h: Hire) => ({
   title: h.title,
   agentName: h.agentName,
   feeUnits: h.feeUnits.toString(),
+  priceUnits: h.priceUnits?.toString() ?? null, // the trip price in the same escrow (testnet scale)
+  card: h.card ?? null, // the one-time card the agent paid the supplier with
   status: h.status,
   payTx: h.payTx,
   undoUntil: h.undoUntil?.toISOString() ?? null,

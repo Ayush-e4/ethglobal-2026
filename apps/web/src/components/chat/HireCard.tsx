@@ -2,7 +2,7 @@
 
 import type { Card } from "@app/shared";
 import { useEffect, useState } from "react";
-import { ApiError, api, type HireView, hashscanTx, usdc } from "@/lib/api";
+import { ApiError, api, cardLine, type HireView, hashscanTx, rupeesOf, usdc } from "@/lib/api";
 import { UndoIcon } from "../icons";
 import { CancelBooking } from "../trips/CancelBooking";
 import type { CardCtx } from "./Cards";
@@ -96,15 +96,17 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
     }
   };
 
+  // The trip price rides in the same escrow as the fee (testnet scale), so say both.
+  const what = hire?.priceUnits ? `${rupeesOf(hire.priceUnits)} + ${fee} fee` : `${fee} fee`;
   const steps: Step[] = [
     {
       id: "held",
       label:
         status === "released"
-          ? `${fee} fee held on Hedera until it was done`
+          ? `${what} held on Hedera until it was done`
           : FINAL.includes(status)
-            ? `${fee} fee was held on Hedera`
-            : `${fee} fee held on Hedera, not paid yet`,
+            ? `${what} was held on Hedera`
+            : `${what} held on Hedera, not paid yet`,
       tx: card.payTx || hire?.payTx,
       done: true,
     },
@@ -151,6 +153,12 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
     );
   }
 
+  if (hire?.card)
+    steps.push({
+      id: "card",
+      label: `${name} paid with a one-time card (simulated) ${cardLine(hire.card)}`,
+      done: hire.card.status !== "authorized",
+    });
   if (hire?.bookingCancelledAt)
     steps.push({ id: "cancelled", label: "You cancelled the booking afterwards", done: true });
   if (hire?.watchNote)

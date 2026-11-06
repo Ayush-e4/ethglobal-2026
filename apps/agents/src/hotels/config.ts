@@ -59,6 +59,7 @@ export function loadHotelAgentConfig(
     LITEAPI_KEY: z.string().startsWith("sand_", "LiteAPI sandbox key (sand_…)"),
     MANDATE_REGISTRY_ID: z.string().regex(/^0\.0\.\d+$/),
     FACILITATOR_URL: z.url().default("http://localhost:8790"),
+    CARDS_URL: z.url().default("http://localhost:8787"), // AgentNet's (mock) card issuer
     WATCH_EVERY_SECONDS: z.coerce.number().min(10).default(600), // how often a watcher re-checks
     DEMO_TOKEN: z.string().min(16).optional(), // enables "simulate a price drop" for the demo
   });
@@ -77,6 +78,7 @@ export function loadHotelAgentConfig(
     liteApiKey: e.LITEAPI_KEY as string,
     registryId: e.MANDATE_REGISTRY_ID as string,
     facilitatorUrl: e.FACILITATOR_URL as string,
+    cardsUrl: e.CARDS_URL as string,
     port,
     publicUrl: (e[`${a.env}_URL`] as string | undefined) ?? `http://localhost:${port}`,
     dataDir: resolve(import.meta.dirname, "../../.data"),

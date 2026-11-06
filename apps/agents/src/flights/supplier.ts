@@ -13,6 +13,11 @@ export const passengerProblem = (g: Guest) =>
  * 2%), paid from the test balance, and cancels it.
  */
 export const flightSupplier = (duffel: DuffelClient): Supplier<FlightQuote> => ({
+  merchant: (q) => ({
+    name: q.airline,
+    amount: q.inr ?? q.total,
+    currency: q.inr ? "INR" : q.currency,
+  }),
   book: async (q, g) => {
     const problem = passengerProblem(g);
     if (problem || !g.bornOn || !g.gender) throw new Error(problem ?? "passenger details missing");

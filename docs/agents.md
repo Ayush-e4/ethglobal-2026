@@ -97,6 +97,10 @@ report a problem) and the worker that waits out the undo window, books with the 
 (LiteAPI for hotels, Duffel for flights), marks it delivered on Hedera and Arkiv, and refunds if
 the booking fails.
 
+**Trip prices and cards.** An offer's `priceUnits` (the trip price at testnet scale) is paid into
+the same escrow as the fee, and the agent pays the hotel or airline with a one-time card from
+AgentNet Cards (mock). See [agent-cards.md](agent-cards.md).
+
 **Identity (ERC-8004).** Each agent registers itself in ERC-8004's IdentityRegistry on Hedera
 with its own key and serves its card at `GET /.well-known/agent-card.json` (`src/identity.ts`;
 the id is kept in `.data/<agent>-erc8004.json`). See [hedera.md](hedera.md).

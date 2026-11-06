@@ -29,6 +29,16 @@ export interface HireView {
   title: string;
   agentName: string;
   feeUnits: string;
+  priceUnits: string | null; // the trip price in the same escrow (testnet scale: 1 unit = ₹1)
+  card: {
+    last4: string;
+    brand: string;
+    merchant: string;
+    amount: number;
+    currency: string;
+    status: "authorized" | "captured" | "voided";
+    expiresAt: string;
+  } | null; // the one-time card the agent paid the supplier with (simulated)
   status:
     | "paying"
     | "held"
@@ -67,6 +77,11 @@ export interface Receipt {
   guest: string; // initials
   bookingRef: string | null; // only in part
   bookingCancelled: boolean;
+  priceUnits: string | null;
+  card: Pick<
+    NonNullable<HireView["card"]>,
+    "last4" | "merchant" | "amount" | "currency" | "status"
+  > | null;
   note: string | null;
   escrow: {
     state: string;
@@ -202,6 +217,14 @@ export async function api<T>(
     throw new ApiError(res.status, data.message ?? data.error ?? `request failed (${res.status})`);
   return data as T;
 }
+
+/** A one-time agent card, in a line: "•••• 4821 · Park Inn · ₹12,347 · charged". */
+export const cardLine = (c: NonNullable<HireView["card"]>) =>
+  `•••• ${c.last4} · ${c.merchant} · ${c.currency === "INR" ? `₹${Math.round(c.amount).toLocaleString("en-IN")}` : `${c.currency} ${c.amount}`} · ${
+    { authorized: "on hold", captured: "charged", voided: "released" }[c.status]
+  }`;
+/** Escrowed price units (testnet scale, 1 unit = ₹1) → "₹12,347". */
+export const rupeesOf = (units: string) => `₹${Number(units).toLocaleString("en-IN")}`;
 
 /** 20000 → "0.02". */
 export const usdc = (units: string | bigint) => (Number(units) / 1e6).toFixed(2);

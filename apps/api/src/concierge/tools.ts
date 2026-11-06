@@ -84,6 +84,7 @@ export interface ToolDeps {
     id: string;
     title: string;
     feeUnits: bigint;
+    priceUnits?: bigint | null; // the trip price, in the same escrow
     undoUntil: Date | null;
     payTx: string | null;
   }>;
@@ -211,6 +212,10 @@ export async function runTool(
           subtitle: o.subtitle,
           details: o.details?.slice(0, 3), // e.g. a return flight's way back
           price: o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : undefined,
+          // Paid with the fee into the same escrow (testnet scale), so undo and reports cover it.
+          priceInEscrow: o.priceUnits
+            ? `${(Number(o.priceUnits) / 1e6).toFixed(6)} test USDC`
+            : undefined,
           refundable: o.refundable,
           rating: o.rating,
           location: o.location,
@@ -230,6 +235,7 @@ export async function runTool(
           note: o.subtitle ?? "",
           feeUnits: o.feeUnits,
           itemTotal: o.price ? Math.round(o.price.amount) : undefined,
+          priceUnits: o.priceUnits,
           itemCurrency: o.price?.currency,
           reply: `Book ${o.title} (quote ${o.key.slice(0, 10)})`,
           tag: o.tag,
@@ -253,7 +259,7 @@ export async function runTool(
       const undo = h.undoUntil ?? new Date();
       const secs = Math.max(0, Math.round((undo.getTime() - Date.now()) / 1000));
       return {
-        result: `The agent is hired, but the job is NOT done yet: its ${usdc(h.feeUnits.toString())} USDC fee is held in escrow, and for about ${secs} more seconds the user can undo with the card's Undo button (the card counts down; don't give a clock time). After that the agent does the job and the chat gets the result (e.g. a booking reference). Say this plainly; don't call it booked.`,
+        result: `The agent is hired, but the job is NOT done yet: ${h.priceUnits ? `the trip price (₹${Number(h.priceUnits).toLocaleString("en-IN")}, at testnet scale) and ` : ""}its ${usdc(h.feeUnits.toString())} USDC fee are held in escrow; the agent pays the hotel or airline with a one-time card once it books, and for about ${secs} more seconds the user can undo with the card's Undo button (the card counts down; don't give a clock time). After that the agent does the job and the chat gets the result (e.g. a booking reference). Say this plainly; don't call it booked.`,
         card: {
           type: "hire",
           hireId: h.id,
