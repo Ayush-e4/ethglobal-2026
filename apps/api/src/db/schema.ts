@@ -47,11 +47,29 @@ export const passkeys = pgTable(
     counter: bigint("counter", { mode: "number" }).notNull().default(0),
     transports: jsonb("transports").$type<string[]>(),
     label: text("label"),
+    onWallet: boolean("on_wallet").notNull().default(false), // a key on the user's Face ID wallet
     createdAt: at("created_at").notNull().defaultNow(),
     lastUsedAt: at("last_used_at"),
   },
   (t) => [index("passkeys_user_idx").on(t.userId)],
 );
+
+export type WalletStatus = "creating" | "ready" | "failed";
+
+/**
+ * Each passkey account's Face ID wallet on Hedera: a contract only its passkeys control. Made at
+ * sign-up by the sponsor (which pays the gas and gives `giftUnits` of test USDC to start).
+ */
+export const wallets = pgTable("wallets", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  address: text("address").notNull(), // EVM address, known before the wallet exists
+  hederaId: text("hedera_id"), // 0.0.x, once the mirror shows it
+  status: text("status").$type<WalletStatus>().notNull().default("creating"),
+  giftUnits: bigint("gift_units", { mode: "bigint" }), // null: no gift (yet)
+  createdAt: at("created_at").notNull().defaultNow(),
+});
 
 /** A conversation with the concierge. */
 export const chats = pgTable(
@@ -158,6 +176,7 @@ export const hires = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type Hire = typeof hires.$inferSelect;
+export type Wallet = typeof wallets.$inferSelect;
 export type Limit = typeof limits.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;

@@ -4,9 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "@/lib/session";
-import { ChatIcon, CloseIcon, ExitIcon, LogoMark, PlusIcon, SearchIcon } from "../icons";
+import {
+  ChatIcon,
+  CloseIcon,
+  ExitIcon,
+  LogoMark,
+  PlusIcon,
+  SearchIcon,
+  WalletIcon,
+} from "../icons";
 
-const MAIN = [{ href: "/chat", label: "Chat", Icon: ChatIcon }];
+const MAIN = [
+  { href: "/chat", label: "Chat", Icon: ChatIcon },
+  { href: "/wallet", label: "Wallet", Icon: WalletIcon },
+];
 const navItem = "flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-sm md:min-h-9";
 
 /**

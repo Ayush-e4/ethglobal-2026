@@ -30,8 +30,14 @@ const op = await mirror.balances(operator.id);
 if (!op) throw new Error(`The operator ${operator.id} doesn't exist on ${config.network}`);
 console.log(`operator    ${operator.id}  ${formatHbar(op.tinybars)}`);
 
-// Starting HBAR per role: the relayer pays everyone's fees, the log writer only its own.
-const FUNDING: Partial<Record<Role, number>> = { relayer: 20, logWriter: 5, demoWallet: 30 };
+// Starting HBAR per role: the relayer and the sponsor pay others' fees, the log writer only its own.
+// (A Face ID wallet costs the sponsor about 3 HBAR to make, a spending limit about 2.)
+const FUNDING: Partial<Record<Role, number>> = {
+  relayer: 20,
+  logWriter: 5,
+  demoWallet: 30,
+  sponsor: 100,
+};
 const client = createClient(config.network, operator);
 try {
   if (net.usdcTokenId in op.tokens) console.log(`usdc        operator can hold ${net.usdcTokenId}`);
@@ -56,19 +62,24 @@ try {
     console.log(`${role.padEnd(11)} ${a.id} created with ${hbar} HBAR: ${link.account(a.id)}`);
   }
 
-  // The demo wallet needs test USDC to pay demo users' agents (from the operator's).
-  const demo = account(config, "demoWallet");
-  const demoUsdc = (await mirror.balances(demo.id))?.tokens[net.usdcTokenId] ?? BigInt(0);
-  if (demoUsdc < BigInt(500_000)) {
+  // Test USDC from the operator's: the demo wallet pays demo users' agents, the sponsor gives
+  // each new Face ID wallet a little to start with.
+  for (const role of ["demoWallet", "sponsor"] as const) {
+    const a = account(config, role);
+    const held = (await mirror.balances(a.id))?.tokens[net.usdcTokenId] ?? BigInt(0);
+    if (held >= BigInt(500_000)) {
+      console.log(`${role.padEnd(11)} holds ${held} USDC units`);
+      continue;
+    }
     const tx = await transferToken(client, {
       tokenId: net.usdcTokenId,
       from: operator.id,
-      to: demo.id,
+      to: a.id,
       units: BigInt(2_000_000),
-      memo: "demo wallet top-up",
+      memo: `${role} top-up`,
     });
-    console.log(`demoWallet  topped up with 2 USDC: ${link.tx(tx)}`);
-  } else console.log(`demoWallet  holds ${demoUsdc} USDC units`);
+    console.log(`${role.padEnd(11)} topped up with 2 USDC: ${link.tx(tx)}`);
+  }
 
   if (config.spendLogTopicId) console.log(`log         ${config.spendLogTopicId} (already set up)`);
   else {

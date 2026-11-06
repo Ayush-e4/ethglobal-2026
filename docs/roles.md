@@ -74,7 +74,13 @@ People sign in with a passkey or "Try the demo". Every account is a `user`; `adm
 ## Hiring
 
 - **Concierge key** (`CONCIERGE_PRIVATE_KEY`, `pnpm --filter @app/api hiring-setup`): the AI's key.
-  It only signs payments a spending limit allows; no Hedera account, no HBAR, can't raise a limit.
+  It signs payments a spending limit allows, and sends one kind of transaction: **undo**, cancelling
+  a held payment during its window (that only ever returns money to the limit). For that it holds a
+  little HBAR (10, from the operator). It can't raise a limit or pay outside one.
 - **Demo wallet** (`DEMO_WALLET_*`, a Hedera role made by `pnpm setup:testnet`): holds test USDC for
-  "Try the demo" and owns those chats' limits; it can undo a held payment for its user. Daily caps
-  in the API keep one person from emptying it.
+  "Try the demo" and owns those chats' limits. Daily caps in the API keep one person from emptying it.
+- **Sponsor** (`SPONSOR_*`, a Hedera role made by `pnpm setup:testnet`): makes each passkey
+  account's **Face ID wallet**, submits the batches its passkeys sign (paying the gas), and gives a
+  new wallet a little test USDC (`WALLET_GIFT_USDC`, at most `WALLET_GIFTS_PER_DAY` a day). It
+  can't move anything a wallet holds: a wallet runs only what its passkeys signed. Its own key, so
+  its transactions never race the relayer's (the facilitator's) or the demo wallet's.

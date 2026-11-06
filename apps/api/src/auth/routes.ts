@@ -16,7 +16,7 @@ export interface AuthConfig {
  * POST /auth/passkey/{register,login}-options → the device signs → POST /auth/passkey/{register,login}
  * POST /auth/demo: a demo account in one tap. POST /auth/logout. GET /me.
  */
-export function authRoutes(db: Db, cfg: AuthConfig) {
+export function authRoutes(db: Db, cfg: AuthConfig, onSignUp?: (userId: string) => void) {
   const passkey = passkeyAuth(db, cfg.site);
   const app = new Hono();
   const signIn = async (c: Context, userId: string) => {
@@ -48,6 +48,7 @@ export function authRoutes(db: Db, cfg: AuthConfig) {
     const body = await c.req.json<{ response: never; label?: string }>();
     const user = await passkey.register(body.response, body.label?.slice(0, 60) ?? null);
     await signIn(c, user.id);
+    onSignUp?.(user.id); // e.g. start making their Face ID wallet, without waiting for it
     return c.json({ id: user.id });
   });
   app.post("/auth/passkey/login-options", async (c) =>
