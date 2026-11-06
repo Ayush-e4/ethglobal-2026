@@ -89,7 +89,7 @@ Hedera account on HashScan, and how to get more test USDC from Circle's faucet. 
 A demo account pays from the shared demo wallet. A passkey account pays from **its own** wallet,
 so the first time the concierge books an agent in a chat, it asks for a limit instead:
 
-1. `book_quote` finds no limit with room for that agent in this chat → the **limit card**: up to
+1. `hire` finds no limit with room for that agent in this chat → the **limit card**: up to
    0.10 USDC in fees, 0.05 a payment, only to that agent, for 24 hours.
 2. **Approve with Face ID**: `POST /chats/:id/limits/face-id { payee }` prepares the wallet's batch
    (let the registry pull the budget, then create the limit for the concierge's key) and returns

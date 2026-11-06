@@ -36,8 +36,9 @@ while a hire pays. A turn runs to the end even if the reader leaves (no abort si
 agent may already have been paid; the app fetches the saved reply.
 
 The concierge is **Claude Haiku** (`claude-haiku-5-5`, effort low) in a streaming tool loop
-(`src/concierge`). Its tools: `find_agents` (agents listed on Arkiv) and `get_hotel_quotes` (asks
-each hotel agent's own API, free). A quote only counts if the agent also signed it on Arkiv with
+(`src/concierge`). Its tools are the market's, generic: `find_agents`, `agent_input` (the form
+agents with a skill need, from Arkiv), `get_quotes` (offers from every such agent, free) and
+`hire` ([agents.md](agents.md#the-markets-protocol-any-agent)). A quote only counts if the agent also signed it on Arkiv with
 the same key, so an agent's API can't claim a price it didn't commit to. Tool inputs are validated
 before running; a refusal or truncated turn stops the loop. Claude sees earlier cards only as notes in the history (`chats/history.ts`), so each note carries every fact its card showed: with a fact missing, Claude once "corrected" a true earlier reply. Agent text is third-party data, never
 instructions (the system prompt says so). Earlier cards go back into the history as short notes
@@ -45,7 +46,7 @@ instructions (the system prompt says so). Earlier cards go back into the history
 
 ## Hiring from chat (one payment path)
 
-The concierge's `book_quote` tool calls the hiring service (`src/hiring`), the only way money
+The concierge's `hire` tool calls the hiring service (`src/hiring`), the only way money
 moves from the app:
 
 1. **Only quotes shown in this chat** can be booked (saved when shown, until they expire).

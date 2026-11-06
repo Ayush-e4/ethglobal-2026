@@ -17,6 +17,7 @@ export {
   openJob,
   postQuote,
   publishAgent,
+  publishListings,
   rateAgent,
   recordDelivery,
   recordReceipt,

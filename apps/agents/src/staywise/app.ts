@@ -1,5 +1,6 @@
 import type { SafeArkivWriter } from "@app/arkiv";
 import type { MandateClient } from "@app/mandates";
+import { checkForm } from "@app/shared";
 import type { LiteApiClient } from "@app/travel";
 import { MandateServerScheme, NETWORK } from "@app/x402";
 import { HTTPFacilitatorClient } from "@x402/core/server";
@@ -10,18 +11,12 @@ import { z } from "zod";
 import { escrowIdFromHeader } from "../escrow-id";
 import type { JsonStore } from "../store";
 import type { StayWiseConfig } from "./config";
-import { makeQuote } from "./quotes";
+import { HOTEL_FORM } from "./form";
+import { makeQuote, toOffer } from "./quotes";
 import type { Job, StoredQuote } from "./types";
 import type { StayWiseWorker } from "./worker";
 
-const Day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-const QuoteQuery = z.object({
-  task: z.string().regex(/^[a-z0-9_.-]{1,64}$/),
-  iata: z.string().regex(/^[A-Z]{3}$/),
-  checkin: Day,
-  checkout: Day,
-  adults: z.coerce.number().int().min(1).max(4),
-});
+const Task = z.string().regex(/^[a-z0-9_.-]{1,64}$/);
 /** Test travellers only. */
 const BookBody = z.object({
   quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
@@ -53,20 +48,27 @@ export function stayWiseApp(d: {
 
   app.get("/health", (c) => c.json({ ok: true, agent: d.arkiv.address }));
 
+  // The market's protocol: the form from our Arkiv listing in, offers (each signed on Arkiv) out.
   app.get("/quote", async (c) => {
-    const q = QuoteQuery.safeParse(c.req.query());
-    if (!q.success)
-      return c.json(
-        { error: "bad_request", issues: q.error.issues.map((i) => i.path.join(".")) },
-        400,
-      );
+    const task = Task.safeParse(c.req.query("task"));
+    const filled = checkForm(HOTEL_FORM, c.req.query(), { coerce: true });
+    if (!task.success || !filled.ok)
+      return c.json({ error: "bad_request", issues: filled.ok ? ["task"] : filled.problems }, 400);
+    const v = filled.values as { iata: string; checkin: string; checkout: string; adults: number };
+    if (v.checkout <= v.checkin)
+      return c.json({ error: "bad_request", issues: ["checkout must be after checkin"] }, 400);
     const quote = await makeQuote(
       { ...d, feeUsd: d.config.feeUsd },
-      { ...q.data, iataCode: q.data.iata },
+      {
+        task: task.data,
+        iataCode: v.iata,
+        checkin: v.checkin,
+        checkout: v.checkout,
+        adults: v.adults,
+      },
     );
     if (!quote) return c.json({ error: "no_rooms" }, 404);
-    const { prebookId: _hidden, ...shown } = quote;
-    return c.json(shown);
+    return c.json({ offers: [toOffer(quote)] });
   });
 
   // Checked before anything is paid: a bad or expired quote never takes money.

@@ -58,3 +58,25 @@ pnpm --filter @app/agents demo           # live end to end (runs both itself)
 | Marked delivered on Hedera | ✅ [tx](https://hashscan.io/testnet/transaction/0x509058c7268f713409c7917eb8caa172b8b4c9d4abab014861c9becaf1022917) |
 | A second booking undone inside the window | ✅ `cancelled`, nothing booked, the fee back on the limit |
 | Hedera pays StayWise when the review ends, nobody calling | ✅ escrow `released`; StayWise holds 0.02 USDC |
+
+## The market's protocol (any agent)
+
+The concierge has no agent-specific code: it uses four generic tools, and an agent joins the
+market by following this protocol (`packages/shared/src/market.ts`):
+
+1. **List on Arkiv**: a profile (name, skill, endpoint, Hedera account) and a listing with its fee
+   and its **form**, a small JSON Schema of what it needs to quote: fields of type string,
+   integer, number or boolean, with `required`, `enum`, `minimum` / `maximum`, `maxLength`, and a
+   `format` from our list (`date`, `iata`, `country`, `email`). Agents can't send their own
+   regular expressions: a form is third-party input, and a slow pattern could hang the server.
+   To change the form, publish a new listing: the newest one per agent counts.
+2. **`GET /quote?task=…&<fields>`**: free. Answers `{ offers: [...] }`, up to 5, each a firm price
+   also posted as a quote on Arkiv under the same `task` (that's what makes it count): key,
+   title, subtitle, a one-line summary (it becomes the hire's title), fee, price, refundable,
+   rating, location, up to 4 https images, details.
+3. **`POST /book`**: paid over x402 into escrow, with an undo window; deliver, then get paid by
+   Hedera after the review window (see above).
+
+The concierge: `find_agents(skill)` → `agent_input(skill)` (the forms, from Arkiv) → asks the user
+for what's missing → `get_quotes(skill, input)` (each agent's form is checked first; offers not
+signed on Arkiv are dropped; ranked cheapest first, then by fee) → `hire(quote)`.

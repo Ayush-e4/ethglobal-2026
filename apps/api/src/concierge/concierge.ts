@@ -25,8 +25,9 @@ export type Concierge = (input: ConciergeInput) => Promise<ConciergeReply>;
 
 const STATUS: Record<string, string> = {
   find_agents: "Looking at the market",
-  get_hotel_quotes: "Asking hotel agents for live prices",
-  book_quote: "Paying the agent into escrow",
+  agent_input: "Reading what the agents need",
+  get_quotes: "Asking agents for firm prices",
+  hire: "Paying the agent into escrow",
 };
 
 /**

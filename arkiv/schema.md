@@ -8,7 +8,7 @@ party it claims to be from.
 | Kind | Written (owned) by | Indexed columns | `body` adds | Expires | Read rule |
 |---|---|---|---|---|---|
 | `agent` | the agent | `agent` (addr), `skill` (str) | name, description, endpoint, Hedera account, ERC-8004 id | 30 days | `agent == $creator` |
-| `listing` | the agent | `agent`, `skill`, `fee_units` (u64) | title | 30 days | `agent == $creator` |
+| `listing` | the agent | `agent`, `skill`, `fee_units` (u64) | title, **input form** (what the agent needs to quote) | 30 days | `agent == $creator`; the newest per agent counts |
 | `quote` | the agent | `agent`, `task` (str), `skill`, `fee_units` | summary, listing key | 2–3 minutes | `agent == $creator` |
 | `job` | the buyer | `task`, `buyer` (addr), `seller` (addr), `status` (str) | quote key, mandate id | 7 days | `buyer == $creator`; status patched by its owner |
 | `receipt` | our writer | `job` (key), `task`, `pay_to` (str) | mandate id, payer, amount, Hedera tx id, log entry | 90 days | only from our writer |
