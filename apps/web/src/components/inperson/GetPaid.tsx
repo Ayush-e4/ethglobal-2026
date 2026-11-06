@@ -3,6 +3,9 @@
 import { fromHex } from "@app/shared";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api, hashscanTx } from "@/lib/api";
+import { useBackToClose } from "@/lib/native/back";
+import { haptic } from "@/lib/native/haptics";
+import { useWakeLock } from "@/lib/native/wake-lock";
 import { useSession } from "@/lib/session";
 import { CheckIcon } from "../icons";
 import { LiveQr } from "./LiveQr";
@@ -61,6 +64,17 @@ export function GetPaid() {
     }
   };
   const [error, setError] = useState<string | null>(null);
+
+  // While the QR is up: back returns to the amount (not off the page), and the screen stays on.
+  useBackToClose(!!req, () => {
+    quiet();
+    setReq(null);
+  });
+  useWakeLock(!!req && status?.status !== "paid");
+  const paidNow = status?.status === "paid";
+  useEffect(() => {
+    if (paidNow) haptic("success");
+  }, [paidNow]);
 
   useEffect(() => {
     api<{ merchant: Merchant | null }>("/merchant")

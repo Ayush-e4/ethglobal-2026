@@ -31,9 +31,19 @@ const navItem = "flex min-h-11 items-center gap-3 rounded-[10px] px-3 text-sm md
 
 /**
  * Desktop: beside the page, full height, still while the page scrolls (only the recent chats
- * scroll inside it). Phones: a drawer that slides in from the left; any link closes it.
+ * scroll inside it). Phones: a drawer that slides in from the left; any link closes it, and the
+ * new screen takes the drawer's place in history (back doesn't reopen it).
  */
-export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: () => void }) {
+export function Sidebar({
+  open = false,
+  onClose,
+  onNavigate,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+  onNavigate?: () => void;
+}) {
+  const go = onNavigate ?? onClose;
   const pathname = usePathname();
   const { me, chats, signOut } = useSession();
   const [query, setQuery] = useState("");
@@ -48,7 +58,7 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
       className="fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[85vw] -translate-x-full flex-col gap-4 overflow-y-auto border-r border-line bg-side px-3 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] transition-transform duration-200 data-[open=true]:translate-x-0 md:sticky md:top-0 md:z-auto md:h-dvh md:w-[272px] md:max-w-none md:flex-none md:translate-x-0 md:transition-none"
     >
       <div className="flex items-center justify-between">
-        <Link href="/chat" onClick={onClose} className="flex items-center gap-2.5 px-1">
+        <Link href="/chat" onClick={go} replace={open} className="flex items-center gap-2.5 px-1">
           <span className="flex size-[30px] items-center justify-center rounded-[9px] bg-teal text-white">
             <LogoMark size={17} />
           </span>
@@ -67,8 +77,10 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
       <div className="flex flex-col gap-2">
         <Link
           href="/chat"
-          onClick={onClose}
-          className="flex h-11 items-center gap-2.5 rounded-xl bg-teal px-3.5 text-sm font-semibold text-white hover:bg-teal-dark"
+          onClick={go}
+          replace={open}
+          transitionTypes={["tab"]}
+          className="press flex h-11 items-center gap-2.5 rounded-xl bg-teal px-3.5 text-sm font-semibold text-white hover:bg-teal-dark"
         >
           <PlusIcon /> New chat
         </Link>
@@ -91,7 +103,9 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
             <li key={href}>
               <Link
                 href={href}
-                onClick={onClose}
+                onClick={go}
+                replace={open}
+                transitionTypes={["tab"]}
                 aria-current={pathname === href ? "page" : undefined}
                 className={`${navItem} ${pathname === href ? "border border-line bg-white font-semibold" : "font-medium text-ink-2 hover:bg-white/60"}`}
               >
@@ -124,7 +138,9 @@ export function Sidebar({ open = false, onClose }: { open?: boolean; onClose?: (
               <li key={c.id}>
                 <Link
                   href={`/chat/${c.id}`}
-                  onClick={onClose}
+                  onClick={go}
+                  replace={open}
+                  transitionTypes={["nav-forward"]}
                   aria-current={active ? "page" : undefined}
                   className={`flex min-h-[38px] items-center truncate rounded-[10px] px-3 text-sm ${active ? "border border-line bg-white font-semibold" : "text-ink-2 hover:bg-white/60"}`}
                 >

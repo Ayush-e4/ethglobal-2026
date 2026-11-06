@@ -71,7 +71,7 @@ export function ChatHome() {
       });
       savePending(chat.id, text, photos);
       await refreshChats();
-      router.push(`/chat/${chat.id}`);
+      router.push(`/chat/${chat.id}`, { transitionTypes: ["nav-forward"] });
     } catch {
       setError("Couldn't start a chat. Is the API running?");
       setBusy(false);

@@ -3,6 +3,8 @@
 import { type Card, decodeRequest, toHex } from "@app/shared";
 import { useEffect, useRef, useState } from "react";
 import { hashscanTx } from "@/lib/api";
+import { useBackToClose } from "@/lib/native/back";
+import { haptic } from "@/lib/native/haptics";
 import { LimitCard } from "../chat/LimitCard";
 import { CheckIcon } from "../icons";
 import { Camera } from "./Camera";
@@ -85,14 +87,35 @@ export function PayInPerson() {
     if (r.ok) {
       setTx(r.data.payTx);
       setStep("paid");
+      haptic("success");
     } else if (r.data.error === "needs_limit" && r.data.card && r.data.chatId) {
       setLimit({ card: r.data.card, chatId: r.data.chatId });
       setStep("scan");
     } else {
       setError(r.data.message ?? "The payment didn't go through. Nothing was charged.");
       setStep("scan");
+      haptic("error");
     }
   };
+  const toIdle = () => {
+    ears.current?.stop();
+    ears.current = null;
+    setHeardOne(false);
+    setFrame(null);
+    setSeen(null);
+    setLive(null);
+    setLimit(null);
+    setError(null);
+    setStep("idle");
+  };
+  // Back (Android's button, the iPhone's swipe) steps out of the scan to the start, not off the
+  // page; while a payment is going through it does nothing: it can't be called back mid-way.
+  const stepNow = useRef(step);
+  stepNow.current = step;
+  useBackToClose(step === "scan" || step === "paying", () => {
+    if (stepNow.current === "paying") return;
+    toIdle();
+  });
   const reset = () => {
     ears.current?.stop();
     ears.current = null;
