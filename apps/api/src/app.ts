@@ -17,6 +17,8 @@ import type { WalletService } from "./wallet/service";
 import { approvalRoutes } from "./world/approval-routes";
 import type { WorldBonus } from "./world/bonus";
 import type { WorldChecks } from "./world/checks";
+import { ratingRoutes } from "./world/rating-routes";
+import type { WorldRatings } from "./world/ratings";
 import { worldRoutes } from "./world/routes";
 
 export type AppOptions = {
@@ -30,7 +32,12 @@ export type AppOptions = {
   approvals?: WalletApprovals;
   demoToken?: string; // enables the "simulate a price drop" demo control
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
-  world?: { checks: WorldChecks | null; bonus: WorldBonus; minFeeUnits: bigint };
+  world?: {
+    checks: WorldChecks | null;
+    bonus: WorldBonus;
+    minFeeUnits: bigint;
+    ratings?: WorldRatings | null; // verified people's ratings of agents, posted to Arkiv
+  };
 };
 
 export function createApp(o: AppOptions) {
@@ -46,6 +53,7 @@ export function createApp(o: AppOptions) {
   if (wallets) app.route("/", walletRoutes(db, wallets));
   if (wallets && o.world) app.route("/", worldRoutes(db, { ...o.world, wallets }));
   if (o.world) app.route("/", approvalRoutes(db, o.world.checks, o.world.minFeeUnits));
+  if (o.world?.ratings) app.route("/", ratingRoutes(db, o.world.ratings, o.world.checks));
   if (wallets && o.approvals)
     app.route("/", deviceRoutes(db, { wallets, approvals: o.approvals, links }));
   if (hiring && wallets && o.walletChain && o.approvals) {

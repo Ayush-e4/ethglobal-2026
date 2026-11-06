@@ -15,8 +15,8 @@ export interface Found<T> {
 
 /**
  * Anyone can write an entity under our schema names, so a record only counts if the network says
- * it was written by the party it claims to be from ($creator). Receipts only count from our own
- * writer (pass `trustedWriter`).
+ * it was written by the party it claims to be from ($creator). Receipts and ratings only count
+ * from our own writer (pass `trustedWriter`).
  */
 const AUTHOR: Record<Kind, (r: Record<string, unknown>) => string | null> = {
   agent: (r) => r.agent as string,
@@ -25,7 +25,7 @@ const AUTHOR: Record<Kind, (r: Record<string, unknown>) => string | null> = {
   job: (r) => r.buyer as string,
   receipt: () => null, // checked against the trusted writer instead
   delivery: (r) => r.agent as string,
-  rating: (r) => r.rater as string,
+  rating: () => null, // checked against the trusted writer instead
 };
 
 /** A column as the SDK returns it: `{ type, value }` or the bare value. */
@@ -59,7 +59,8 @@ export function decodeRow<K extends Kind>(
   const creator = row.$creator.toLowerCase();
   const author = AUTHOR[kind](parsed.data as Record<string, unknown>);
   if (author !== null && author.toLowerCase() !== creator) return null;
-  if (kind === "receipt" && creator !== trustedWriter?.toLowerCase()) return null;
+  if ((kind === "receipt" || kind === "rating") && creator !== trustedWriter?.toLowerCase())
+    return null;
   return {
     key: row.$key,
     creator: row.$creator,
@@ -124,18 +125,38 @@ export const recentDeliveries = (
 export const deliveriesBy = (r: ArkivReader, agent: Hex) =>
   find(r, "delivery", [eq("agent", addr(agent))], { createdBy: agent });
 
-/** An agent's ratings: one per job per rater (the first counts), with the average. */
-export async function ratingsFor(r: ArkivReader, agent: Hex) {
-  const all = await find(r, "rating", [eq("agent", addr(agent))]);
-  const seen = new Set<string>();
-  const ratings = all.filter((x) => {
-    const id = `${x.record.job}|${x.record.rater.toLowerCase()}`;
-    if (seen.has(id)) return false;
-    seen.add(id);
-    return true;
+export interface AgentRating {
+  count: number; // verified people who rated it (one each)
+  average: number;
+}
+
+/**
+ * Verified ratings, per agent: only those our platform wrote, and one per person per agent (the
+ * newest; a later rating expires later). `agent` narrows it to one agent.
+ */
+export async function verifiedRatings(
+  r: ArkivReader,
+  platform: Hex,
+  agent?: Hex,
+): Promise<Map<string, AgentRating>> {
+  const all = await find(r, "rating", agent ? [eq("agent", addr(agent))] : [], {
+    createdBy: platform,
+    trustedWriter: platform,
   });
-  const average = ratings.length
-    ? ratings.reduce((s, x) => s + x.record.score, 0) / ratings.length
-    : null;
-  return { ratings, average };
+  const newest = new Map<string, (typeof all)[number]>();
+  for (const x of all) {
+    const id = `${x.record.agent.toLowerCase()}|${x.record.rater.toLowerCase()}`;
+    const seen = newest.get(id);
+    if (!seen || x.expiresAt > seen.expiresAt) newest.set(id, x);
+  }
+  const byAgent = new Map<string, AgentRating>();
+  for (const x of newest.values()) {
+    const id = x.record.agent.toLowerCase();
+    const s = byAgent.get(id) ?? { count: 0, average: 0 };
+    byAgent.set(id, {
+      count: s.count + 1,
+      average: (s.average * s.count + x.record.score) / (s.count + 1),
+    });
+  }
+  return byAgent;
 }

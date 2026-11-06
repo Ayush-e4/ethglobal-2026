@@ -4,14 +4,14 @@ import type { Db } from "../db/client";
 import { worldChecks as table, users, type WorldCheckStatus } from "../db/schema";
 import type { Verified, WorldClient } from "./oidc";
 
-export type CheckPurpose = "bonus" | "spend";
+export type CheckPurpose = "bonus" | "spend" | "rate";
 
 /** One "prove you're a person" check, for one account and one purpose. */
 export interface WorldCheck {
   id: string;
   userId: string;
   purpose: CheckPurpose;
-  ref?: string; // what it approves (a "spend" check: `chatId:quoteKey`)
+  ref?: string; // what it approves ("spend": `chatId:agent:fee`; "rate": `hireId:score`)
   userCode: string;
   link: string; // where the person approves it (World's page, which opens World App)
   expiresAt: number; // ms

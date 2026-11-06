@@ -21,6 +21,7 @@ export const AgentsCardSchema = z.object({
       endpoint: z.string(),
       model: z.string().optional(), // how it does the job, e.g. "Book and keep watching"
       delivered: z.number().optional(), // jobs it completed recently (its Arkiv records)
+      rating: z.object({ average: z.number(), count: z.number().int() }).optional(), // verified people
     }),
   ),
 });
@@ -64,6 +65,7 @@ export const QuotesCardSchema = z.object({
       refundable: z.boolean().optional(),
       model: z.string().optional(), // its agent's way of doing the job
       promise: z.string().optional(), // in the agent's own words
+      agentRating: z.object({ average: z.number(), count: z.number().int() }).optional(), // its agent's, by verified people
     }),
   ),
 });

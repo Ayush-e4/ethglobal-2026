@@ -1,4 +1,4 @@
-import { arkivReader } from "@app/arkiv";
+import { arkivReader, rateAgent, SafeArkivWriter } from "@app/arkiv";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { chatStore } from "./chats/store";
@@ -14,10 +14,12 @@ import { hederaWalletChain } from "./wallet/chain";
 import { loadWalletConfig } from "./wallet/config";
 import { walletApprovals } from "./wallet/ops";
 import { walletService } from "./wallet/service";
-import { bonusOnVerified, loadBonusOptions, worldBonus } from "./world/bonus";
+import { loadBonusOptions, worldBonus } from "./world/bonus";
 import { humanCheckpoint, loadCheckpointOptions } from "./world/checkpoint";
 import { worldChecks } from "./world/checks";
 import { loadWorldConfig, worldClient } from "./world/oidc";
+import { onWorldVerified } from "./world/on-verified";
+import { worldRatings } from "./world/ratings";
 
 const config = loadConfig();
 const { db } = await connectDb(config.databaseUrl);
@@ -29,7 +31,18 @@ const approvals = walletApprovals(db, walletChain, config.auth.site);
 // approves larger hires (from WORLD_CHECK_FEE_USDC) in the World ID app.
 const worldCfg = loadWorldConfig();
 const bonus = worldBonus(db, walletChain, wallets, loadBonusOptions());
-const checks = worldCfg ? worldChecks(db, worldClient(worldCfg), bonusOnVerified(bonus)) : null;
+// Verified people's ratings, posted to Arkiv by our own writer (the only ratings readers trust).
+const arkivKey = process.env.ARKIV_WRITER_PRIVATE_KEY as `0x${string}` | undefined;
+const platform = arkivKey ? new SafeArkivWriter(arkivKey) : null;
+const ratings = process.env.RATINGS_SECRET
+  ? worldRatings(db, {
+      secret: process.env.RATINGS_SECRET,
+      post: platform ? (r) => rateAgent(platform, r) : null,
+    })
+  : null;
+const checks = worldCfg
+  ? worldChecks(db, worldClient(worldCfg), onWorldVerified({ bonus, ratings }))
+  : null;
 const { minFeeUnits } = loadCheckpointOptions();
 // Passkey accounts pay from their own Face ID wallet; demo accounts from the demo wallet.
 const hiring = hiringService(
@@ -39,7 +52,7 @@ const hiring = hiringService(
   checks ? humanCheckpoint(checks, minFeeUnits) : undefined,
 );
 const concierge = claudeConcierge({
-  market: arkivMarket(arkivReader()),
+  market: arkivMarket(arkivReader(), fetch, platform?.address),
   saveQuotes: (chatId, shown) => saveQuotes(db, chatId, shown),
   hire: (user, chatId, quoteKey) => hiring.hire(user, chatId, quoteKey),
 });
@@ -53,7 +66,7 @@ const app = createApp({
   walletChain,
   approvals,
   demoToken: process.env.DEMO_TOKEN || undefined,
-  world: { checks, bonus, minFeeUnits },
+  world: { checks, bonus, minFeeUnits, ratings },
 });
 await checks?.resume(); // World ID checks a restart interrupted
 // Follows every open hire to the end, from the database: restarts lose nothing.

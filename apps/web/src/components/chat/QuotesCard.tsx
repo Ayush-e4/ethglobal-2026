@@ -2,7 +2,7 @@
 
 import type { Card } from "@app/shared";
 import { useState } from "react";
-import { usdc } from "@/lib/api";
+import { usdc, verifiedRating } from "@/lib/api";
 import { PinIcon, StarIcon } from "../icons";
 import type { CardCtx } from "./Cards";
 
@@ -92,6 +92,11 @@ function Offer({ q, first, ctx }: { q: Quote; first: boolean; ctx: CardCtx }) {
             {q.model && (
               <span className="rounded-full bg-teal-soft px-2 py-px text-[11px] font-semibold text-teal">
                 {q.model}
+              </span>
+            )}
+            {q.agentRating && (
+              <span title="Rated by people verified with World ID, one each, on Arkiv">
+                {verifiedRating(q.agentRating)}
               </span>
             )}
           </span>

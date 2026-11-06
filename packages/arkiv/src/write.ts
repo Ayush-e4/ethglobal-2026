@@ -144,10 +144,9 @@ export function recordDelivery(w: SafeArkivWriter, delivery: Delivery) {
   );
 }
 
-/** The buyer rates the agent after a job. */
+/** The platform records a verified person's rating (readers trust only the platform's). */
 export function rateAgent(w: SafeArkivWriter, rating: Rating) {
   const r = RatingSchema.parse(rating);
-  self(w, r.rater, "rateAgent");
   return w.run(1, (tx) =>
     w.client.createEntity(
       SCHEMAS.rating,

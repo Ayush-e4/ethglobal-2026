@@ -112,6 +112,9 @@ export async function api<T>(
 
 /** 20000 → "0.02". */
 export const usdc = (units: string | bigint) => (Number(units) / 1e6).toFixed(2);
+/** "★ 4.0 · 3 verified people": an agent's ratings by people who proved it with World ID. */
+export const verifiedRating = (r: { average: number; count: number }) =>
+  `★ ${r.average.toFixed(1)} · ${r.count} verified ${r.count === 1 ? "person" : "people"}`;
 export const shortAddress = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 /** HashScan opens a transaction by its Hedera id (0.0.x@seconds.nanos). */
 export const hashscanTx = (tx: string) => `https://hashscan.io/testnet/transaction/${tx}`;

@@ -46,6 +46,17 @@ describe("decodeRow trust rules", () => {
     );
   });
 
+  it("only trusts ratings from our own writer, and only verified ones", () => {
+    const rating = { agent: OTHER, job: KEY, rater: KEY, score: 4, verified: "world-id" };
+    const platform = AGENT as `0x${string}`;
+    expect(decodeRow("rating", row(OTHER, rating), platform)).toBeNull(); // the agent rating itself
+    expect(decodeRow("rating", row(AGENT, rating), platform)?.record.score).toBe(4);
+    expect(
+      decodeRow("rating", row(AGENT, { ...rating, verified: undefined }), platform),
+    ).toBeNull();
+    expect(decodeRow("rating", row(AGENT, { ...rating, score: 6 }), platform)).toBeNull();
+  });
+
   it("a job's patched status column wins over its original body", () => {
     const job = {
       task: "goa-trip",

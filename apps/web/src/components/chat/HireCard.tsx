@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ApiError, api, type HireView, hashscanTx, usdc } from "@/lib/api";
 import { UndoIcon } from "../icons";
 import type { CardCtx } from "./Cards";
+import { RateAgent } from "./RateAgent";
 
 type HireCardData = Extract<Card, { type: "hire" }>;
 type Status = HireView["status"];
@@ -207,6 +208,9 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
             {demo ?? "Sandbox prices don't move: this pretends the room got ₹800 cheaper."}
           </span>
         </div>
+      )}
+      {(status === "delivered" || status === "released") && (
+        <RateAgent path={`/chats/${ctx.chatId}/hires/${card.hireId}/rating`} agentName={name} />
       )}
       {error && <p className="text-xs text-bad">{error}</p>}
     </section>

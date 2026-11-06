@@ -64,6 +64,13 @@
       "when": 1793935061107,
       "tag": "0008_high_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793936941897,
+      "tag": "0009_next_wind_dancer",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type MarketAgent, type MarketOffer, matchScore, rankAgents, rankOffers } from "./market";
+import {
+  type MarketAgent,
+  type MarketOffer,
+  matchScore,
+  rankAgents,
+  rankOffers,
+  ratingScore,
+} from "./market";
 
 const offer = (title: string, amount: number | null, feeUnits = "20000") =>
   ({
@@ -58,5 +65,22 @@ describe("finding agents by need", () => {
       agent("proven, cheaper", { delivered: 12, feeUnits: "20000" }),
     ]);
     expect(ranked.map((a) => a.name)).toEqual(["proven, cheaper", "proven", "new"]);
+  });
+
+  it("verified people's ratings come first, and one 5-star rating can't beat many good ones", () => {
+    const ranked = rankAgents([
+      agent("unrated, busy", { delivered: 30 }),
+      agent("one rave", { rating: { average: 5, count: 1 } }),
+      agent("loved by many", { rating: { average: 4.6, count: 10 } }),
+      agent("panned", { delivered: 50, rating: { average: 1.5, count: 4 } }),
+    ]);
+    expect(ranked.map((a) => a.name)).toEqual([
+      "loved by many",
+      "one rave",
+      "unrated, busy",
+      "panned",
+    ]);
+    expect(ratingScore({ average: 5, count: 1 })).toBeCloseTo(3.67, 2);
+    expect(ratingScore(undefined)).toBe(3);
   });
 });

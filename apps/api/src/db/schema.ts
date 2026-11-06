@@ -6,7 +6,6 @@ import {
   integer,
   jsonb,
   pgTable,
-  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -230,61 +229,12 @@ export const hires = pgTable(
   (t) => [index("hires_chat_idx").on(t.chatId), index("hires_status_idx").on(t.status)],
 );
 
-export type WorldCheckStatus =
-  | "waiting"
-  | "verified"
-  | "denied"
-  | "expired"
-  | "failed"
-  | "mismatch";
-
-/**
- * World ID checks ("prove you're a person"): for the welcome bonus, or to approve one larger
- * payment. The device code stays here, never in the browser, and the check survives a restart:
- * it's picked up again while it can still be approved.
- */
-export const worldChecks = pgTable(
-  "world_checks",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    purpose: text("purpose").$type<"bonus" | "spend">().notNull(),
-    ref: text("ref"), // what it approves: for "spend", the chat and quote (`chatId:quoteKey`)
-    userCode: text("user_code").notNull(),
-    link: text("link").notNull(), // where the person approves it
-    deviceCode: text("device_code").notNull(),
-    intervalS: integer("interval_s").notNull(),
-    startedAtS: bigint("started_at_s", { mode: "number" }).notNull(),
-    expiresAt: at("expires_at").notNull(),
-    status: text("status").$type<WorldCheckStatus>().notNull().default("waiting"),
-    reason: text("reason"),
-    endedAt: at("ended_at"),
-    usedAt: at("used_at"), // a "spend" approval works once
-    createdAt: at("created_at").notNull().defaultNow(),
-  },
-  (t) => [index("world_checks_user_idx").on(t.userId, t.createdAt)],
-);
-
-/** The welcome bonus, once per person (their World ID): recorded before it's sent. */
-export const worldBonuses = pgTable(
-  "world_bonuses",
-  {
-    worldIss: text("world_iss").notNull(),
-    worldSub: text("world_sub").notNull(),
-    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
-    units: bigint("units", { mode: "bigint" }).notNull(),
-    status: text("status").$type<"sending" | "sent" | "failed">().notNull().default("sending"),
-    tx: text("tx"),
-    createdAt: at("created_at").notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.worldIss, t.worldSub] })],
-);
-
 export type User = typeof users.$inferSelect;
 export type Hire = typeof hires.$inferSelect;
 export type Wallet = typeof wallets.$inferSelect;
 export type Limit = typeof limits.$inferSelect;
 export type Chat = typeof chats.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+
+// World ID: checks, the welcome bonus, verified ratings.
+export * from "./world-schema";

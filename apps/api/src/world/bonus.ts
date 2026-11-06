@@ -6,7 +6,6 @@ import type { Db } from "../db/client";
 import { worldBonuses } from "../db/schema";
 import type { WalletChain } from "../wallet/chain";
 import type { WalletService } from "../wallet/service";
-import type { OnVerified } from "./checks";
 import type { Verified } from "./oidc";
 
 const Env = z.object({
@@ -83,12 +82,3 @@ export function worldBonus(
 }
 
 export type WorldBonus = ReturnType<typeof worldBonus>;
-
-/**
- * What a passed check does here: only a "bonus" check sends the bonus. A "spend" check unlocks
- * nothing by itself; the hire finds it (checkpoint.ts).
- */
-export const bonusOnVerified =
-  (bonus: WorldBonus): OnVerified =>
-  async (c, v) =>
-    c.purpose === "bonus" ? bonus.give(c.userId, v) : undefined;
