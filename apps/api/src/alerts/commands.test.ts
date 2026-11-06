@@ -40,6 +40,55 @@ async function setup() {
   return { db, t, calls, hire, send };
 }
 
+describe("photos in Telegram", () => {
+  it("downloads the photo (one to read, one thumbnail) and hands it over with its caption", async () => {
+    const db: Db = await testDb();
+    const got: string[] = [];
+    const fetchImpl = (async (url: string, init?: { body?: string }) => {
+      got.push(url.replace("123:test", "TOKEN"));
+      if (url.endsWith("/getFile")) {
+        const id = JSON.parse(init?.body ?? "{}").file_id as string;
+        return Response.json({ ok: true, result: { file_path: `photos/${id}.jpg` } });
+      }
+      return new Response(new Uint8Array([1, 2, 3]));
+    }) as unknown as typeof fetch;
+    const t = telegramAlerts(db, "123:test", fetchImpl);
+    const handed: unknown[] = [];
+    await handleUpdate(
+      t,
+      {
+        update_id: 1,
+        message: {
+          chat: { id: 7 },
+          caption: "Watch this fare",
+          photo: [
+            { file_id: "s", width: 90, height: 60 },
+            { file_id: "m", width: 320, height: 213 },
+            { file_id: "x", width: 1280, height: 853 },
+            { file_id: "huge", width: 2560, height: 1706 },
+          ],
+        },
+      },
+      { onText: async (...args) => handed.push(args) },
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    expect(handed).toEqual([
+      [
+        "7",
+        "Watch this fare",
+        {
+          images: [{ mediaType: "image/jpeg", data: "AQID" }],
+          thumbs: ["data:image/jpeg;base64,AQID"],
+        },
+      ],
+    ]);
+    expect(got.filter((u) => u.includes("/file/"))).toEqual([
+      "https://api.telegram.org/file/botTOKEN/photos/x.jpg",
+      "https://api.telegram.org/file/botTOKEN/photos/m.jpg",
+    ]);
+  });
+});
+
 describe("the bot's commands and profile", () => {
   it("sets its command menu and what people see before Start", async () => {
     const { t, calls } = await setup();

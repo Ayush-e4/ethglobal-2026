@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Card, ConciergeEvent } from "@app/shared";
+import type { Card, ChatImage, ConciergeEvent } from "@app/shared";
 import { systemPrompt } from "./prompt";
 import { runTool, TOOLS, type ToolContext, type ToolDeps } from "./tools";
 import { costLine, type StepUsage } from "./usage";
@@ -47,6 +47,7 @@ export interface ConciergeInput {
   context: ToolContext;
   history: MessageParam[];
   text: string;
+  images?: ChatImage[]; // photos with this message (a ticket, a booking, a hotel page)
   emit: (event: ConciergeEvent) => void;
   signal?: AbortSignal;
 }
@@ -84,8 +85,23 @@ export function claudeConcierge(
   client = new Anthropic(),
   log: (line: string) => void = (l) => console.log(l),
 ): Concierge {
-  return async ({ context, history, text, emit, signal }) => {
-    const messages: MessageParam[] = [...history, { role: "user", content: text }];
+  return async ({ context, history, text, images = [], emit, signal }) => {
+    // Photos first, then the words (Claude reads images best that way); a photo alone is asked about.
+    const content: Anthropic.Beta.Messages.BetaContentBlockParam[] = [
+      ...images.map((i) => ({
+        type: "image" as const,
+        source: { type: "base64" as const, media_type: i.mediaType, data: i.data },
+      })),
+      {
+        type: "text",
+        text:
+          text || "(The user sent this without a message: say what it is and how you can help.)",
+      },
+    ];
+    const messages: MessageParam[] = [
+      ...history,
+      { role: "user", content: images.length ? content : text },
+    ];
     let reply = "";
     const cards: Card[] = [];
     const sources = new Map<string, string>(); // url → title: what Claude cited

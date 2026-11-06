@@ -46,7 +46,9 @@ export function chatRoutes(db: Db, concierge: Concierge) {
     if (!body.success) return c.json({ error: "bad_request" }, 400);
 
     const history = toHistory(await store.messages(chat.id));
-    await store.add(chat.id, "user", body.data.text);
+    const { text, images, thumbs } = body.data;
+    // The photos' thumbnails stay with the message; Claude reads the full ones this turn only.
+    await store.add(chat.id, "user", text, thumbs?.length ? [{ type: "photos", thumbs }] : []);
     const res = streamSSE(c, async (sse) => {
       // Writes go out in order, and all of them before the stream closes. A write to a reader
       // that left fails quietly: the turn still finishes and is saved.
@@ -63,7 +65,8 @@ export function chatRoutes(db: Db, concierge: Concierge) {
         const reply = await concierge({
           context: { user, chatId: chat.id },
           history,
-          text: body.data.text,
+          text,
+          images,
           emit,
         });
         const saved = await store.add(chat.id, "assistant", reply.text, reply.cards);

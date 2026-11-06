@@ -1,10 +1,12 @@
 "use client";
 
+import type { Card } from "@app/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type ChatMessage, type ChatSummary } from "@/lib/api";
+import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
 import { sendMessage } from "@/lib/stream";
-import { PENDING_KEY } from "./ChatHome";
+import { PENDING_KEY, readPending } from "./ChatHome";
 import { Composer } from "./Composer";
 import { Messages, type Turn } from "./Messages";
 
@@ -47,12 +49,15 @@ export function ChatThread({ chatId }: { chatId: string }) {
   );
 
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, photos: Photo[] = []) => {
       setBusy(true);
       const draftId = `draft-${Date.now()}`;
+      const shown: Card[] = photos.length
+        ? [{ type: "photos", thumbs: photos.map((p) => p.thumb) }]
+        : [];
       setTurns((t) => [
         ...t,
-        { id: `user-${Date.now()}`, role: "user", text, cards: [] },
+        { id: `user-${Date.now()}`, role: "user", text, cards: shown },
         { id: draftId, role: "assistant", text: "", cards: [], streaming: true },
       ]);
       const patch = (fn: (d: Turn) => Turn) =>
@@ -60,7 +65,7 @@ export function ChatThread({ chatId }: { chatId: string }) {
       abort.current = new AbortController();
       let finished = false;
       try {
-        for await (const e of sendMessage(chatId, text, abort.current.signal)) {
+        for await (const e of sendMessage(chatId, text, abort.current.signal, photos)) {
           if (e.type === "text")
             patch((d) => ({ ...d, text: d.text + e.delta, status: undefined }));
           else if (e.type === "status") patch((d) => ({ ...d, status: e.label }));
@@ -104,7 +109,8 @@ export function ChatThread({ chatId }: { chatId: string }) {
         const pending = sessionStorage.getItem(PENDING_KEY(chatId));
         if (pending) {
           sessionStorage.removeItem(PENDING_KEY(chatId));
-          void send(pending);
+          const p = readPending(pending);
+          void send(p.text, p.photos);
         }
       })
       .catch(() => live && setMissing(true));

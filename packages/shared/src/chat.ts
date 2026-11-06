@@ -129,6 +129,20 @@ export const SourcesCardSchema = z.object({
   sources: z.array(z.object({ title: z.string(), url: z.string().startsWith("https://") })).max(8),
 });
 
+/** Photos someone sent with a message: small thumbnails to show it (Claude saw the full ones). */
+export const PhotosCardSchema = z.object({
+  type: z.literal("photos"),
+  thumbs: z
+    .array(
+      z
+        .string()
+        .regex(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/)
+        .max(120_000),
+    )
+    .min(1)
+    .max(3),
+});
+
 export const CardSchema = z.discriminatedUnion("type", [
   AgentsCardSchema,
   OptionsCardSchema,
@@ -138,6 +152,7 @@ export const CardSchema = z.discriminatedUnion("type", [
   HumanCardSchema,
   TravellerCardSchema,
   SourcesCardSchema,
+  PhotosCardSchema,
 ]);
 export type Card = z.infer<typeof CardSchema>;
 
@@ -150,4 +165,21 @@ export const ConciergeEventSchema = z.discriminatedUnion("type", [
 ]);
 export type ConciergeEvent = z.infer<typeof ConciergeEventSchema>;
 
-export const SendMessageSchema = z.object({ text: z.string().trim().min(1).max(4000) });
+/** A photo for Claude to read (resized on the device first, so it stays small). */
+export const ImageSchema = z.object({
+  mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  data: z
+    .string()
+    .max(3_000_000)
+    .regex(/^[A-Za-z0-9+/=]+$/), // base64
+});
+export type ChatImage = z.infer<typeof ImageSchema>;
+
+/** A message: text, photos, or both (with a thumbnail of each to keep in the chat). */
+export const SendMessageSchema = z
+  .object({
+    text: z.string().trim().max(4000).default(""),
+    images: z.array(ImageSchema).max(3).default([]),
+    thumbs: PhotosCardSchema.shape.thumbs.optional(),
+  })
+  .refine((m) => m.text.length > 0 || m.images.length > 0, "a message or a photo");

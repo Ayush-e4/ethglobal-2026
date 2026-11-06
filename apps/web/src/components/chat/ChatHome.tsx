@@ -3,12 +3,30 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api, type ChatSummary } from "@/lib/api";
+import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
 import { ChatIcon, HotelIcon, MarketIcon, UndoIcon } from "../icons";
 import { Composer } from "./Composer";
 
 /** The first message is handed to the chat page this way, so it sends once the page is open. */
 export const PENDING_KEY = (chatId: string) => `pending:${chatId}`;
+
+/** The first message, carried to the new chat's page (photos too, when they fit). */
+export function savePending(chatId: string, text: string, photos: Photo[]) {
+  try {
+    sessionStorage.setItem(PENDING_KEY(chatId), JSON.stringify({ text, photos }));
+  } catch {
+    sessionStorage.setItem(PENDING_KEY(chatId), JSON.stringify({ text, photos: [] }));
+  }
+}
+export function readPending(raw: string): { text: string; photos: Photo[] } {
+  try {
+    const p = JSON.parse(raw) as { text?: unknown; photos?: unknown };
+    if (typeof p.text === "string")
+      return { text: p.text, photos: Array.isArray(p.photos) ? (p.photos as Photo[]) : [] };
+  } catch {}
+  return { text: raw, photos: [] };
+}
 
 const SUGGESTIONS = [
   {
@@ -43,15 +61,15 @@ export function ChatHome() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const start = async (text: string) => {
+  const start = async (text: string, photos: Photo[] = []) => {
     setBusy(true);
     setError(null);
     try {
       const chat = await api<ChatSummary>("/chats", {
         method: "POST",
-        body: { title: text.slice(0, 60) },
+        body: { title: (text || "A photo").slice(0, 60) },
       });
-      sessionStorage.setItem(PENDING_KEY(chat.id), text);
+      savePending(chat.id, text, photos);
       await refreshChats();
       router.push(`/chat/${chat.id}`);
     } catch {

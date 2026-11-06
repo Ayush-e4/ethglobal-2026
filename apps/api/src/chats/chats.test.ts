@@ -8,9 +8,9 @@ const QUOTE_KEY = `0x${"ab".repeat(32)}`;
 
 /** A concierge that streams a bit of text and one quotes card, and remembers what it was told. */
 function fakeConcierge() {
-  const seen: { history: unknown[]; text: string }[] = [];
-  const concierge: Concierge = async ({ history, text, emit }) => {
-    seen.push({ history, text });
+  const seen: { history: unknown[]; text: string; images?: unknown[] }[] = [];
+  const concierge: Concierge = async ({ history, text, images, emit }) => {
+    seen.push({ history, text, images });
     emit({ type: "status", label: "Asking hotel agents for live prices" });
     emit({ type: "text", delta: "Here are " });
     emit({ type: "text", delta: "two rooms." });
@@ -92,6 +92,28 @@ describe("chats", () => {
     const saved = await json(call(`/chats/${chat.id}`, me));
     expect(saved.messages.map((m) => m.role)).toEqual(["user", "assistant"]);
     expect(saved.messages[1]?.cards[0]?.type).toBe("quotes");
+  });
+
+  it("a photo goes to Claude this turn; the chat keeps its thumbnail, and later turns a note", async () => {
+    const { call, signIn, fake } = await setup();
+    const me = await signIn();
+    const chat = await json(call("/chats", me, { method: "POST", body: "{}" }));
+    const thumb = "data:image/jpeg;base64,AAAA";
+    const send = (body: unknown) =>
+      call(`/chats/${chat.id}/messages`, me, { method: "POST", body: JSON.stringify(body) });
+    expect((await send({ text: "" })).status).toBe(400); // neither words nor a photo
+    await (
+      await send({ images: [{ mediaType: "image/jpeg", data: "QUJD" }], thumbs: [thumb] })
+    ).text();
+    expect(fake.seen[0]).toMatchObject({
+      text: "",
+      images: [{ mediaType: "image/jpeg", data: "QUJD" }],
+    });
+    const saved = await json(call(`/chats/${chat.id}`, me));
+    expect(saved.messages[0]?.cards).toEqual([{ type: "photos", thumbs: [thumb] }]);
+    await (await send({ text: "Book the same thing back" })).text();
+    expect(JSON.stringify(fake.seen[1]?.history)).toMatch(/the user sent 1 photo/);
+    expect(fake.seen[1]?.images).toEqual([]);
   });
 
   it("the next turn remembers the quote keys it showed", async () => {

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import type { ChatImage } from "@app/shared";
 import { and, eq, isNotNull, ne } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { alertChannels as table } from "../db/schema";
@@ -31,9 +32,34 @@ export function telegramAlerts(db: Db, token: string | undefined, fetchImpl: typ
   const row = async (userId: string) =>
     (await db.select().from(table).where(eq(table.userId, userId)))[0] ?? null;
 
+  /** A photo someone sent: one for Claude to read (up to ~1600 px) and a small thumbnail. */
+  const download = async (fileId: string) => {
+    const f = await tg("getFile", { file_id: fileId });
+    const path = (f.result as { file_path?: string } | undefined)?.file_path;
+    if (!f.ok || !path) return null;
+    const res = await fetchImpl(`https://api.telegram.org/file/bot${token}/${path}`, {
+      signal: AbortSignal.timeout(30_000),
+    });
+    return res.ok ? Buffer.from(await res.arrayBuffer()).toString("base64") : null;
+  };
+
   return {
     on: Boolean(token),
     tg,
+
+    async photos(sizes: TgPhotoSize[]): Promise<TgPhotos | null> {
+      if (!token || sizes.length === 0) return null;
+      const side = (s: TgPhotoSize) => Math.max(s.width, s.height);
+      const big = sizes.filter((s) => side(s) <= 1600).at(-1) ?? sizes[0];
+      const small = [...sizes].sort((a, b) => Math.abs(side(a) - 320) - Math.abs(side(b) - 320))[0];
+      if (!big || !small) return null;
+      const [full, thumb] = await Promise.all([download(big.file_id), download(small.file_id)]);
+      if (!full || !thumb) return null;
+      return {
+        images: [{ mediaType: "image/jpeg", data: full }],
+        thumbs: [`data:image/jpeg;base64,${thumb}`],
+      };
+    },
 
     /** The bot's @name, for the link (null when Telegram is off or unreachable). */
     botName() {
@@ -115,13 +141,30 @@ export type TelegramAlerts = ReturnType<typeof telegramAlerts>;
 export interface BotHandlers {
   onCallback?: (cq: CallbackQuery) => Promise<unknown>;
   status?: (chatId: string) => Promise<string>; // "/status"
-  onText?: (chatId: string, text: string) => Promise<unknown>; // a message to the concierge
+  // A message to the concierge, with the photo it came with (already downloaded).
+  onText?: (chatId: string, text: string, photos?: TgPhotos) => Promise<unknown>;
   onNew?: (chatId: string) => Promise<unknown>; // "/new"
+}
+
+export interface TgPhotoSize {
+  file_id: string;
+  width: number;
+  height: number;
+}
+/** A photo from Telegram, ready for the concierge: the image and its thumbnail. */
+export interface TgPhotos {
+  images: ChatImage[];
+  thumbs: string[];
 }
 
 export interface Update {
   update_id: number;
-  message?: { chat: { id: number }; text?: string };
+  message?: {
+    chat: { id: number };
+    text?: string;
+    caption?: string; // a photo's words
+    photo?: TgPhotoSize[]; // the same photo in sizes, smallest first
+  };
   callback_query?: CallbackQuery;
 }
 
@@ -135,7 +178,8 @@ export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers 
   }
   const chatId = u.message?.chat.id;
   if (chatId === undefined) return;
-  const text = u.message?.text?.trim() ?? "";
+  const text = (u.message?.text ?? u.message?.caption ?? "").trim();
+  const photo = u.message?.photo;
   const say = (reply: string) =>
     t.tg("sendMessage", { chat_id: chatId, text: reply }).catch(() => null);
   const start = /^\/start(?:\s+([A-Za-z0-9_-]{8,64}))?$/.exec(text);
@@ -154,9 +198,14 @@ export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers 
     await t.unlinkChat(String(chatId));
     return say("Stopped: no more AgentNet alerts here.");
   }
-  if (h.onText && text && !text.startsWith("/")) {
+  if (h.onText && (text || photo?.length) && !text.startsWith("/")) {
     // Not awaited: a turn can take a minute, and other people's messages shouldn't wait.
-    void h.onText(String(chatId), text.slice(0, 4000));
+    void (async () => {
+      const photos = photo?.length ? await t.photos(photo).catch(() => null) : undefined;
+      if (photo?.length && !photos && !text)
+        return say("Couldn't read that photo. Try sending it again.");
+      await h.onText?.(String(chatId), text.slice(0, 4000), photos ?? undefined);
+    })();
     return;
   }
   return say(HELP);

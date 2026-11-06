@@ -1,4 +1,5 @@
 import { type ConciergeEvent, ConciergeEventSchema } from "@app/shared";
+import type { Photo } from "./photos";
 
 /**
  * Reads a Server-Sent Events body chunk by chunk and yields each concierge event as soon as
@@ -46,11 +47,20 @@ export function parseBlock(block: string): ConciergeEvent | null {
 }
 
 /** Sends a chat message and streams the reply's events. */
-export async function* sendMessage(chatId: string, text: string, signal?: AbortSignal) {
+export async function* sendMessage(
+  chatId: string,
+  text: string,
+  signal?: AbortSignal,
+  photos: Photo[] = [],
+) {
   const res = await fetch(`/api/chats/${chatId}/messages`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      text,
+      images: photos.map((p) => p.image),
+      ...(photos.length ? { thumbs: photos.map((p) => p.thumb) } : {}),
+    }),
     credentials: "same-origin",
     signal,
   });
