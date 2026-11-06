@@ -1,5 +1,6 @@
 import { arkivReader, rateAgent, SafeArkivWriter } from "@app/arkiv";
 import { serve } from "@hono/node-server";
+import { statusText } from "./alerts/commands";
 import { liveHires } from "./alerts/live-hires";
 import { alertingChats } from "./alerts/routes";
 import { startTelegramBot, telegramAlerts } from "./alerts/telegram";
@@ -64,7 +65,10 @@ const live = liveHires({
   cancel: (user, chatId, hireId) => hiring.cancel(user, chatId, hireId),
   ratings,
 });
-startTelegramBot(alerts, (line) => console.error(line), { onCallback: live.onCallback });
+startTelegramBot(alerts, (line) => console.error(line), {
+  onCallback: live.onCallback,
+  status: (chatId) => statusText(db, chatId),
+});
 const hiringLive = {
   ...hiring,
   async cancel(...a: Parameters<typeof hiring.cancel>) {
