@@ -15,6 +15,7 @@ import { connectDb } from "./db/client";
 import { loadHiringConfig } from "./hiring/config";
 import { hireFollower } from "./hiring/follow";
 import { hiringService } from "./hiring/service";
+import { travellerService } from "./travellers/service";
 import { hederaWalletChain } from "./wallet/chain";
 import { loadWalletConfig } from "./wallet/config";
 import { walletApprovals } from "./wallet/ops";
@@ -51,12 +52,12 @@ const checks = worldCfg
   : null;
 const { minFeeUnits } = loadCheckpointOptions();
 // Passkey accounts pay from their own Face ID wallet; demo accounts from the demo wallet.
-const hiring = hiringService(
-  db,
-  loadHiringConfig(),
-  (id) => wallets.get(id, false),
-  checks ? humanCheckpoint(checks, minFeeUnits) : undefined,
-);
+// Saved travellers: who each booking is for (private; sent only to the agent hired).
+const travellers = travellerService(db);
+const hiring = hiringService(db, loadHiringConfig(), (id) => wallets.get(id, false), {
+  guest: travellers.gate(),
+  human: checks ? humanCheckpoint(checks, minFeeUnits) : undefined,
+});
 // Phone alerts in Telegram (our own bot; off without TELEGRAM_BOT_TOKEN): each hire is one live
 // message there, with Undo and ratings, and the chats' own news buzzes as alerts.
 const alerts = telegramAlerts(db, process.env.TELEGRAM_BOT_TOKEN || undefined);
@@ -95,11 +96,12 @@ const tgChat = telegramChat({
         startSpendApproval(db, checks, minFeeUnits, userId, chatId, quoteKey)
     : undefined,
   check: checks ? (id, userId) => checks.get(id, userId) : undefined,
+  travellers,
 });
 startTelegramBot(alerts, (line) => console.error(line), {
   // Book, choices and the offers carousel go to the chat; Undo and ratings to the hire's message.
   onCallback: (cq) =>
-    /^([boc]:|n$)/.test(cq.data ?? "") ? tgChat.onCallback(cq) : live.onCallback(cq),
+    /^([boc]:|tv:|n$)/.test(cq.data ?? "") ? tgChat.onCallback(cq) : live.onCallback(cq),
   status: (chatId) => statusText(db, chatId),
   onText: tgChat.turn,
   onNew: tgChat.fresh,
@@ -115,6 +117,7 @@ const app = createApp({
   approvals,
   demoToken: process.env.DEMO_TOKEN || undefined,
   world: { checks, bonus, minFeeUnits, ratings },
+  travellers,
   alerts,
 });
 await checks?.resume(); // World ID checks a restart interrupted

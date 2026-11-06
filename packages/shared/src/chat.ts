@@ -111,6 +111,17 @@ export const HumanCardSchema = z.object({
   reply: z.string(),
 });
 
+/**
+ * Before booking: who it's for. The app shows the account's saved travellers (or a form for
+ * someone new); their details stay out of the chat and the model. Once chosen, the app sends
+ * `reply` as the user, to carry on.
+ */
+export const TravellerCardSchema = z.object({
+  type: z.literal("traveller"),
+  agentName: z.string(),
+  reply: z.string(),
+});
+
 /** Where a reply's facts from the web came from (web search citations), to check them. */
 export const SourcesCardSchema = z.object({
   type: z.literal("sources"),
@@ -124,6 +135,7 @@ export const CardSchema = z.discriminatedUnion("type", [
   HireCardSchema,
   LimitCardSchema,
   HumanCardSchema,
+  TravellerCardSchema,
   SourcesCardSchema,
 ]);
 export type Card = z.infer<typeof CardSchema>;

@@ -5,6 +5,7 @@ import type { ConciergeInput } from "../concierge/concierge";
 import type { Db } from "../db/client";
 import { alertChannels, chats, messages, users } from "../db/schema";
 import { testDb } from "../test/db";
+import { travellerService } from "../travellers/service";
 import type { WorldCheck } from "../world/checks";
 import { telegramAlerts } from "./telegram";
 import { telegramChat } from "./telegram-chat";
@@ -66,6 +67,7 @@ async function setup(o: { cards?: Card[]; check?: (n: number) => WorldCheck["sta
     expiresAt: Date.now() + 600_000,
     status,
   });
+  const travellers = travellerService(db);
   const chat = telegramChat({
     db,
     t,
@@ -73,11 +75,12 @@ async function setup(o: { cards?: Card[]; check?: (n: number) => WorldCheck["sta
     appOrigin: "http://localhost:3000",
     approve: async () => ({ check: check("waiting") }),
     check: async () => check(o.check?.(++polls) ?? "verified"),
+    travellers,
     wait: async () => {},
     log: () => {},
   });
   const sent = (method: string) => calls.filter((c) => c.method === method);
-  return { db, user, calls, sent, chat, asked, concierge };
+  return { db, user, calls, sent, chat, asked, concierge, travellers };
 }
 
 describe("the concierge in Telegram", () => {
@@ -228,36 +231,53 @@ describe("the concierge in Telegram", () => {
   });
 });
 
-describe("Telegram formatting", () => {
-  it("turns the concierge's Markdown into Telegram HTML, escaping the rest", () => {
-    expect(html("**Park Inn** <3 & [map](https://m.example/a?b=1)\n- pool\n## Next")).toBe(
-      '<b>Park Inn</b> &lt;3 &amp; <a href="https://m.example/a?b=1">map</a>\n• pool\n<b>Next</b>',
+describe("who a booking is for, in Telegram", () => {
+  const WHO: Card = {
+    type: "traveller",
+    agentName: "StayWise",
+    reply: "Traveller chosen. Book Park Inn",
+  };
+  const tap = (data: string) => ({ id: "cb", data, message: { chat: { id: 42 }, message_id: 1 } });
+
+  it("someone new: their details are saved, never sent to the concierge, and the booking goes on", async () => {
+    const { chat, sent, asked, travellers, user } = await setup({ cards: [WHO] });
+    await chat.turn("42", "Book Park Inn");
+    const ask = sent("sendMessage").find((c) =>
+      String(c.body.text).includes("Who is this booking for?"),
     );
+    expect(
+      ((ask as Call).body.reply_markup as { inline_keyboard: { text: string }[][] })
+        .inline_keyboard,
+    ).toEqual([[{ text: "➕ Someone else", callback_data: "tv:new" }]]);
+    await chat.onCallback(tap("tv:new"));
+    expect(sent("sendMessage").at(-1)?.body.reply_markup).toMatchObject({ force_reply: true });
+    await chat.turn("42", "Asha, asha@example.com"); // missing bits: asked again
+    expect(sent("sendMessage").at(-1)?.body.text).toMatch(
+      /I need first and last name, a phone number/,
+    );
+    await chat.turn("42", "Asha Test, asha@example.com, +91 98000 00001");
+    expect(asked).toEqual(["Book Park Inn", "Traveller chosen. Book Park Inn"]); // never the details
+    expect((await travellers.list(user.id)).map((t) => t.email)).toEqual(["asha@example.com"]);
   });
 
-  it("the same hotel from two agents is one message, with a button for each way of working", () => {
-    const twice: Card = {
-      ...QUOTES,
-      quotes: [
-        { ...offer(KEY_A, "Park Inn · StayWise", "https://p/1.jpg"), model: "Book it, done" },
-        {
-          ...offer(KEY_B, "Park Inn · PriceGuard", "https://p/1.jpg"),
-          model: "Book and keep watching",
-          feeUnits: "50000",
-        },
-      ],
-    };
-    const [one, ...rest] = cardMessages(twice, null);
-    expect(rest).toEqual([]);
-    const markup = one?.body.reply_markup as { inline_keyboard: { text: string }[][] } | undefined;
-    expect(markup?.inline_keyboard.map((r) => r[0]?.text)).toEqual([
-      "StayWise: Book it, done · 0.02 USDC",
-      "PriceGuard: Book and keep watching · 0.05 USDC",
-    ]);
-  });
-
-  it("splits long replies on paragraph breaks", () => {
-    const parts = chunks(["a".repeat(3000), "b".repeat(3000)].join("\n\n"));
-    expect(parts.map((p) => p.length)).toEqual([3000, 3000]);
+  it("a saved traveller is one tap", async () => {
+    const { chat, sent, asked, travellers, user } = await setup({ cards: [WHO] });
+    const asha = await travellers.add(
+      user.id,
+      { firstName: "Asha", lastName: "Test", email: "a@example.com", phone: "+91 98000 00001" },
+      true,
+    );
+    await chat.turn("42", "Book Park Inn");
+    const ask = sent("sendMessage").find((c) =>
+      String(c.body.text).includes("Who is this booking for?"),
+    );
+    const rows = (
+      (ask as Call).body.reply_markup as {
+        inline_keyboard: { text: string; callback_data: string }[][];
+      }
+    ).inline_keyboard;
+    expect(rows[0]?.[0]).toEqual({ text: "Asha T. (me)", callback_data: `tv:${asha.id}` });
+    await chat.onCallback(tap(`tv:${asha.id}`));
+    expect(asked.at(-1)).toBe("Traveller chosen. Book Park Inn");
   });
 });

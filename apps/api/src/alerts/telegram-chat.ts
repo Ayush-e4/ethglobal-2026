@@ -5,9 +5,11 @@ import { chatStore } from "../chats/store";
 import type { Concierge } from "../concierge/concierge";
 import type { Db } from "../db/client";
 import { alertChannels, chats, messages, users } from "../db/schema";
+import type { TravellerService } from "../travellers/service";
 import type { WorldCheck } from "../world/checks";
 import type { CallbackQuery } from "./live-hires";
 import type { TelegramAlerts } from "./telegram";
+import { showSlide } from "./telegram-carousel";
 import {
   cardMessages,
   carouselRef,
@@ -16,8 +18,8 @@ import {
   esc,
   html,
   quoteButton,
-  slide,
 } from "./telegram-format";
+import { telegramTravellers } from "./telegram-travellers";
 
 export interface TelegramChatDeps {
   db: Db;
@@ -31,6 +33,7 @@ export interface TelegramChatDeps {
     quoteKey: string,
   ) => Promise<{ check: WorldCheck } | { error: string }>;
   check?: (id: string, userId: string) => Promise<WorldCheck | null>;
+  travellers?: TravellerService; // who bookings are for
   wait?: (ms: number) => Promise<void>;
   log?: (line: string) => void;
 }
@@ -52,6 +55,7 @@ export function telegramChat(d: TelegramChatDeps) {
   const busy = new Set<string>();
   const say = (chatId: string, text: string, extra: Record<string, unknown> = {}) =>
     t.tg("sendMessage", { chat_id: chatId, text, ...extra }).catch(() => null);
+  const people = telegramTravellers(t, d.travellers, say);
 
   async function link(tgChatId: string) {
     const [row] = await db
@@ -122,6 +126,15 @@ export function telegramChat(d: TelegramChatDeps) {
         await say(tgChatId, "Connect this chat first: AgentNet → Wallet → Phone alerts.");
         return;
       }
+      // "Someone else": this message is the guest's details, so it never reaches the concierge.
+      const guest = await people.intercept(tgChatId, user.id, l.appChatId, text);
+      if (guest.handled) {
+        if (guest.carryOn) {
+          busy.delete(tgChatId);
+          await turn(tgChatId, guest.carryOn);
+        }
+        return;
+      }
       const chat = await chatFor(user.id, l.appChatId, text);
       const history = toHistory(await store.messages(chat.id));
       await store.add(chat.id, "user", text);
@@ -167,6 +180,7 @@ export function telegramChat(d: TelegramChatDeps) {
       const appLink = `${d.appOrigin}/chat/${chat.id}`;
       for (const card of reply.cards) {
         if (card.type === "human") await human(tgChatId, user.id, chat.id, card);
+        else if (card.type === "traveller") await people.ask(tgChatId, user.id, card);
         else
           for (const m of cardMessages(card, appLink)) {
             const sent = await t.tg(m.method, { chat_id: tgChatId, ...m.body }).catch(() => null);
@@ -223,35 +237,11 @@ export function telegramChat(d: TelegramChatDeps) {
 
   /** ◀ ▶ or 📷 on the offers carousel: the same message shows another hotel or photo. */
   async function turnCarousel(cq: CallbackQuery) {
-    const [, ref, h = "0", p = "0"] = (cq.data ?? "").split(":");
-    const tgChatId = String(cq.message?.chat.id ?? "");
-    const card = (await recentCards(tgChatId)).find(
+    const ref = (cq.data ?? "").split(":")[1];
+    const card = (await recentCards(String(cq.message?.chat.id ?? ""))).find(
       (c): c is Extract<Card, { type: "quotes" }> => c.type === "quotes" && carouselRef(c) === ref,
     );
-    if (!card || !cq.message) return false;
-    const s = slide(card, Number(h), Number(p));
-    const target = { chat_id: tgChatId, message_id: cq.message.message_id };
-    const reply_markup = { inline_keyboard: s.rows };
-    const res = !cq.message.photo
-      ? await t.tg("editMessageText", {
-          ...target,
-          text: s.caption,
-          parse_mode: "HTML",
-          reply_markup,
-        })
-      : s.photo
-        ? await t.tg("editMessageMedia", {
-            ...target,
-            media: { type: "photo", media: s.photo, caption: s.caption, parse_mode: "HTML" },
-            reply_markup,
-          })
-        : await t.tg("editMessageCaption", {
-            ...target,
-            caption: s.caption,
-            parse_mode: "HTML",
-            reply_markup,
-          });
-    return res.ok;
+    return card ? showSlide(t, card, cq) : false;
   }
 
   return {
@@ -259,6 +249,7 @@ export function telegramChat(d: TelegramChatDeps) {
 
     /** "/new": the next message starts a new AgentNet chat. */
     async fresh(tgChatId: string) {
+      people.forget(tgChatId);
       await db
         .update(alertChannels)
         .set({ appChatId: null })
@@ -269,6 +260,15 @@ export function telegramChat(d: TelegramChatDeps) {
     /** A button under a reply: the carousel's ◀ ▶ 📷, or Book, or a choice. */
     async onCallback(cq: CallbackQuery) {
       const tgChatId = String(cq.message?.chat.id ?? "");
+      if (cq.data?.startsWith("tv:")) {
+        const l = await link(tgChatId);
+        const card = (await recentCards(tgChatId)).find(
+          (c): c is Extract<Card, { type: "traveller" }> => c.type === "traveller",
+        );
+        const carryOn = await people.pick(cq, tgChatId, l, card);
+        if (carryOn) await turn(tgChatId, carryOn);
+        return;
+      }
       if (cq.data === "n" || cq.data?.startsWith("c:")) {
         const turned = cq.data !== "n" && (await turnCarousel(cq).catch(() => false));
         await t

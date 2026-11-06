@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { NeedsLimit } from "../hiring/limits";
+import { NeedsTraveller } from "../travellers/service";
 import { NeedsHuman } from "../world/checkpoint";
 import type { Market } from "./market";
 import { runTool } from "./tools";
@@ -132,6 +133,26 @@ describe("concierge tools", () => {
     expect(out.isError).toBeFalsy();
     expect(out.card).toEqual(card);
     expect(out.result).toMatch(/^Not booked yet.*World ID.*nothing is paid/);
+  });
+
+  it("who is it for, not yet known: the traveller card, with no details in it", async () => {
+    const card = {
+      type: "traveller" as const,
+      agentName: "StayWise",
+      reply: "Traveller chosen. Book Sea Breeze",
+    };
+    const needs = {
+      ...deps,
+      hire: async () => {
+        throw new NeedsTraveller(card);
+      },
+    };
+    const out = await runTool(needs, ctx, "hire", { quote: `0x${"cd".repeat(32)}` });
+    expect(out.isError).toBeFalsy();
+    expect(out.card).toEqual(card);
+    expect(out.result).toMatch(
+      /^Not booked yet: first, who is it for\?.*don't ask for names, emails or phone numbers/,
+    );
   });
 
   it("refuses inputs that don't validate (they can arrive truncated)", async () => {
