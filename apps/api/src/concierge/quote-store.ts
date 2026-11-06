@@ -17,6 +17,7 @@ export async function saveQuotes(db: Db, chatId: string, shown: MarketOffer[]): 
         feeUnits: BigInt(o.feeUnits),
         summary: o.summary.slice(0, 200), // the agent's own line; becomes the hire's title
         image: o.images?.[0] ?? null,
+        guestFields: o.agent.guestFields ?? [],
         expiresAt: new Date(Date.now() + 170_000), // a little under the agent's 3 minutes
       })),
     )

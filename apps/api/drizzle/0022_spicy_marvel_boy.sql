@@ -1,0 +1,1 @@
+ALTER TABLE "quotes" ADD COLUMN "guest_fields" jsonb DEFAULT '[]'::jsonb NOT NULL;

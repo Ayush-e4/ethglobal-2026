@@ -30,6 +30,12 @@ export const ListingSchema = z.object({
   feeUnits: units,
   input: FormSchema.optional(),
   service: ServiceSchema.optional(), // how it does the job, if it says
+  // The traveller's details it needs besides name, email and phone (a flight: birth date, gender).
+  // Only these are sent to it.
+  guest: z
+    .array(z.enum(["bornOn", "gender"]))
+    .max(2)
+    .optional(),
 });
 
 /** A firm price for one task; it disappears from every query when it expires. */

@@ -68,6 +68,13 @@ export function AgentPage({ address }: { address: string }) {
           <dd>{a.rating ? verifiedRating(a.rating) : "None from verified people yet"}</dd>
           <dt className="text-muted">Who runs it</dt>
           <dd>{operatorLine(a.review)}</dd>
+          <dt className="text-muted">Gets of a traveller</dt>
+          <dd>
+            Name, email, phone
+            {a.guestFields.includes("bornOn") ? ", date of birth" : ""}
+            {a.guestFields.includes("gender") ? ", gender" : ""}
+            <span className="text-xs text-muted"> (only for its own bookings)</span>
+          </dd>
           <dt className="text-muted">Its address</dt>
           <dd className="font-mono text-[13px] break-all">{a.address}</dd>
           <dt className="text-muted">Its server</dt>

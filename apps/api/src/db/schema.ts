@@ -166,6 +166,8 @@ export const quotes = pgTable("quotes", {
   feeUnits: bigint("fee_units", { mode: "bigint" }).notNull(),
   summary: text("summary").notNull(),
   image: text("image"), // the offer's first photo (https), for alerts
+  // The traveller's details this agent needs besides name, email, phone (its listing says).
+  guestFields: jsonb("guest_fields").$type<("bornOn" | "gender")[]>().notNull().default([]),
   expiresAt: at("expires_at").notNull(),
 });
 

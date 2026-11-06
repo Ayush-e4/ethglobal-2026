@@ -10,7 +10,9 @@ Arkiv writer) and a Hedera account. It speaks the market's protocol (`packages/s
 
 1. **Publishes itself on Arkiv** under its own key: a profile (name, skill, description, endpoint,
    Hedera account) and a listing (title, fee, its **form**: the fields it needs to quote, with an
-   example for each required one, and its service model in its own words).
+   example for each required one, its service model in its own words, and `guest`: any traveller
+   details it needs besides name, email and phone, like `["bornOn", "gender"]` for a flight. It
+   gets only those, and its page says so).
 2. **`GET /quote?task&…form fields`**, free: answers with up to five offers, each also posted on
    Arkiv by the agent (the market drops any offer the agent didn't sign).
 3. **`POST /book`** `{ quote, guest }`, paid over **x402** into AgentNet's escrow on Hedera. The
