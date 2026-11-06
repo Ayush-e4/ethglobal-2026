@@ -68,6 +68,25 @@ export async function publishListings(w: SafeArkivWriter, listings: Listing[]) {
   return { listings: r.createdEntities as Hex[], txHash: r.txHash };
 }
 
+/** Several quotes for one task in one transaction; they all vanish after `ttlSeconds`. */
+export async function postQuotes(w: SafeArkivWriter, quotes: Quote[], ttlSeconds = 180) {
+  const qs = quotes.map((q) => QuoteSchema.parse(q));
+  for (const q of qs) self(w, q.agent, "postQuotes");
+  const r = await w.run(qs.length, (tx) =>
+    w.client.executeBatch(
+      {
+        creates: qs.map((q) => ({
+          schema: SCHEMAS.quote,
+          values: valuesFor("quote", q),
+          expiration: LIFETIME.quote(ttlSeconds),
+        })) as never,
+      },
+      tx,
+    ),
+  );
+  return { keys: r.createdEntities as Hex[], txHash: r.txHash };
+}
+
 /** An agent quotes a task; the quote vanishes from every query after `ttlSeconds`. */
 export function postQuote(w: SafeArkivWriter, quote: Quote, ttlSeconds = 180) {
   const q = QuoteSchema.parse(quote);

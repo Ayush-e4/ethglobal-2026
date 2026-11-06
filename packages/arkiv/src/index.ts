@@ -16,6 +16,7 @@ export { LIFETIME, SCHEMAS, valuesFor } from "./schemas";
 export {
   openJob,
   postQuote,
+  postQuotes,
   publishAgent,
   publishListings,
   rateAgent,

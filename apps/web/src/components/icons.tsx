@@ -157,3 +157,14 @@ export const HotelIcon = (p: IconProps) => (
     <path d="M3 20V8l9-4 9 4v12M3 20h18M9 20v-5h6v5M8 10h.01M12 10h.01M16 10h.01" />
   </Icon>
 );
+export const PinIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21Z" />
+    <circle cx="12" cy="9.5" r="2.5" />
+  </Icon>
+);
+export const StarIcon = (p: IconProps) => (
+  <Icon {...p} fill="currentColor" strokeWidth={0}>
+    <path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
+  </Icon>
+);

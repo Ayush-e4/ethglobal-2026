@@ -16,6 +16,16 @@ export interface StoredQuote {
   refundable?: boolean;
   feeUnits: string; // StayWise's fee, in USDC units, held in escrow
   expiresAtMs: number;
+  // What the buyer sees: why it's offered, and the hotel at a glance.
+  tag?: string; // "Cheapest", "Best rated", "Best value"
+  board?: string; // e.g. "Breakfast included"
+  photos?: string[]; // https
+  area?: string;
+  address?: string;
+  score?: number; // guests' score out of 10
+  stars?: number;
+  reviews?: number;
+  facilities?: string[];
 }
 
 export type JobStatus = "held" | "booking" | "delivered" | "refunded" | "cancelled" | "failed";

@@ -108,7 +108,8 @@ export async function runTool(
   if (name === "find_agents") {
     const p = FindAgents.safeParse(input);
     if (!p.success) return invalid("skill must be a short name like hotels");
-    const agents = await market.agents(p.data.skill);
+    // Only agents that can quote (they published a form): old or test profiles stay out.
+    const agents = (await market.agents(p.data.skill)).filter((a) => a.form);
     if (agents.length === 0) return { result: "No agents listed for that yet." };
     return {
       result: JSON.stringify(
@@ -167,6 +168,7 @@ export async function runTool(
         shown.map((o) => ({
           quote: o.key,
           agent: o.agent.name,
+          why: o.tag,
           title: o.title,
           subtitle: o.subtitle,
           price: o.price ? `${o.price.currency} ${Math.round(o.price.amount)}` : undefined,
@@ -179,15 +181,21 @@ export async function runTool(
       card: {
         type: "quotes",
         skill: p.data.skill,
-        reason: "Cheapest first",
+        reason: shown.some((o) => o.tag) ? "Each picked for a reason" : "Cheapest first",
         quotes: shown.map((o) => ({
           key: o.key,
           title: `${o.title} · ${o.agent.name}`,
-          note: [o.subtitle, o.refundable ? "free cancellation" : null].filter(Boolean).join(", "),
+          note: o.subtitle ?? "",
           feeUnits: o.feeUnits,
           itemTotal: o.price ? Math.round(o.price.amount) : undefined,
           itemCurrency: o.price?.currency,
           reply: `Book ${o.title} (quote ${o.key.slice(0, 10)})`,
+          tag: o.tag,
+          images: o.images,
+          rating: o.rating,
+          location: o.location,
+          details: o.details,
+          refundable: o.refundable,
         })),
       },
     };

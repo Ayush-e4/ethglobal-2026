@@ -80,3 +80,22 @@ market by following this protocol (`packages/shared/src/market.ts`):
 The concierge: `find_agents(skill)` → `agent_input(skill)` (the forms, from Arkiv) → asks the user
 for what's missing → `get_quotes(skill, input)` (each agent's form is checked first; offers not
 signed on Arkiv are dropped; ranked cheapest first, then by fee) → `hire(quote)`.
+
+## StayWise's search
+
+Up to **three different hotels, each here for a reason**: the **cheapest**, the **best rated**
+(guests' score) and the **best value** (score for the price), all refundable. Its form also
+takes an optional **area** ("Baga Beach, Goa": found with LiteAPI's places search, then hotels
+around it), a **budget** for the whole stay (INR) and **minimum stars**.
+
+- Each price is **locked with a prebook**, all three at once; a sold-out rate gives its slot to
+  the next hotel, and the labels are then re-worked so "Cheapest" is the cheapest shown.
+- Each offer shows: 3–4 **photos** (https, from LiteAPI's hotel data), stars, guests' score and
+  reviews, the area (the street only if short), room and meal plan, and up to three facilities
+  as clean labels (Pool, Spa, Beach, Free WiFi…; "Pool hoist on site" counts as Pool).
+- The three quotes go on Arkiv **in one transaction**.
+
+Live (6 Nov 2026, sandbox): Goa, 20–22 Dec, 2 adults → Park Inn Candolim ₹11,927 with breakfast
+(Cheapest, 8.7), Fairfield by Marriott Calangute ₹22,321 (Best value, 9.4), The Westin Goa
+₹58,666 (Best rated, 9.8, near Baga), in about 15 s. "5 star under ₹40,000" → Holiday Inn
+Candolim, Heritage Village, Hilton Candolim.
