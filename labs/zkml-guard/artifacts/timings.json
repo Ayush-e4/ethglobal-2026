@@ -1,0 +1,23 @@
+{
+  "timings_s": {
+    "gen_settings": 0.041,
+    "calibrate_settings": 1.825,
+    "compile_circuit": 0.001,
+    "get_srs": 31.582,
+    "gen_witness": 0.008,
+    "setup": 1.007,
+    "prove": 0.786,
+    "verify": 0.008,
+    "create_evm_verifier": 0.12,
+    "encode_evm_calldata": 0.001
+  },
+  "sizes_bytes": {
+    "pk.key": 138479371,
+    "vk.key": 66823,
+    "proof.json": 18269,
+    "kzg.srs": 4194564
+  },
+  "accuracy": 0.9775000214576721,
+  "plain": 4.44301700592041,
+  "proved": 4.4405517578125
+}
