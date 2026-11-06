@@ -124,4 +124,12 @@ describe("paying in person", () => {
       /live screen/,
     );
   });
+
+  it("a demo account pays a shop at most ₹500 at a time (the demo wallet is shared)", async () => {
+    const { shop, demo, merchants, payers } = await setup();
+    await merchants.become(shop, "Chai Point");
+    const r = await merchants.request(shop, 100_000);
+    const live = toHex(await liveCode(fromHex(r.liveKey), fromHex(r.frame), counterAt()));
+    await expect(payers.pay(demo, r.frame, { how: "qr", live })).rejects.toThrow(/up to ₹500/);
+  });
 });
