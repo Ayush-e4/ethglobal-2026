@@ -82,6 +82,8 @@ failed sign-up can be told apart.
 | `POST /chats/:id/limits/face-id` `{ payee }` | Step 1 of a Face ID limit: the wallet's batch is prepared; returns `{ opId, options }` (WebAuthn request options, the challenge is the batch's digest). Only for an agent that quoted in this chat, on the standard terms, for our concierge's key |
 | `POST /chats/:id/limits` `{ opId, response }` | Step 2: the device's answer; the wallet sets the limit on Hedera; saved for the chat |
 | `GET /chats/:id/limits` | The chat's live limits (payee, budget, expiry): how a limit card knows it was approved |
+| `GET /wallet/limits` | Your Face ID wallet's limits: agent, chat, budget, what's left (from Hedera), expiry, `active` / `expired` / `cancelled` |
+| `POST /wallet/limits/:id/revoke/face-id` → device → `POST /wallet/limits/:id/revoke` `{ opId, response }` | Cancel a limit with Face ID: the wallet revokes it on Hedera |
 
 Signing up with a passkey starts making the wallet in the background (`src/wallet`): the sponsor
 calls the factory (the address comes from the passkey, so it's known up front), waits for the

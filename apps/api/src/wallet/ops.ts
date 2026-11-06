@@ -10,6 +10,16 @@ import { passkeyKey } from "./service";
 
 const OP_TTL_MS = 5 * 60_000;
 
+/**
+ * Gas per kind of move. Hedera charges at least 80% of the limit whatever is used, so each kind
+ * gets its own: a limit approves USDC through the token service (1.2M used on testnet); a cancel
+ * is one passkey check and one write (0.3M used).
+ */
+const GAS: Record<WalletOpMeta["kind"], bigint> = {
+  limit: BigInt(2_000_000),
+  revoke: BigInt(800_000),
+};
+
 export class WalletOpError extends Error {}
 
 /** A device's answer to a Face ID approval, as @simplewebauthn/browser returns it. */
@@ -132,7 +142,8 @@ export function walletApprovals(
         data: c.data as Hex,
       }));
       const sig = { ...passkeyKey(key.publicKey), sig: assertionFromWebAuthn(answer.response) };
-      const result = await chain.execute(op.wallet as Address, calls, op.deadline, sig);
+      const gas = GAS[op.meta.kind];
+      const result = await chain.execute(op.wallet as Address, calls, op.deadline, sig, gas);
       return { ...result, wallet: op.wallet as Address, meta: op.meta };
     },
   };

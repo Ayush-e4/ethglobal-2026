@@ -1,7 +1,8 @@
 // Hiring from your own Face ID wallet, live on a running API (Hedera testnet, LiteAPI sandbox).
 // A software passkey stands in for Face ID: it signs up (a wallet is made), asks for a hotel,
 // approves the agent's spending limit with "Face ID", and the agent is paid from the wallet:
-// held, booked, then paid out by Hedera. Takes about 4 minutes. Test travellers only.
+// held, booked, then paid out by Hedera; then Face ID cancels the limit. About 4 minutes.
+// Test travellers only.
 // Run: pnpm --filter @app/api face-id-hire-demo
 import { softPasskey } from "../src/test/passkey";
 
@@ -97,4 +98,20 @@ for (let i = 0; i < 120; i++) {
 }
 w = await wallet();
 ok(`done: ${last}; the wallet now holds ${usdc(w?.usdcUnits ?? null)} test USDC`);
-process.exit(last === "released" ? 0 : 1);
+
+// 6. The limit is listed on the wallet; Face ID cancels it, and Hedera says it's revoked.
+type Limit = { id: string; status: string; remainingUnits: string | null };
+const [limit] = await call<Limit[]>("/wallet/limits");
+if (!limit) throw new Error("no limit listed");
+ok(`listed: ${limit.status}, ${usdc(limit.remainingUnits)} USDC left`);
+const cancel = await call<{ opId: string; options: { challenge: string } }>(
+  `/wallet/limits/${limit.id}/revoke/face-id`,
+  {},
+);
+const revoked = await call<{ tx: string }>(`/wallet/limits/${limit.id}/revoke`, {
+  opId: cancel.opId,
+  response: device.signIn(cancel.options.challenge),
+});
+const [after] = await call<Limit[]>("/wallet/limits");
+ok(`Face ID cancelled it: ${after?.status}  https://hashscan.io/testnet/transaction/${revoked.tx}`);
+process.exit(last === "released" && after?.status === "cancelled" ? 0 : 1);
