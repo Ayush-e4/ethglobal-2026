@@ -21,7 +21,7 @@ export type ReplyReady = (
 ) => Promise<unknown>;
 
 /** Only a reply someone waited a while for is worth a nudge. */
-export const READY_AFTER_MS = 20_000;
+export const READY_AFTER_MS = 60_000;
 
 export function chatRoutes(
   db: Db,
