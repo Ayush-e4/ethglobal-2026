@@ -66,6 +66,7 @@ export function hireFollower(
     onRebooked?: (hire: Hire, rebook: Rebook) => Promise<unknown>;
     onDisputeSettled?: (hire: Hire) => Promise<unknown>; // the agent refunded after a report
     onRefunded?: (hire: Hire, why: "not_booked" | "report") => Promise<unknown>; // the guest's email
+    onReleased?: (hire: Hire) => Promise<unknown>; // the agent was paid (a deal pays its fee back)
   } = {},
 ) {
   const { onChange } = hooks;
@@ -143,6 +144,7 @@ export function hireFollower(
       return;
     } else if (hire.status === "delivered" && escrow.state === "released") {
       await set(hire.id, { status: "released" });
+      await tell("deal", hooks.onReleased?.({ ...hire, status: "released" }));
     }
     if (hire.watching) await watchStep(hire);
   }

@@ -69,6 +69,45 @@ Checks are kept in the database; after a restart the server picks up the ones st
    fee. The concierge sees "5.0/5 from 1 verified person"; the cards show "★ 5.0 · 1 verified
    person".
 
+## Deal drops: one per person (IDKit)
+
+A deal drop is a few of something good, offered fairly: **one per person**, however many
+accounts that person makes. The first drop, "Your next agent fee, on us", lets 20 people each
+get their next booking's agent fee paid back (up to 0.05 USDC), once that booking's agent is paid.
+
+This uses World ID through **IDKit** (`@worldcoin/idkit` 4.6 in the app, `@worldcoin/idkit-core`
+on the server; `apps/api/src/deals`), not the sign-in used above:
+
+1. **Start**: `POST /deals/:id/start`. Our server signs the request (`signRequest`, with
+   `WORLD_IDKIT_SIGNING_KEY`, which never leaves the server) for the drop's action
+   (`deal-<drop>`), and binds it to the account (the signal is the account id).
+2. **Prove**: the wallet page opens IDKit's widget. The person approves in World App (in staging,
+   World's simulator at simulator.worldcoin.org).
+3. **Claim**: `POST /deals/:id/claim` with the result. The server checks:
+   - the environment and action are the ones we expect;
+   - the signal hash is this account's, so nobody can use someone else's proof;
+   - World accepts the proof (`POST https://developer.world.org/api/v4/verify/<rp_id>`).
+   Then it stores the **nullifier**: the same for this person and this drop every time, and
+   unlinkable to anything else. It's unique per drop, so the same person can't claim again from
+   another account. It's also one per account.
+4. **Payback**: when the account's next booking is released (its agent paid after the review
+   window), AgentNet sends that fee back to the wallet. A refunded or disputed booking is never
+   released, so nothing is paid twice.
+
+| When | What the person sees |
+|---|---|
+| Claimed | "Claimed: your next booking's fee comes back once its agent is paid." |
+| Paid back | "Paid back to your wallet", with the Hedera transaction; the chat says so too |
+| Same person again (any account) | "This World ID has claimed it already: one per person." |
+| Same account again | "You've claimed this one already." |
+| All claimed / ended | "All claimed: they're gone." / "This deal has ended." |
+| Closed or declined in World App | "World ID didn't finish. Nothing was claimed." |
+| A proof for another account, action or environment | Refused, with the reason |
+
+Settings: `WORLD_IDKIT_APP_ID` (`app_…`), `WORLD_IDKIT_RP_ID` (`rp_…`), `WORLD_IDKIT_SIGNING_KEY`
+(secret), `WORLD_IDKIT_ENV` (`staging` for the simulator, `production` for World App). Without
+them the drop is hidden.
+
 ## What people need
 
 Our hackathon build uses World's **sandbox** (`WORLD_ID_ISSUER=https://sandbox.auth.world.org`;

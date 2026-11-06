@@ -134,6 +134,13 @@
       "when": 1793957450552,
       "tag": "0018_strong_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793960026364,
+      "tag": "0019_faithful_excalibur",
+      "breakpoints": true
     }
   ]
 }
