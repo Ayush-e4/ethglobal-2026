@@ -7,6 +7,7 @@ import { Alerts } from "./Alerts";
 import { ConnectedApps } from "./ConnectedApps";
 import { DealDrop } from "./DealDrop";
 import { Devices } from "./Devices";
+import { EmailSettings } from "./EmailSettings";
 import { Limits } from "./Limits";
 import { TopUp } from "./TopUp";
 import { Travellers } from "./Travellers";
@@ -65,6 +66,7 @@ export function WalletView() {
             You get a wallet only you control, with a little test USDC to start.
           </section>
           <Alerts />
+          <EmailSettings />
           <Travellers />
           <ConnectedApps />
         </>
@@ -136,6 +138,7 @@ export function WalletView() {
           <WorldBonus onBonus={load} />
           <DealDrop />
           <Alerts />
+          <EmailSettings />
           <Travellers />
           <ConnectedApps />
           <Limits />

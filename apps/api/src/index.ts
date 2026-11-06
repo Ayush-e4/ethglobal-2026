@@ -2,6 +2,7 @@ import { rateAgent, SafeArkivWriter } from "@app/arkiv";
 import { Erc8004Client } from "@app/erc8004";
 import { serve } from "@hono/node-server";
 import { privateKeyToAccount } from "viem/accounts";
+import { accountEmailOf } from "./account/email";
 import { statusText } from "./alerts/commands";
 import { liveHires } from "./alerts/live-hires";
 import { alertingChats } from "./alerts/routes";
@@ -17,7 +18,7 @@ import { connectDb } from "./db/client";
 import { loadIdkitConfig } from "./deals/idkit";
 import { dealService } from "./deals/service";
 import { confirmations } from "./email/confirmations";
-import { resendEmail } from "./email/resend";
+import { resendEmail, resendTry } from "./email/resend";
 import { loadHiringConfig } from "./hiring/config";
 import { arkivDisputes } from "./hiring/dispute-record";
 import { reportedNote } from "./hiring/disputes";
@@ -99,9 +100,11 @@ const live = liveHires({
   ratings,
 });
 // Emails (Resend; off without RESEND_API_KEY): the guest's confirmations, and account notices.
+const accountEmail = accountEmailOf(db);
 const confirm = confirmations(
   resendEmail(process.env.RESEND_API_KEY, process.env.RESEND_FROM),
   config.appOrigin,
+  accountEmail,
 );
 // Deal drops: one claim per person (World ID through IDKit), paying back a booking's fee.
 const deals = dealService(db, {
@@ -174,7 +177,13 @@ const app = createApp({
   // An app (Claude) was connected: tell the account's own traveller ("me"), if it has one.
   async onAppConnected(userId, app) {
     const me = (await travellers.list(userId)).find((t) => t.isSelf);
-    if (me) await confirm.connected(me.email, me.firstName, app);
+    const to = (await accountEmail(userId)) ?? me?.email;
+    if (to) await confirm.connected(to, me?.firstName ?? "there", app);
+  },
+  email: {
+    available: !!process.env.RESEND_API_KEY,
+    tryEmail: resendTry(process.env.RESEND_API_KEY, process.env.RESEND_FROM),
+    test: confirm.test,
   },
 });
 reviews.start(); // our own agents first, then every approved agent hourly

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Hire } from "../db/schema";
 import { confirmations } from "./confirmations";
-import { type Email, resendEmail } from "./resend";
+import { type Email, resendEmail, resendTry } from "./resend";
 
 const hire = {
   id: "h1",
@@ -15,6 +15,21 @@ const hire = {
 } as Hire;
 
 describe("Resend", () => {
+  it("says why a send didn't go, for the test button", async () => {
+    const t = resendTry("re_test", undefined, (async () =>
+      Response.json(
+        { message: "You can only send testing emails to your own email address" },
+        { status: 403 },
+      )) as unknown as typeof fetch);
+    expect(await t({ to: "a@example.com", subject: "s", html: "h", text: "t" })).toEqual({
+      ok: false,
+      error: "You can only send testing emails to your own email address",
+    });
+    expect(
+      await resendTry(undefined)({ to: "a@example.com", subject: "s", html: "h", text: "t" }),
+    ).toMatchObject({ ok: false });
+  });
+
   it("is off without a key", async () => {
     let called = false;
     const send = resendEmail(undefined, undefined, (async () => {
@@ -138,6 +153,27 @@ describe("the guest's confirmations", () => {
       /If this wasn't you, disconnect it in Wallet → Connected apps/,
     );
     expect(sent.at(-1)?.text).not.toMatch(/travel sandbox/);
+  });
+
+  it("a copy goes to the account's own email when the booking is for someone else", async () => {
+    const out: Email[] = [];
+    const withCopy = confirmations(
+      async (e) => {
+        out.push(e);
+        return true;
+      },
+      "https://app.example",
+      async () => "me@example.com",
+    );
+    await withCopy.booked(hire, "R1");
+    expect(out.map((e) => [e.to, e.subject])).toEqual([
+      ["asha.test@example.com", `Booked: ${hire.title} (ref R1)`],
+      ["me@example.com", `Copy: Booked: ${hire.title} (ref R1)`],
+    ]);
+    expect(out[1]?.text).toMatch(/^A copy for you: this went to Asha Test\./);
+    out.length = 0;
+    await withCopy.booked({ ...hire, guestEmail: "ME@example.com" } as Hire, "R1");
+    expect(out).toHaveLength(1); // the same person: once
   });
 
   it("escapes what it puts in the HTML, and sends nothing without the guest's email", async () => {

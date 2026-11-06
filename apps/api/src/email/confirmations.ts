@@ -39,10 +39,15 @@ function compose(
 
 /**
  * The emails AgentNet sends. To the traveller a booking was for (their email is on the hire):
- * booked, rebooked cheaper, refunded, cancelled afterwards. To the account's own traveller ("me"):
- * security notices, like an app being connected.
+ * booked, rebooked cheaper, refunded, cancelled afterwards; and a copy of each to the account's
+ * own email when it has one (so the person booking sees it too). Security notices, like an app
+ * being connected, go to the account's email.
  */
-export function confirmations(send: SendEmail, appOrigin: string) {
+export function confirmations(
+  send: SendEmail,
+  appOrigin: string,
+  accountEmail: (userId: string) => Promise<string | null> = async () => null,
+) {
   const links = (h: Hire): [string, string][] => [
     ...(h.payTx
       ? ([["The agent's fee on Hedera", `https://hashscan.io/testnet/transaction/${h.payTx}`]] as [
@@ -56,10 +61,24 @@ export function confirmations(send: SendEmail, appOrigin: string) {
   const fee = (h: Hire) => `${formatUsdc(h.feeUnits)} USDC`;
   const first = (h: Hire) => h.guestName?.split(" ")[0] ?? "there";
 
-  const guest = (h: Hire, subject: string, rows: [string, string][], intro: string) =>
-    h.guestEmail
-      ? send(compose(h.guestEmail, subject, rows, intro, links(h)))
-      : Promise.resolve(false);
+  /** To the guest, and a copy to the account's email if it's someone else's address. */
+  const guest = async (h: Hire, subject: string, rows: [string, string][], intro: string) => {
+    const mine = await accountEmail(h.userId).catch(() => null);
+    const sent = h.guestEmail
+      ? await send(compose(h.guestEmail, subject, rows, intro, links(h)))
+      : false;
+    if (!mine || mine.toLowerCase() === h.guestEmail?.toLowerCase()) return sent;
+    const copy = await send(
+      compose(
+        mine,
+        `Copy: ${subject}`,
+        rows,
+        `A copy for you: this went to ${h.guestName ?? "the traveller"}.`,
+        links(h),
+      ),
+    );
+    return sent || copy;
+  };
 
   return {
     /** The agent couldn't book it, or accepted a reported problem: the fee is back. */
@@ -119,43 +138,44 @@ export function confirmations(send: SendEmail, appOrigin: string) {
         ),
       ),
 
-    booked: async (h: Hire, ref: string) =>
-      h.guestEmail
-        ? send(
-            compose(
-              h.guestEmail,
-              `Booked: ${h.title} (ref ${ref})`,
-              [
-                ["Booking", h.title],
-                ["Booking reference", ref],
-                ["Guest", h.guestName ?? ""],
-                ["Booked by", `${h.agentName}, through AgentNet`],
-                ["Agent's fee", `${formatUsdc(h.feeUnits)} USDC, paid only now it's done`],
-              ],
-              `Hi ${first(h)}, it's booked.`,
-              links(h),
-            ),
-          )
-        : false,
+    booked: (h: Hire, ref: string) =>
+      guest(
+        h,
+        `Booked: ${h.title} (ref ${ref})`,
+        [
+          ["Booking", h.title],
+          ["Booking reference", ref],
+          ["Guest", h.guestName ?? ""],
+          ["Booked by", `${h.agentName}, through AgentNet`],
+          ["Agent's fee", `${formatUsdc(h.feeUnits)} USDC, paid only now it's done`],
+        ],
+        `Hi ${first(h)}, it's booked.`,
+      ),
 
-    rebooked: async (h: Hire, r: Rebook) =>
-      h.guestEmail
-        ? send(
-            compose(
-              h.guestEmail,
-              `Cheaper: ${h.title} rebooked (new ref ${r.toBookingId})`,
-              [
-                ["Booking", h.title],
-                ["New booking reference", r.toBookingId],
-                ["Price", `${money(r.from, r.currency)} → ${money(r.to, r.currency)}`],
-                ["Back to you", money(r.saved, r.currency)],
-                ["Guest", h.guestName ?? ""],
-              ],
-              `Hi ${first(h)}, ${h.agentName} found the same room cheaper and rebooked it.${r.simulated ? " (The price drop was simulated for the demo.)" : ""}`,
-              links(h),
-            ),
-          )
-        : false,
+    rebooked: (h: Hire, r: Rebook) =>
+      guest(
+        h,
+        `Cheaper: ${h.title} rebooked (new ref ${r.toBookingId})`,
+        [
+          ["Booking", h.title],
+          ["New booking reference", r.toBookingId],
+          ["Price", `${money(r.from, r.currency)} → ${money(r.to, r.currency)}`],
+          ["Back to you", money(r.saved, r.currency)],
+          ["Guest", h.guestName ?? ""],
+        ],
+        `Hi ${first(h)}, ${h.agentName} found the same room cheaper and rebooked it.${r.simulated ? " (The price drop was simulated for the demo.)" : ""}`,
+      ),
+
+    /** "Send a test email": proves this address gets AgentNet's emails. */
+    test: (to: string) =>
+      compose(
+        to,
+        "AgentNet: your emails work",
+        [["Email", to]],
+        "This is a test from AgentNet. Booking emails and account notices will reach you here.",
+        [["Your wallet", `${appOrigin}/wallet`]],
+        "AgentNet runs on test networks: nothing real is booked or paid.",
+      ),
   };
 }
 

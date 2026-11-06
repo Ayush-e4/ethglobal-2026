@@ -24,6 +24,7 @@ export const users = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     isDemo: boolean("is_demo").notNull().default(false),
     displayName: text("display_name"),
+    email: text("email"), // for account notices and a copy of each booking email (optional)
     worldIss: text("world_iss"),
     worldSub: text("world_sub"), // the same person always gets the same one, for this app only
     createdAt: at("created_at").notNull().defaultNow(),
