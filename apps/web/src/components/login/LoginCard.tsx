@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import { cancelled, passkeysSupported, signInWithPasskey, signUpWithPasskey } from "@/lib/passkey";
+import { safeNext } from "@/lib/safe-next";
 import { PasskeyIcon } from "../icons";
 
 const primary =
@@ -21,8 +22,7 @@ export function LoginCard() {
   useEffect(() => setSupported(passkeysSupported()), []);
 
   // Only paths inside the app (never "//elsewhere"), so the link can't send people off-site.
-  const done = () =>
-    router.replace(next?.startsWith("/") && !next.startsWith("//") ? next : "/chat");
+  const done = () => router.replace(safeNext(next, window.location.origin));
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
     setError(null);
