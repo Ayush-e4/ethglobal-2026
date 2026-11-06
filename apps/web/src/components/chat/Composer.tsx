@@ -77,7 +77,7 @@ export function Composer({
               {/* biome-ignore lint/performance/noImgElement: a local data URL preview */}
               <img
                 src={p.thumb}
-                alt={`Photo ${i + 1}`}
+                alt={`Attachment ${i + 1}`}
                 className="size-16 rounded-xl border border-line object-cover"
               />
               <button

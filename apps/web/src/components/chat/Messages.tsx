@@ -44,7 +44,7 @@ export function Messages({
                     <img
                       key={src.slice(-24)}
                       src={src}
-                      alt={`Photo ${i + 1}`}
+                      alt={`Attachment ${i + 1}`}
                       className="max-h-40 rounded-xl border border-line bg-white object-cover"
                     />
                   ))}
