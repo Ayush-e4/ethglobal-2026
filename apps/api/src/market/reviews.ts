@@ -88,6 +88,7 @@ export function agentReviewService(
         ok: false,
         note: `"${a.name}" is already another agent's name`,
       });
+    if (d.house.has(id)) forgiveHouseRecord(checks);
     const failed = checks.filter((c) => !c.ok);
     const failures = failed.length ? (prev?.failures ?? 0) + 1 : 0;
     const status: ReviewStatus =
@@ -193,3 +194,16 @@ export function agentReviewService(
 }
 
 export type AgentReviewService = ReturnType<typeof agentReviewService>;
+
+/**
+ * Ours are never suspended on reports alone (a report costs nothing to file): we look into them
+ * ourselves. The record check still shows them.
+ */
+export function forgiveHouseRecord(checks: Check[]) {
+  for (const c of checks)
+    if (c.id === "record" && !c.ok) {
+      c.ok = true;
+      c.note = `${c.note} (one of ours: we look into reports ourselves)`.slice(0, 200);
+    }
+  return checks;
+}

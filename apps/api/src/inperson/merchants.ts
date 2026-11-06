@@ -2,9 +2,12 @@ import { createHmac, randomBytes } from "node:crypto";
 import { encodeRequest, fromHex, inrToTestUnits, newNonce, toHex } from "@app/shared";
 import { and, eq, ne, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { merchants, payRequests, type User, worldChecks } from "../db/schema";
+import { merchants, payRequests, type User } from "../db/schema";
 import { HireError } from "../hiring/errors";
 import type { OwnWallet } from "../hiring/service";
+import { worldVerified } from "../world/verified";
+
+export { worldVerified };
 
 /** A request is payable for 2 minutes: long enough to scan or hear, short for a replay. */
 export const REQUEST_SECONDS = 120;
@@ -15,16 +18,6 @@ export const liveKeyFor = (keyHex: string, frameHex: string) =>
   createHmac("sha256", Buffer.from(keyHex, "hex")).update(`live|${frameHex}`).digest();
 
 export const accountNumber = (account: string) => Number(account.split(".")[2]);
-
-/** Whether this person proved they're a real person with World ID (the "verified" tick). */
-export async function worldVerified(db: Db, userId: string) {
-  const [c] = await db
-    .select({ id: worldChecks.id })
-    .from(worldChecks)
-    .where(and(eq(worldChecks.userId, userId), eq(worldChecks.status, "verified")))
-    .limit(1);
-  return !!c;
-}
 
 export function merchantService(db: Db, ownWallet: OwnWallet) {
   const mine = async (userId: string) =>
