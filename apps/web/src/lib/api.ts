@@ -29,7 +29,15 @@ export interface HireView {
   title: string;
   agentName: string;
   feeUnits: string;
-  status: "paying" | "held" | "cancelled" | "delivered" | "released" | "refunded" | "failed";
+  status:
+    | "paying"
+    | "held"
+    | "cancelled"
+    | "delivered"
+    | "released"
+    | "refunded"
+    | "failed"
+    | "disputed";
   payTx: string | null; // the Hedera transaction that holds the fee
   undoUntil: string | null;
   bookingRef: string | null;
@@ -37,6 +45,8 @@ export interface HireView {
   watching: boolean; // a watching agent still at work after it's paid
   watchNote: string | null; // e.g. "Saved ₹800 · 1 rebook · watching the price until 20 Dec"
   canSimulateDrop?: boolean; // demo only
+  reviewUntil: string | null; // after delivery: a problem can be reported until then
+  canReport: boolean;
 }
 
 /** GET /wallet: a passkey account's Face ID wallet. Demo accounts have none. */

@@ -1,4 +1,5 @@
 import type { MandateClient } from "@app/mandates";
+import { formatUsdc } from "@app/shared";
 import { and, eq, inArray, lt, or } from "drizzle-orm";
 import { z } from "zod";
 import type { ChatStore } from "../chats/store";
@@ -62,6 +63,7 @@ export function hireFollower(
     onChange?: (hireId: string) => Promise<unknown>; // after each look at a hire (Telegram's live message)
     onBooked?: (hire: Hire, bookingRef: string) => Promise<unknown>; // the confirmation email
     onRebooked?: (hire: Hire, rebook: Rebook) => Promise<unknown>;
+    onDisputeSettled?: (hire: Hire) => Promise<unknown>; // the agent refunded after a report
   } = {},
 ) {
   const { onChange } = hooks;
@@ -96,9 +98,11 @@ export function hireFollower(
       const job = Job.safeParse(res?.ok ? await res.json() : null);
       if (job.success && job.data.status === "delivered") {
         const w = job.data.watch;
+        const reviewEnds = Number(escrow.deliveredAt) + escrow.reviewSeconds;
         await set(hire.id, {
           status: "delivered",
           bookingRef: job.data.bookingId ?? null,
+          reviewUntil: escrow.deliveredAt > 0n ? new Date(reviewEnds * 1000) : null,
           ...(w ? { watching: w.active, watchNote: watchNote(w) } : {}),
         });
         await chats.add(
@@ -108,6 +112,26 @@ export function hireFollower(
         );
         if (job.data.bookingId) await tell("email", hooks.onBooked?.(hire, job.data.bookingId));
       }
+    } else if (hire.status === "disputed" && escrow.state === "refunded") {
+      // The agent settled the buyer's report by giving the fee back.
+      const res = hire.jobUrl
+        ? await fetch(hire.jobUrl, { signal: AbortSignal.timeout(10_000) }).catch(() => null)
+        : null;
+      const note = (
+        (res?.ok ? await res.json().catch(() => null) : null) as { note?: string } | null
+      )?.note;
+      await set(hire.id, {
+        status: "refunded",
+        watching: false,
+        note: note ?? "refunded after your report",
+      });
+      await chats.add(
+        hire.chatId,
+        "assistant",
+        `${hire.agentName} accepted your report on ${hire.title}: the ${formatUsdc(hire.feeUnits)} USDC fee is refunded${note?.includes("booking is cancelled") ? ", and the hotel booking is cancelled" : ""}.`,
+      );
+      await tell("dispute", hooks.onDisputeSettled?.(hire));
+      return;
     } else if (hire.status === "delivered" && escrow.state === "released") {
       await set(hire.id, { status: "released" });
     }
@@ -148,7 +172,9 @@ export function hireFollower(
       const open = await db
         .select()
         .from(hires)
-        .where(or(inArray(hires.status, ["held", "delivered"]), eq(hires.watching, true)));
+        .where(
+          or(inArray(hires.status, ["held", "delivered", "disputed"]), eq(hires.watching, true)),
+        );
       for (const hire of open)
         await step(hire)
           .catch((e) => console.error(`hire ${hire.id}: ${e instanceof Error ? e.message : e}`))

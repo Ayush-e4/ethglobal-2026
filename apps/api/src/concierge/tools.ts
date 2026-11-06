@@ -21,7 +21,7 @@ export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
   {
     name: "find_agents",
     description:
-      "Search the open market (Arkiv) for agents that can do a job, by what the user needs in plain words, or list one skill's agents. Returns each agent's skill, fee, how it does the job (its service model and promise, in its own words) how many jobs it has delivered, and its rating by verified people (World ID, on Arkiv; one per person). Use it to learn which skill to quote, and to explain the agents' different ways of working.",
+      "Search the open market (Arkiv) for agents that can do a job, by what the user needs in plain words, or list one skill's agents. Returns each agent's skill, fee, how it does the job (its service model and promise, in its own words) how many jobs it has delivered and how many of those a buyer reported a problem with, and its rating by verified people (World ID, on Arkiv; one per person). Use it to learn which skill to quote, and to explain the agents' different ways of working.",
     eager_input_streaming: true,
     input_schema: {
       type: "object",
@@ -147,6 +147,7 @@ export async function runTool(
             promise: a.service?.promise,
             afterwards: a.service?.afterwards,
             delivered: a.delivered,
+            reportedProblems: a.disputes ?? 0,
             verifiedRating: rated(a.rating),
             about: a.description,
           })),
@@ -166,6 +167,7 @@ export async function runTool(
           endpoint: a.endpoint,
           model: a.service?.model,
           delivered: a.delivered,
+          disputes: a.disputes,
           rating: a.rating,
         })),
       },

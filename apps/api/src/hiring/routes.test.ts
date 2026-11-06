@@ -29,6 +29,7 @@ function fakeHiring(late = false) {
     watching: false,
     rebooksSeen: 0,
     watchNote: null,
+    reviewUntil: null,
     guestName: null,
     guestEmail: null,
     createdAt: new Date(),

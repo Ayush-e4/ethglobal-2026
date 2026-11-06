@@ -88,6 +88,7 @@ function Agents({ card }: { card: Of<"agents"> }) {
                   {a.delivered === 0
                     ? "No jobs delivered yet"
                     : `${a.delivered} job${a.delivered === 1 ? "" : "s"} delivered, on Arkiv`}
+                  {a.disputes ? ` · ${a.disputes} reported` : ""}
                   {a.rating && ` · ${verifiedRating(a.rating)}`}
                 </span>
               )}

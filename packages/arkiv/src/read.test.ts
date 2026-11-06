@@ -57,6 +57,14 @@ describe("decodeRow trust rules", () => {
     expect(decodeRow("rating", row(AGENT, { ...rating, score: 6 }), platform)).toBeNull();
   });
 
+  it("only trusts disputes from our own writer", () => {
+    const dispute = { agent: OTHER, job: KEY, reason: "not_found", outcome: "open" };
+    const platform = AGENT as `0x${string}`;
+    expect(decodeRow("dispute", row(OTHER, dispute), platform)).toBeNull(); // the agent can't file or hide one
+    expect(decodeRow("dispute", row(AGENT, dispute), platform)?.record.reason).toBe("not_found");
+    expect(decodeRow("dispute", row(AGENT, { ...dispute, reason: "angry" }), platform)).toBeNull();
+  });
+
   it("a job's patched status column wins over its original body", () => {
     const job = {
       task: "goa-trip",

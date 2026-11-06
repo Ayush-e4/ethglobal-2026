@@ -7,7 +7,7 @@ import { hireFollower } from "./follow";
 afterEach(() => vi.unstubAllGlobals());
 
 async function setup(
-  status: "held" | "paying" | "delivered",
+  status: "held" | "paying" | "delivered" | "disputed",
   escrowState: string,
   job: unknown,
   note: string | null = null,
@@ -42,7 +42,9 @@ async function setup(
   const booked: string[] = [];
   const follower = hireFollower(
     db,
-    { getEscrow: async () => ({ state: escrowState }) } as never,
+    {
+      getEscrow: async () => ({ state: escrowState, deliveredAt: 1000n, reviewSeconds: 900 }),
+    } as never,
     {
       add: async (_c: string, _r: string, text: string) => {
         posted.push(text);
@@ -50,7 +52,10 @@ async function setup(
       },
     },
     5000,
-    { onBooked: async (_h, ref) => booked.push(ref) },
+    {
+      onBooked: async (_h, ref) => booked.push(ref),
+      onDisputeSettled: async () => booked.push("settled"),
+    },
   );
   const read = async () =>
     (
@@ -91,6 +96,24 @@ describe("hireFollower", () => {
     await t.follower.tick();
     expect((await t.read())?.status).toBe("cancelled");
     expect(t.posted).toEqual([]);
+  });
+
+  it("a reported booking the agent refunded: said in the chat, and settled on the record", async () => {
+    const t = await setup("disputed", "refunded", {
+      note: "Refunded after the buyer's report (not_found); the hotel booking is cancelled",
+    });
+    await t.follower.tick();
+    expect((await t.read())?.status).toBe("refunded");
+    expect(t.posted[0]).toBe(
+      "StayWise accepted your report on Park Inn: the 0.02 USDC fee is refunded, and the hotel booking is cancelled.",
+    );
+    expect(t.booked).toEqual(["settled"]);
+  });
+
+  it("records when the review window ends, once delivered", async () => {
+    const t = await setup("held", "delivered", { status: "delivered", bookingId: "B1" });
+    await t.follower.tick();
+    expect((await t.read())?.reviewUntil?.getTime()).toBe((1000 + 900) * 1000);
   });
 
   it("after a restart, a hire stuck mid-payment is flagged, never paid again", async () => {

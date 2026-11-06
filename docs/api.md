@@ -61,10 +61,17 @@ moves from the app:
 6. **Undo**: `POST /chats/:id/hires/:hireId/cancel` before the deadline (only for a hire in that
    chat, by its owner): the limit's owner takes the fee back; the agent sees it and does nothing.
    The chat gets a line saying so, so the concierge knows when the user writes next.
-7. **The follower** (`follow.ts`) follows every open hire from the database every 5 s: asks the
+8. **The follower** (`follow.ts`) follows every open hire from the database every 5 s: asks the
    agent's job URL, reads the escrow on Hedera, posts the booking reference into the chat, and marks
    it `released` when Hedera pays the agent. After a restart it carries on; a hire still `paying`
    (outcome unknown) is flagged `failed` for a check, never paid twice.
+7. **Report a problem**: `POST /chats/:id/hires/:hireId/dispute` `{ reason: not_found | wrong_details | other }`,
+   after delivery and within the review window (15 minutes; `reviewUntil`, `canReport` on the hire).
+   The fee freezes on Hedera (`dispute`, signed by the concierge's key, a buyer on every limit: no
+   Face ID), the dispute goes on Arkiv (written by us, so an agent can't hide it), the chat says
+   so, and the agent is told. Our agents settle it by cancelling the hotel booking and refunding
+   their fee; the follower then says so in the chat. An agent that ignores it is never paid. In
+   Telegram, the hire's live message has **⚠️ Report a problem** for the same thing.
 
 `GET /chats/:id/hires` gives the cards their live status: only what a card shows (status, fee,
 pay transaction, undo deadline, booking reference, note), never the agent's job URL or escrow id.

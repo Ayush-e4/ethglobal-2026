@@ -112,6 +112,35 @@ export class HotelWorker {
     }).catch((e) => console.error(`arkiv delivery for ${escrowId}: ${e}`));
   }
 
+  /**
+   * The buyer reported a problem with a delivered booking. Only if Hedera says the job really is
+   * disputed (only the buyer can do that, so nobody else can get a guest's booking cancelled):
+   * cancel the hotel booking (every room we sell is refundable), stop any price watch, and give
+   * the fee back. Our policy: a buyer's report is enough.
+   */
+  async onDispute(escrowId: string, reason: string) {
+    const job = this.d.jobs.get(escrowId);
+    if (!job) return { outcome: "not_found" as const };
+    if (job.status === "refunded") return { outcome: "refunded" as const, cancelled: true };
+    const escrow = await this.d.registry.getEscrow(escrowId as Hex);
+    if (escrow.state !== "disputed") return { outcome: "not_disputed" as const };
+    let cancelled = false;
+    if (job.bookingId)
+      cancelled = await this.d.lite
+        .cancel(job.bookingId)
+        .then(() => true)
+        .catch(() => false);
+    if (job.watch)
+      this.save(job, {
+        watch: { ...job.watch, active: false, note: "Stopped: the booking was reported" },
+      });
+    await this.refund(
+      this.d.jobs.get(escrowId) ?? job,
+      `Refunded after the buyer's report (${reason})${cancelled ? "; the hotel booking is cancelled" : "; the hotel booking couldn't be cancelled automatically"}`,
+    );
+    return { outcome: "refunded" as const, cancelled };
+  }
+
   private async refund(job: Job, note: string): Promise<void> {
     const r = await this.d.registry.refund(this.d.agent, job.escrowId);
     this.save(job, { status: "refunded", refundTx: r.transactionHash, note });

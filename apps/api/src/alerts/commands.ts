@@ -46,6 +46,7 @@ const STATUS: Record<Hire["status"], string> = {
   cancelled: "↩ undone",
   refunded: "⚠️ refunded",
   failed: "⚠️ didn't go through",
+  disputed: "⚠️ reported, fee frozen",
 };
 
 /** "/status": the linked account's latest hires, newest first, one line each. */

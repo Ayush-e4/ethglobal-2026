@@ -15,6 +15,8 @@ import { connectDb } from "./db/client";
 import { confirmations } from "./email/confirmations";
 import { resendEmail } from "./email/resend";
 import { loadHiringConfig } from "./hiring/config";
+import { arkivDisputes } from "./hiring/dispute-record";
+import { reportedNote } from "./hiring/disputes";
 import { hireFollower } from "./hiring/follow";
 import { hiringService } from "./hiring/service";
 import { travellerService } from "./travellers/service";
@@ -56,9 +58,12 @@ const { minFeeUnits } = loadCheckpointOptions();
 // Passkey accounts pay from their own Face ID wallet; demo accounts from the demo wallet.
 // Saved travellers: who each booking is for (private; sent only to the agent hired).
 const travellers = travellerService(db);
+// Reported problems, on the public record (Arkiv): the market counts them per agent.
+const disputes = arkivDisputes(db, platform);
 const hiring = hiringService(db, loadHiringConfig(), (id) => wallets.get(id, false), {
   guest: travellers.gate(),
   human: checks ? humanCheckpoint(checks, minFeeUnits) : undefined,
+  onDispute: disputes.onDispute,
 });
 // Phone alerts in Telegram (our own bot; off without TELEGRAM_BOT_TOKEN): each hire is one live
 // message there, with Undo and ratings, and the chats' own news buzzes as alerts.
@@ -68,6 +73,10 @@ const live = liveHires({
   t: alerts,
   appOrigin: config.appOrigin,
   cancel: (user, chatId, hireId) => hiring.cancel(user, chatId, hireId),
+  async dispute(user, chatId, hireId, reason) {
+    const h = await hiring.dispute(user, chatId, hireId, reason);
+    await chatStore(db).add(chatId, "assistant", reportedNote(h, reason));
+  },
   ratings,
 });
 const hiringLive = {
@@ -134,7 +143,12 @@ await hireFollower(
   hiring.registry,
   alertingChats(db, chatStore(db), alerts, config.appOrigin),
   5000,
-  { onChange: live.show, onBooked: confirm.booked, onRebooked: confirm.rebooked },
+  {
+    onChange: live.show,
+    onBooked: confirm.booked,
+    onRebooked: confirm.rebooked,
+    onDisputeSettled: disputes.onSettled,
+  },
 ).start();
 serve({ fetch: app.fetch, port: config.port }, () =>
   console.log(`api on http://localhost:${config.port}`),

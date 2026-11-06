@@ -15,8 +15,8 @@ export interface Found<T> {
 
 /**
  * Anyone can write an entity under our schema names, so a record only counts if the network says
- * it was written by the party it claims to be from ($creator). Receipts and ratings only count
- * from our own writer (pass `trustedWriter`).
+ * it was written by the party it claims to be from ($creator). Receipts, ratings and disputes
+ * only count from our own writer (pass `trustedWriter`).
  */
 const AUTHOR: Record<Kind, (r: Record<string, unknown>) => string | null> = {
   agent: (r) => r.agent as string,
@@ -26,6 +26,7 @@ const AUTHOR: Record<Kind, (r: Record<string, unknown>) => string | null> = {
   receipt: () => null, // checked against the trusted writer instead
   delivery: (r) => r.agent as string,
   rating: () => null, // checked against the trusted writer instead
+  dispute: () => null, // checked against the trusted writer instead
 };
 
 /** A column as the SDK returns it: `{ type, value }` or the bare value. */
@@ -59,8 +60,8 @@ export function decodeRow<K extends Kind>(
   const creator = row.$creator.toLowerCase();
   const author = AUTHOR[kind](parsed.data as Record<string, unknown>);
   if (author !== null && author.toLowerCase() !== creator) return null;
-  if ((kind === "receipt" || kind === "rating") && creator !== trustedWriter?.toLowerCase())
-    return null;
+  const platformOnly = kind === "receipt" || kind === "rating" || kind === "dispute";
+  if (platformOnly && creator !== trustedWriter?.toLowerCase()) return null;
   return {
     key: row.$key,
     creator: row.$creator,
@@ -159,4 +160,17 @@ export async function verifiedRatings(
     });
   }
   return byAgent;
+}
+
+/**
+ * Disputes per agent: only those our platform wrote, one per job (the newest says how it ended).
+ * How many of an agent's jobs a buyer reported is part of its record.
+ */
+export async function disputesByAgent(r: ArkivReader, platform: Hex): Promise<Map<string, number>> {
+  const all = await find(r, "dispute", [], { createdBy: platform, trustedWriter: platform });
+  const jobs = new Map<string, string>(); // job → agent
+  for (const x of all) jobs.set(x.record.job.toLowerCase(), x.record.agent.toLowerCase());
+  const counts = new Map<string, number>();
+  for (const agent of jobs.values()) counts.set(agent, (counts.get(agent) ?? 0) + 1);
+  return counts;
 }

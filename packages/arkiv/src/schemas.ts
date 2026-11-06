@@ -58,6 +58,11 @@ export const SCHEMAS = {
     score: i32().indexed(),
     body,
   }),
+  dispute: defineSchema(named("dispute"), {
+    agent: addr().indexed(),
+    job: key().indexed(),
+    body,
+  }),
 } as const;
 
 /** How long each kind lives. Rabdi caps lifetimes at ~182 days; blocks are 2 s. */
@@ -69,6 +74,7 @@ export const LIFETIME = {
   receipt: () => ExpirationTime.fromDays(90),
   delivery: () => ExpirationTime.fromDays(90),
   rating: () => ExpirationTime.fromDays(180),
+  dispute: () => ExpirationTime.fromDays(180),
 } as const;
 
 const asBody = (record: object) => stringToBytes(JSON.stringify(record));
@@ -116,6 +122,11 @@ export function valuesFor<K extends Kind>(kind: K, record: RecordOf<K>): never {
     case "delivery": {
       const x = r as RecordOf<"delivery">;
       cols = { task: str(x.task), agent: addr(x.agent), status: str(x.status) };
+      break;
+    }
+    case "dispute": {
+      const x = r as RecordOf<"dispute">;
+      cols = { agent: addr(x.agent), job: key(x.job as `0x${string}`) };
       break;
     }
     default: {

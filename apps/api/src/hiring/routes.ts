@@ -5,6 +5,7 @@ import { currentUser } from "../auth/current";
 import { chatStore } from "../chats/store";
 import type { Db } from "../db/client";
 import type { Hire } from "../db/schema";
+import { DisputeReasonSchema, reportedNote } from "./disputes";
 import { HireError, type HiringService } from "./service";
 
 const Id = z.uuid();
@@ -22,6 +23,8 @@ const show = (h: Hire) => ({
   note: h.note,
   watching: h.watching, // a watching agent still at work after it's paid
   watchNote: h.watchNote,
+  reviewUntil: h.reviewUntil?.toISOString() ?? null,
+  canReport: h.status === "delivered" && !!h.reviewUntil && h.reviewUntil > new Date(),
 });
 
 /** GET /chats/:id/hires (live status for the cards), POST /chats/:id/hires/:hireId/cancel (undo). */
@@ -62,6 +65,28 @@ export function hireRoutes(db: Db, hiring: HiringService, demoToken?: string) {
       throw err;
     }
   });
+  // Report a problem with a delivered booking, within its review window (disputes.ts).
+  app.post("/chats/:id/hires/:hireId/dispute", async (c) => {
+    const user = await currentUser(db, c);
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    const chat = await store.get(user.id, c.req.param("id"));
+    const hireId = Id.safeParse(c.req.param("hireId"));
+    const body = z
+      .object({ reason: DisputeReasonSchema })
+      .safeParse(await c.req.json().catch(() => null));
+    if (!chat || !hireId.success) return c.json({ error: "not_found" }, 404);
+    if (!body.success) return c.json({ error: "bad_request", message: "pick a reason" }, 400);
+    try {
+      const hire = await hiring.dispute(user, chat.id, hireId.data, body.data.reason);
+      await store.add(chat.id, "assistant", reportedNote(hire, body.data.reason));
+      return c.json(show(hire));
+    } catch (err) {
+      if (err instanceof HireError)
+        return c.json({ error: "cannot_report", message: err.message }, 409);
+      throw err;
+    }
+  });
+
   // Demo only (needs DEMO_TOKEN set): tell a watching agent the room got cheaper. The agent's
   // rebook is real (in the sandbox), and the chat says the drop was simulated.
   app.post("/chats/:id/hires/:hireId/demo-drop", async (c) => {

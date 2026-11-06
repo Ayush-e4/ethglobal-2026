@@ -36,7 +36,7 @@ function setup(state: string, book: () => Promise<unknown>) {
     markDelivered: vi.fn(async () => ({ transactionHash: "0xdelivered" })),
     refund: vi.fn(async () => ({ transactionHash: "0xrefund" })),
   };
-  const lite = { book: vi.fn(book) };
+  const lite = { book: vi.fn(book), cancel: vi.fn(async () => ({})) };
   const arkiv = { address: agent.address, run: vi.fn(async () => ({ txHash: "0x1" })) };
   const worker = new HotelWorker({ registry, agent, lite, arkiv, jobs, quotes } as never);
   return { worker, jobs, registry, lite };
@@ -82,5 +82,29 @@ describe("HotelWorker", () => {
     await t.worker.process(ESCROW);
     expect(t.lite.book).not.toHaveBeenCalled();
     expect(t.jobs.get(ESCROW)).toMatchObject({ status: "delivered", bookingId: "B1" });
+  });
+
+  it("a reported booking: only if Hedera says it's disputed; then cancelled and refunded", async () => {
+    const t = setup("delivered", async () => ({}));
+    t.jobs.set(ESCROW, { ...(t.jobs.get(ESCROW) as Job), status: "delivered", bookingId: "B1" });
+    expect(await t.worker.onDispute(ESCROW, "not_found")).toEqual({ outcome: "not_disputed" });
+    expect(t.lite.cancel).not.toHaveBeenCalled(); // nobody else can get a guest's booking cancelled
+    t.registry.getEscrow.mockResolvedValue({ state: "disputed" });
+    expect(await t.worker.onDispute(ESCROW, "not_found")).toEqual({
+      outcome: "refunded",
+      cancelled: true,
+    });
+    expect(t.lite.cancel).toHaveBeenCalledWith("B1");
+    expect(t.registry.refund).toHaveBeenCalled();
+    expect(t.jobs.get(ESCROW)).toMatchObject({
+      status: "refunded",
+      note: expect.stringMatching(/buyer's report \(not_found\); the hotel booking is cancelled/),
+    });
+    // Asked again: already done, nothing twice.
+    expect(await t.worker.onDispute(ESCROW, "not_found")).toEqual({
+      outcome: "refunded",
+      cancelled: true,
+    });
+    expect(t.registry.refund).toHaveBeenCalledTimes(1);
   });
 });

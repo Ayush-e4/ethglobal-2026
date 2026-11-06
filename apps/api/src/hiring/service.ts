@@ -9,12 +9,14 @@ import type { GuestGate } from "../travellers/service";
 import type { HumanGate } from "../world/checkpoint";
 import { demoCapsAllow } from "./caps";
 import type { HiringConfig } from "./config";
+import { type DisputeHook, type DisputeReason, disputeHire } from "./disputes";
+import { HireError } from "./errors";
 import { demoLimitFor, LIMIT_TERMS, limitParams, liveLimit, NeedsLimit } from "./limits";
 import { PayError, payAgent, TEST_TRAVELLER } from "./pay";
 
 const USDC_TESTNET = "0.0.429274";
 
-export class HireError extends Error {}
+export { HireError } from "./errors";
 
 /**
  * Hiring, the one way money moves from the app: the hire is written down first, then the chat's
@@ -33,6 +35,7 @@ export function hiringService(
   gates: {
     guest?: GuestGate; // who it's for: the chat's chosen traveller (asked first)
     human?: HumanGate; // larger hires: a person approves with World ID
+    onDispute?: DisputeHook; // a reported problem, for the public record
   } = {},
 ) {
   const { human } = gates;
@@ -190,6 +193,16 @@ export function hiringService(
       await save(hire.id, changes);
       return { ...hire, ...changes };
     },
+
+    /** Report a problem with a delivered booking, within its review window (disputes.ts). */
+    dispute: (user: User, chatId: string, hireId: string, reason: DisputeReason) =>
+      disputeHire(
+        { db, registry, concierge, onDispute: gates.onDispute },
+        user,
+        chatId,
+        hireId,
+        reason,
+      ),
 
     list: (chatId: string) => db.select().from(hires).where(eq(hires.chatId, chatId)),
 

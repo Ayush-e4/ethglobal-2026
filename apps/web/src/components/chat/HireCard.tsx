@@ -6,6 +6,7 @@ import { ApiError, api, type HireView, hashscanTx, usdc } from "@/lib/api";
 import { UndoIcon } from "../icons";
 import type { CardCtx } from "./Cards";
 import { RateAgent } from "./RateAgent";
+import { ReportProblem } from "./ReportProblem";
 
 type HireCardData = Extract<Card, { type: "hire" }>;
 type Status = HireView["status"];
@@ -114,9 +115,24 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
       done: true,
     });
   else if (status === "refunded")
-    steps.push({ id: "end", label: `${name} couldn't book it and refunded the fee`, done: true });
+    steps.push({
+      id: "end",
+      label: hire?.note?.toLowerCase().includes("report")
+        ? `${name} accepted your report and refunded the fee`
+        : `${name} couldn't book it and refunded the fee`,
+      done: true,
+    });
   else if (status === "failed")
     steps.push({ id: "end", label: hire?.note ?? "It didn't go through", done: false });
+  else if (status === "disputed")
+    steps.push(
+      { id: "book", label: `Booked · reference ${hire?.bookingRef ?? "pending"}`, done: true },
+      {
+        id: "end",
+        label: `You reported a problem: the fee is frozen on Hedera while ${name} sorts it out`,
+        done: false,
+      },
+    );
   else {
     steps.push(
       status === "held"
@@ -149,6 +165,7 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
           cancelled: ["undone · nothing paid", "bg-side text-ink-3"],
           refunded: ["refunded", "bg-side text-ink-3"],
           failed: ["didn't go through", "bg-bad-soft text-bad"],
+          disputed: ["reported · fee frozen", "bg-bad-soft text-bad"],
         }[status];
 
   return (
@@ -208,6 +225,13 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
             {demo ?? "Sandbox prices don't move: this pretends the room got ₹800 cheaper."}
           </span>
         </div>
+      )}
+      {hire?.canReport && hire.reviewUntil && (
+        <ReportProblem
+          path={`/chats/${ctx.chatId}/hires/${card.hireId}`}
+          reviewUntil={hire.reviewUntil}
+          onReported={setHire}
+        />
       )}
       {(status === "delivered" || status === "released") && (
         <RateAgent path={`/chats/${ctx.chatId}/hires/${card.hireId}/rating`} agentName={name} />

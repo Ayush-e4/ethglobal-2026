@@ -5,6 +5,8 @@ import {
   AgentSchema,
   type Delivery,
   DeliverySchema,
+  type Dispute,
+  DisputeSchema,
   type JOB_STATUS,
   type Job,
   JobSchema,
@@ -152,6 +154,19 @@ export function rateAgent(w: SafeArkivWriter, rating: Rating) {
       SCHEMAS.rating,
       valuesFor("rating", r),
       { expiration: LIFETIME.rating() },
+      tx,
+    ),
+  );
+}
+
+/** The platform records a buyer's dispute of a job, and later how it ended. */
+export function recordDispute(w: SafeArkivWriter, dispute: Dispute) {
+  const d = DisputeSchema.parse(dispute);
+  return w.run(1, (tx) =>
+    w.client.createEntity(
+      SCHEMAS.dispute,
+      valuesFor("dispute", d),
+      { expiration: LIFETIME.dispute() },
       tx,
     ),
   );
