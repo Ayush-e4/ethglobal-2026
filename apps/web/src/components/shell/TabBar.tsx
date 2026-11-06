@@ -48,10 +48,11 @@ export function TabBar() {
             <li key={href} className="relative flex flex-1">
               <Link
                 href={href}
+                replace // tabs don't pile up in history (back never walks through every tab)
                 transitionTypes={["tab"]}
                 aria-current={here ? "page" : undefined}
                 onClick={() => !here && haptic("tap")}
-                className={`press flex min-h-[54px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold transition-colors duration-200 ${here ? "text-teal" : "text-muted"}`}
+                className={`press flex min-h-[54px] flex-1 flex-col items-center justify-start gap-0.5 rounded-xl pt-[7px] text-[11px] font-semibold transition-colors duration-200 ${here ? "text-teal" : "text-muted"}`}
               >
                 <span className="flex h-7 w-12 items-center justify-center">
                   <Icon size={21} strokeWidth={here ? 2.2 : 1.8} />

@@ -12,7 +12,7 @@ import { useCallback, useEffect, useRef } from "react";
  * Returns `leaving()`: call it when a link inside navigates away (with `replace`, so the new
  * screen takes the overlay's entry) and the entry is left for that navigation to replace.
  */
-export function useBackToClose(open: boolean, onClose: () => void) {
+export function useBackToClose(open: boolean, onClose: () => unknown) {
   const close = useRef(onClose);
   close.current = onClose;
   const left = useRef(false);
@@ -23,8 +23,12 @@ export function useBackToClose(open: boolean, onClose: () => void) {
     window.history.pushState({ ...window.history.state, overlay: key }, "");
     let popped = false;
     const onPop = () => {
+      // `onClose` returning false keeps it open: the entry goes back, so the next back works too.
+      if (close.current() === false) {
+        window.history.pushState({ ...window.history.state, overlay: key }, "");
+        return;
+      }
       popped = true;
-      close.current();
     };
     window.addEventListener("popstate", onPop);
     return () => {
@@ -40,14 +44,18 @@ export function useBackToClose(open: boolean, onClose: () => void) {
 /** The in-app screens behind this one, so "back" knows whether there's somewhere in the app to go. */
 const stack: string[] = [];
 
-/** Keeps that stack (mounted once, in the app shell): back to the screen before pops it. */
-export function useNavStack() {
+/**
+ * Keeps that stack (mounted once, in the app shell): back to the screen before pops it, and a
+ * tab (`isTab`) starts it afresh, since tabs replace each other rather than stack up.
+ */
+export function useNavStack(isTab: (path: string) => boolean) {
   const pathname = usePathname();
   useEffect(() => {
     if (stack.at(-1) === pathname) return;
     if (stack.at(-2) === pathname) stack.pop();
+    else if (isTab(pathname)) stack.splice(0, stack.length, pathname);
     else stack.push(pathname);
-  }, [pathname]);
+  }, [pathname, isTab]);
 }
 
 /** Back to the previous screen in the app, or to `fallback` when the app was opened right here. */

@@ -1,6 +1,7 @@
 "use client";
 
 import { fromHex } from "@app/shared";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api, hashscanTx } from "@/lib/api";
 import { useBackToClose } from "@/lib/native/back";
@@ -71,7 +72,7 @@ export function GetPaid() {
     quiet();
     setReq(null);
   });
-  useWakeLock(!!req && status?.status !== "paid");
+  useWakeLock(!!req && status?.status !== "paid" && status?.status !== "expired" && left !== 0);
   const paidNow = status?.status === "paid";
   useEffect(() => {
     if (paidNow) haptic("success");
@@ -123,10 +124,15 @@ export function GetPaid() {
     return (
       <Shell title="Get paid in person">
         {me?.isDemo ? (
-          <p className="text-sm text-ink-2">
-            Getting paid goes into your own Face ID wallet. Sign in with a passkey to set it up; a
-            demo account can still <b>pay</b> a shop.
-          </p>
+          <>
+            <p className="text-sm text-ink-2">
+              Getting paid goes into your own Face ID wallet. Sign in with a passkey to set it up; a
+              demo account can still <b>pay</b> a shop.
+            </p>
+            <Link href="/pay" replace className={`${btn} press bg-teal text-white`}>
+              Pay a shop instead
+            </Link>
+          </>
         ) : (
           <form
             className="flex flex-col gap-3"

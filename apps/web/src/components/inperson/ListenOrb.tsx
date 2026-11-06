@@ -133,9 +133,12 @@ export function ListenOrb({
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
     raf = requestAnimationFrame(frame);
+    // Free what this run made, but keep the context: React may run this effect again on the
+    // same canvas (Strict Mode), and a lost context can't draw. It goes with the canvas.
     return () => {
       cancelAnimationFrame(raf);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      gl.deleteBuffer(buf);
+      gl.deleteProgram(prog);
     };
   }, [size]);
 

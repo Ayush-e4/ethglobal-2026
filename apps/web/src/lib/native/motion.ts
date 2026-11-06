@@ -22,9 +22,9 @@ export function useEnter(scope: RefObject<HTMLElement | null>, deps: unknown[] =
         y: 18,
         opacity: 0,
         scale: 0.985,
-        duration: 0.55,
+        duration: 0.38,
         ease: "power3.out",
-        stagger: 0.07,
+        stagger: 0.05,
         clearProps: "transform,opacity",
       });
     },
@@ -42,12 +42,13 @@ export function useNewIn(list: RefObject<HTMLElement | null>, count: number) {
     () => {
       const before = shown.current;
       shown.current = count;
-      if (count <= before || still() || !list.current) return;
+      // A whole conversation arriving at once is history loading: it appears still.
+      if (count <= before || (before === 0 && count > 2) || still() || !list.current) return;
       const added = Array.from(list.current.children).slice(before);
       gsap.from(added, {
         y: 14,
         opacity: 0,
-        duration: 0.45,
+        duration: 0.32,
         ease: "power3.out",
         stagger: 0.08,
         clearProps: "transform,opacity",

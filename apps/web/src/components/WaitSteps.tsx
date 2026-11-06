@@ -18,7 +18,10 @@ export function WaitSteps({ steps }: { steps: [number, string][] }) {
     <div role="status" aria-live="polite" className="flex flex-col gap-2">
       <span className="wait-bar block h-1 overflow-hidden rounded-full bg-teal-soft" />
       <span className="text-[13px] text-ink-3">
-        {now} <span className="text-muted">· {secs}s</span>
+        {now}{" "}
+        <span aria-hidden className="text-muted">
+          · {secs}s
+        </span>
       </span>
     </div>
   );

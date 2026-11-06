@@ -76,6 +76,9 @@ button,
     opacity 140ms;
 }
 @media (hover: none) {
+  button {
+    transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
   .press:active,
   button:not(:disabled):active {
     transform: scale(0.97);
@@ -94,13 +97,17 @@ button,
   .with-tabbar {
     padding-bottom: calc(60px + env(safe-area-inset-bottom));
   }
+  /* Typing: the keyboard is up, so the tab bar steps aside (as in native apps). */
+  body:has(input:focus, textarea:focus, select:focus) .tabbar {
+    display: none;
+  }
 }
 
 .fade-in {
   animation: fade-in 180ms ease-out both;
 }
 .tab-pill {
-  transition: transform 420ms cubic-bezier(0.3, 1.35, 0.4, 1);
+  transition: transform 320ms cubic-bezier(0.3, 1.25, 0.4, 1);
 }
 
 /* Placeholders shimmer; a long wait's bar keeps moving. */

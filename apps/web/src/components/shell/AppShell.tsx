@@ -24,7 +24,7 @@ const PAGE_MOTION = {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  useNavStack();
+  useNavStack(showsTabs);
   const leaving = useBackToClose(open, () => setOpen(false));
   useEffect(() => {
     if (!open) return;

@@ -14,7 +14,10 @@ export function useWakeLock(active: boolean) {
     const take = async () => {
       try {
         if (document.visibilityState !== "visible" || done) return;
-        lock = await navigator.wakeLock.request("screen");
+        const got = await navigator.wakeLock.request("screen");
+        if (done)
+          void got.release().catch(() => {}); // no longer wanted by the time it came
+        else lock = got;
       } catch {}
     };
     const onVisible = () => void take();

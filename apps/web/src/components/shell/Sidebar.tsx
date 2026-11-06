@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "@/lib/session";
 import {
   ChatIcon,
@@ -50,12 +50,18 @@ export function Sidebar({
   const shown = query
     ? chats.filter((c) => c.title.toLowerCase().includes(query.toLowerCase()))
     : chats;
+  // The drawer opened: focus moves into it (a screen reader starts there, not behind the scrim).
+  const aside = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (open) aside.current?.querySelector<HTMLElement>("a, button")?.focus();
+  }, [open]);
 
   return (
     <aside
+      ref={aside}
       aria-label="Sidebar"
       data-open={open}
-      className="fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[85vw] -translate-x-full flex-col gap-4 overflow-y-auto border-r border-line bg-side px-3 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] transition-transform duration-200 data-[open=true]:translate-x-0 md:sticky md:top-0 md:z-auto md:h-dvh md:w-[272px] md:max-w-none md:flex-none md:translate-x-0 md:transition-none"
+      className="fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[85vw] -translate-x-full flex-col gap-4 overflow-y-auto border-r border-line bg-side px-3 pt-3.5 pb-[max(14px,env(safe-area-inset-bottom))] transition-[transform,visibility] duration-200 max-md:invisible data-[open=true]:translate-x-0 max-md:data-[open=true]:visible md:sticky md:top-0 md:z-auto md:h-dvh md:w-[272px] md:max-w-none md:flex-none md:translate-x-0 md:transition-none"
     >
       <div className="flex items-center justify-between">
         <Link href="/chat" onClick={go} replace={open} className="flex items-center gap-2.5 px-1">
