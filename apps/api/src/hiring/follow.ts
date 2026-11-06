@@ -13,6 +13,8 @@ const Rebook = z.object({
   toBookingId: z.string().max(80),
   simulated: z.boolean(),
 });
+export type Rebook = z.infer<typeof Rebook>;
+
 const Job = z.object({
   status: z.string(),
   bookingId: z.string().optional(),
@@ -56,8 +58,15 @@ export function hireFollower(
   registry: MandateClient,
   chats: Pick<ChatStore, "add">,
   everyMs = 5000,
-  onChange?: (hireId: string) => Promise<unknown>, // after each look at a hire (Telegram's live message)
+  hooks: {
+    onChange?: (hireId: string) => Promise<unknown>; // after each look at a hire (Telegram's live message)
+    onBooked?: (hire: Hire, bookingRef: string) => Promise<unknown>; // the confirmation email
+    onRebooked?: (hire: Hire, rebook: Rebook) => Promise<unknown>;
+  } = {},
 ) {
+  const { onChange } = hooks;
+  const tell = (what: string, p: Promise<unknown> | undefined) =>
+    p?.catch((e) => console.error(`hire ${what}: ${e instanceof Error ? e.message : e}`));
   let running = false;
   const set = (id: string, changes: Partial<Hire>) =>
     db
@@ -97,6 +106,7 @@ export function hireFollower(
           "assistant",
           `Booked: ${hire.title}. Booking reference ${job.data.bookingId ?? "pending"}. ${hire.agentName} is paid automatically by Hedera when the review window ends.`,
         );
+        if (job.data.bookingId) await tell("email", hooks.onBooked?.(hire, job.data.bookingId));
       }
     } else if (hire.status === "delivered" && escrow.state === "released") {
       await set(hire.id, { status: "released" });
@@ -121,6 +131,7 @@ export function hireFollower(
         "assistant",
         `${hire.agentName} found the same room cheaper and rebooked it: ${money(r.from, r.currency)} → ${money(r.to, r.currency)}, so ${money(r.saved, r.currency)} comes back to you. New booking reference ${r.toBookingId}.${demo}`,
       );
+      await tell("email", hooks.onRebooked?.(hire, r));
     }
     await set(hire.id, {
       watching: w.active,

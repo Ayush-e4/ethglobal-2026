@@ -12,6 +12,8 @@ import { arkivMarket } from "./concierge/market";
 import { saveQuotes } from "./concierge/quote-store";
 import { loadConfig } from "./config";
 import { connectDb } from "./db/client";
+import { confirmations } from "./email/confirmations";
+import { resendEmail } from "./email/resend";
 import { loadHiringConfig } from "./hiring/config";
 import { hireFollower } from "./hiring/follow";
 import { hiringService } from "./hiring/service";
@@ -85,6 +87,11 @@ const concierge = claudeConcierge({
     return h;
   },
 });
+// Confirmation emails to the guest (Resend; off without RESEND_API_KEY).
+const confirm = confirmations(
+  resendEmail(process.env.RESEND_API_KEY, process.env.RESEND_FROM),
+  config.appOrigin,
+);
 // The concierge in Telegram too: the same turns as the web, in the same chats.
 const tgChat = telegramChat({
   db,
@@ -127,7 +134,7 @@ await hireFollower(
   hiring.registry,
   alertingChats(db, chatStore(db), alerts, config.appOrigin),
   5000,
-  live.show,
+  { onChange: live.show, onBooked: confirm.booked, onRebooked: confirm.rebooked },
 ).start();
 serve({ fetch: app.fetch, port: config.port }, () =>
   console.log(`api on http://localhost:${config.port}`),
