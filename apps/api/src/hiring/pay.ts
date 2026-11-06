@@ -4,6 +4,7 @@ import { type HederaIds, MandateClientScheme, NETWORK, type SignedPayment } from
 import { decodePaymentResponseHeader, wrapFetchWithPayment, x402Client } from "@x402/fetch";
 import type { LocalAccount } from "viem";
 import { z } from "zod";
+import { MIN_REVIEW_SECONDS } from "../market/checks";
 import type { Guest } from "../travellers/service";
 
 /** Who a booking is for when no traveller was chosen (scripts and tests): a test traveller. */
@@ -31,8 +32,10 @@ export async function payForAnswer(d: {
   ownerAccount: string;
   endpoint: string;
   input: Record<string, unknown>;
+  expect: { maxAmount: bigint; payee: `0x${string}` }; // its listed fee, to it
 }) {
   const scheme = new MandateClientScheme({
+    expect: d.expect,
     agent: d.concierge,
     mandateId: d.mandateId,
     owner: d.ownerAccount,
@@ -75,9 +78,12 @@ export async function payAgent(d: {
   endpoint: string;
   quoteKey: string;
   guest: Guest; // only to this agent
+  expect: { maxAmount: bigint; payee: `0x${string}` }; // the quote's fee + price, to its agent
 }) {
   let signed: SignedPayment | undefined;
   const scheme = new MandateClientScheme({
+    // Held in escrow, with the market's minimum review window: never more or other than quoted.
+    expect: { ...d.expect, escrowOnly: true, minReviewSeconds: MIN_REVIEW_SECONDS },
     agent: d.concierge,
     mandateId: d.mandateId,
     owner: d.ownerAccount,

@@ -174,6 +174,7 @@ export function inPersonPayer(d: {
         ownerAccount: limit.ownerAccount,
         facilitatorUrl,
         payTo: row.m.account,
+        payee,
         units,
       });
       const done = {

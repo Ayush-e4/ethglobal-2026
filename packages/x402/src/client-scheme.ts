@@ -36,8 +36,17 @@ export interface MandateClientOptions {
   ids: HederaIds;
   /** Refuse held payments whose undo window is shorter than this (the user's own rule). */
   minUndoSeconds?: number;
+  /**
+   * What we agreed to pay, from our own records (a quote, a listing, a shop's request): the key
+   * signs nothing beyond it, whatever the 402 asks. The most it may take, who it goes to, whether
+   * it must be held in escrow, and the shortest review window accepted.
+   */
+  expect?: { maxAmount: bigint; payee: Hex; escrowOnly?: boolean; minReviewSeconds?: number };
   onSigned?: (p: SignedPayment) => void;
 }
+
+/** A 402 asking for more than, or other than, what we agreed: refused before anything is signed. */
+export class UnexpectedTerms extends Error {}
 
 /**
  * The paying side of `transferExecutor` with our spending-limit contract: the agent signs an
@@ -68,12 +77,22 @@ export class MandateClientScheme implements SchemeNetworkClient {
       validBefore: now + BigInt(req.maxTimeoutSeconds),
     };
     const payTo = await this.o.ids.evmAddress(req.payTo);
+    const held = payTo === this.o.registry.registry.toLowerCase();
+    const x = this.o.expect;
+    if (x && base.amount > x.maxAmount)
+      throw new UnexpectedTerms(`asked ${base.amount}, more than the ${x.maxAmount} agreed`);
+    if (x?.escrowOnly && !held)
+      throw new UnexpectedTerms("asked to be paid directly, not into escrow");
     let authorization: Hex;
-    if (payTo === this.o.registry.registry.toLowerCase()) {
+    if (held) {
       const offer = EscrowOfferSchema.parse(req.extra.escrow);
       if (offer.undoSeconds < (this.o.minUndoSeconds ?? 0)) {
         throw new Error(`undo window ${offer.undoSeconds}s is shorter than allowed`);
       }
+      if (x && offer.payee.toLowerCase() !== x.payee.toLowerCase())
+        throw new UnexpectedTerms("the escrow pays someone other than the agent we hired");
+      if (x?.minReviewSeconds !== undefined && offer.reviewSeconds < x.minReviewSeconds)
+        throw new UnexpectedTerms(`review window ${offer.reviewSeconds}s is shorter than allowed`);
       const auth: EscrowAuth = {
         ...base,
         payTo: offer.payee as Hex,
@@ -86,6 +105,8 @@ export class MandateClientScheme implements SchemeNetworkClient {
       const escrowId = await this.o.registry.escrowIdOf(base.mandateId, base.nonce);
       this.o.onSigned?.({ kind: "held", ...base, payee: auth.payTo, escrowId });
     } else {
+      if (x && payTo.toLowerCase() !== x.payee.toLowerCase())
+        throw new UnexpectedTerms("asked to pay someone other than who we agreed");
       const auth: PaymentAuth = { ...base, payTo };
       const sig = await signPayment(this.o.agent, this.o.registry.domain(), auth);
       authorization = encodePaymentAuthorization(auth, sig);

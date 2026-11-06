@@ -19,6 +19,7 @@ export async function payMerchant(d: {
   ownerAccount: string;
   facilitatorUrl: string;
   payTo: string; // 0.0.<n>
+  payee: `0x${string}`; // the same shop's wallet (EVM): the key pays nobody else
   units: bigint;
 }) {
   const accepted: PaymentRequirements = {
@@ -31,6 +32,7 @@ export async function payMerchant(d: {
     extra: { assetTransferMethod: ATM, executors: [await d.ids.idOf(d.registry.registry)] },
   };
   const scheme = new MandateClientScheme({
+    expect: { maxAmount: d.units, payee: d.payee },
     agent: d.concierge,
     mandateId: d.mandateId,
     owner: d.ownerAccount,

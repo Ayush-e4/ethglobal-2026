@@ -2,6 +2,7 @@ export {
   type MandateClientOptions,
   MandateClientScheme,
   type SignedPayment,
+  UnexpectedTerms,
 } from "./client-scheme";
 export { createFacilitator } from "./facilitator";
 export { facilitatorApp } from "./facilitator-app";

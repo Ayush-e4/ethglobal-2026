@@ -165,6 +165,7 @@ export function hiringService(
           endpoint: quote.endpoint,
           quoteKey,
           guest: sent,
+          expect: { maxAmount: total, payee },
         });
         const changes = {
           status: "held" as const,
