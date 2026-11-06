@@ -41,6 +41,243 @@ body {
   }
 }
 
+/* ---- Feels like an app ---------------------------------------------------------------------- */
+
+/* No grey flash on tap, no double-tap zoom delay, no "copy / look up" menu on long-pressed controls. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+[role="button"],
+label {
+  touch-action: manipulation;
+}
+nav,
+button,
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Installed as an app: no rubber-band of the whole page, nothing to pull past the edges. */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+}
+
+/* Press feedback on touch screens: controls give a little, like native ones. */
+.press {
+  transition:
+    transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 140ms;
+}
+@media (hover: none) {
+  button {
+    transition: transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .press:active,
+  button:not(:disabled):active {
+    transform: scale(0.97);
+  }
+}
+
+/* The top bar and tab bar clear the notch and the home bar. */
+.appbar {
+  height: calc(56px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+}
+.tabbar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@media (max-width: 767px) {
+  .with-tabbar {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  /* Typing: the keyboard is up, so the tab bar steps aside (as in native apps). */
+  body:has(input:focus, textarea:focus, select:focus) .tabbar {
+    display: none;
+  }
+}
+
+.fade-in {
+  animation: fade-in 180ms ease-out both;
+}
+.tab-pill {
+  transition: transform 320ms cubic-bezier(0.3, 1.25, 0.4, 1);
+}
+
+/* Placeholders shimmer; a long wait's bar keeps moving. */
+.skeleton {
+  background: linear-gradient(90deg, #efebe4 0%, #f7f4ef 40%, #efebe4 80%) 0 0 / 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -150% 0;
+  }
+}
+.wait-bar {
+  position: relative;
+}
+.wait-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--color-teal);
+  animation: wait-slide 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes wait-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * Page changes (View Transitions; browsers without them just swap). The bars stay put: only the
+ * page moves. A tab: the new screen rises in. Deeper (a chat): it slides in from the right.
+ * Back: it slides in from the left.
+ */
+:root {
+  view-transition-name: none;
+}
+::view-transition-old(.tab) {
+  animation: 120ms ease-in both vt-fade reverse;
+}
+::view-transition-new(.tab) {
+  animation:
+    200ms ease-out 60ms both vt-fade,
+    320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-rise;
+}
+::view-transition-old(.nav-forward) {
+  --vt-offset: -48px;
+  animation:
+    140ms ease-in both vt-fade reverse,
+    320ms cubic-bezier(0.4, 0, 0.2, 1) both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --vt-offset: 64px;
+  animation:
+    200ms ease-out 80ms both vt-fade,
+    320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-slide;
+}
+::view-transition-old(.nav-back) {
+  --vt-offset: 48px;
+  animation:
+    140ms ease-in both vt-fade reverse,
+    320ms cubic-bezier(0.4, 0, 0.2, 1) both vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --vt-offset: -64px;
+  animation:
+    200ms ease-out 80ms both vt-fade,
+    320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-slide;
+}
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes vt-rise {
+  from {
+    translate: 0 14px;
+  }
+}
+@keyframes vt-slide {
+  from {
+    translate: var(--vt-offset);
+  }
+}
+
+/* The success mark: a coin pops and turns over, the tick draws itself, a ripple goes out. */
+.success-mark {
+  perspective: 400px;
+}
+.success-coin {
+  background: radial-gradient(circle at 30% 25%, #2fb37a, var(--color-ok) 70%);
+  box-shadow:
+    0 10px 24px -8px rgb(17 115 75 / 0.55),
+    inset 0 -3px 0 rgb(0 0 0 / 0.12);
+  animation: coin-in 760ms cubic-bezier(0.2, 1.3, 0.3, 1) both;
+}
+.success-tick {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tick-draw 360ms cubic-bezier(0.65, 0, 0.35, 1) 420ms forwards;
+}
+.success-ripple {
+  border: 2px solid var(--color-ok);
+  animation: ripple 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 300ms both;
+}
+@keyframes coin-in {
+  0% {
+    transform: scale(0.2) rotateY(0deg);
+    background: radial-gradient(circle at 30% 25%, #5aa1ec, #2775ca 70%);
+  }
+  55% {
+    transform: scale(1.12) rotateY(300deg);
+  }
+  100% {
+    transform: scale(1) rotateY(360deg);
+  }
+}
+@keyframes tick-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ripple {
+  from {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .success-coin,
+  .success-ripple {
+    animation: none;
+  }
+  .success-ripple {
+    opacity: 0;
+  }
+  .success-tick {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat every transition */
+    animation: none !important;
+  }
+  .press,
+  .fade-in,
+  .skeleton,
+  .wait-bar::after,
+  .tab-pill {
+    transition: none;
+    animation: none;
+  }
+}
+
 /* iPhones zoom into any field under 16px when it's tapped; phones get 16px fields everywhere. */
 @media (max-width: 767px) {
   input:not([type="radio"]):not([type="checkbox"]),

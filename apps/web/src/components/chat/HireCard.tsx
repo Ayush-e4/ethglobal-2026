@@ -1,13 +1,15 @@
 "use client";
 
 import type { Card } from "@app/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError, api, cardLine, type HireView, hashscanTx, rupeesOf, usdc } from "@/lib/api";
-import { UndoIcon } from "../icons";
+import { celebrate } from "@/lib/native/celebrate";
+import { haptic } from "@/lib/native/haptics";
 import { CancelBooking } from "../trips/CancelBooking";
 import type { CardCtx } from "./Cards";
 import { RateAgent } from "./RateAgent";
 import { ReportProblem } from "./ReportProblem";
+import { UndoRing } from "./UndoRing";
 
 type HireCardData = Extract<Card, { type: "hire" }>;
 type Status = HireView["status"];
@@ -73,6 +75,18 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
   };
 
   const status: Status = hire?.status ?? "held";
+  // Booked while you watched (held → booked): the burst, from this card, and a buzz on Android.
+  // A hire that was already booked when the chat opened stays quiet.
+  const root = useRef<HTMLElement>(null);
+  const was = useRef<Status | null>(null);
+  useEffect(() => {
+    if (!hire) return;
+    if (was.current === "held" && (status === "delivered" || status === "released")) {
+      celebrate(root.current);
+      haptic("success");
+    }
+    was.current = status;
+  }, [hire, status]);
   const name = hire?.agentName ?? "The agent";
   const fee = `${usdc(card.feeUnits)} USDC`;
   const secs = left(hire?.undoUntil ?? card.undoUntil);
@@ -181,6 +195,7 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
 
   return (
     <section
+      ref={root}
       aria-label={`Hired ${name}`}
       className="flex flex-col gap-3 rounded-2xl border border-line p-4 sm:p-[18px]"
     >
@@ -219,7 +234,7 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
           onClick={undo}
           className="flex min-h-11 items-center justify-center gap-2 self-start rounded-xl border border-line-2 bg-white px-4 text-sm font-semibold text-bad disabled:opacity-50"
         >
-          <UndoIcon size={16} />
+          <UndoRing secs={secs} />
           {cancelling ? "Undoing…" : `Undo · ${clock(secs)} left`}
         </button>
       )}

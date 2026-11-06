@@ -1,4 +1,4 @@
-import { openAudio, openMic, play, tap } from "@/lib/inperson/audio";
+import { meter, openAudio, openMic, play, tap } from "@/lib/inperson/audio";
 import { createModem } from "@/lib/inperson/modem";
 
 /**
@@ -84,8 +84,12 @@ export async function listen(onFrame: (bytes: Uint8Array) => void) {
   const untap = tap(ctx, mic.source, (s: Float32Array) => {
     for (const rx of rxs) for (const b of rx.push(s)) onFrame(b);
   });
+  const levels = meter(ctx, mic.source);
   return {
+    /** What the mic hears across the chirp band right now: n levels, 0..1 (for the orb). */
+    bands: (n: number): number[] => levels.bands(n),
     stop() {
+      levels.stop();
       untap();
       mic.stop();
       for (const rx of rxs) rx.close();

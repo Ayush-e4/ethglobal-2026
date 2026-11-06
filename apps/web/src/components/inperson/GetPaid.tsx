@@ -1,10 +1,14 @@
 "use client";
 
 import { fromHex } from "@app/shared";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ApiError, api, hashscanTx } from "@/lib/api";
+import { useBackToClose } from "@/lib/native/back";
+import { useWakeLock } from "@/lib/native/wake-lock";
 import { useSession } from "@/lib/session";
-import { CheckIcon } from "../icons";
+import { CardSkeleton } from "../Skeleton";
+import { SuccessMark } from "../SuccessMark";
 import { LiveQr } from "./LiveQr";
 import { chirp, preloadSound } from "./sound";
 
@@ -62,6 +66,13 @@ export function GetPaid() {
   };
   const [error, setError] = useState<string | null>(null);
 
+  // While the QR is up: back returns to the amount (not off the page), and the screen stays on.
+  useBackToClose(!!req, () => {
+    quiet();
+    setReq(null);
+  });
+  useWakeLock(!!req && status?.status !== "paid" && status?.status !== "expired" && left !== 0);
+
   useEffect(() => {
     api<{ merchant: Merchant | null }>("/merchant")
       .then((r) => setMerchant(r.merchant))
@@ -98,15 +109,25 @@ export function GetPaid() {
       .catch(fail);
   };
 
-  if (merchant === undefined) return <p className="p-6 text-sm text-muted">Loading…</p>;
+  if (merchant === undefined)
+    return (
+      <div className="mx-auto w-full max-w-[520px] p-4 sm:p-6">
+        <CardSkeleton label="Loading your shop" />
+      </div>
+    );
   if (!merchant)
     return (
       <Shell title="Get paid in person">
         {me?.isDemo ? (
-          <p className="text-sm text-ink-2">
-            Getting paid goes into your own Face ID wallet. Sign in with a passkey to set it up; a
-            demo account can still <b>pay</b> a shop.
-          </p>
+          <>
+            <p className="text-sm text-ink-2">
+              Getting paid goes into your own Face ID wallet. Sign in with a passkey to set it up; a
+              demo account can still <b>pay</b> a shop.
+            </p>
+            <Link href="/pay" replace className={`${btn} press bg-teal text-white`}>
+              Pay a shop instead
+            </Link>
+          </>
         ) : (
           <form
             className="flex flex-col gap-3"
@@ -156,9 +177,7 @@ export function GetPaid() {
           <span className="text-[34px] font-bold tracking-tight">{rupees(req.inr)}</span>
           {paid ? (
             <div className="flex flex-col items-center gap-2 py-6">
-              <span className="flex size-16 items-center justify-center rounded-full bg-ok-soft text-ok">
-                <CheckIcon size={34} />
-              </span>
+              <SuccessMark />
               <span className="text-lg font-bold text-ok">Paid</span>
               {status?.payTx && (
                 <a

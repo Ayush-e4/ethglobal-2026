@@ -1,37 +1,21 @@
 "use client";
 
-import { type Card, decodeRequest, toHex } from "@app/shared";
+import { decodeRequest, toHex } from "@app/shared";
 import { useEffect, useRef, useState } from "react";
-import { hashscanTx } from "@/lib/api";
+import { useBackToClose } from "@/lib/native/back";
+import { haptic } from "@/lib/native/haptics";
 import { LimitCard } from "../chat/LimitCard";
-import { CheckIcon } from "../icons";
+import { WaitSteps } from "../WaitSteps";
 import { Camera } from "./Camera";
 import { Shell } from "./GetPaid";
+import { type LimitData, post, type Seen } from "./pay-api";
+import { PAY_WAIT, PaidCard } from "./pay-done";
 import { Listening, LiveLine } from "./pay-lines";
 import type { createScanner } from "./scanner";
 import { LISTEN_ONE_MORE_CYCLE_MS, listen, preloadSound } from "./sound";
 
-type Seen = {
-  merchant: { name: string; account: string; verified: boolean };
-  inr: number;
-  status: "open" | "paying" | "paid" | "expired";
-  live: { ok: boolean; reason?: string } | null;
-};
-type LimitData = Extract<Card, { type: "limit" }>;
 const btn =
   "flex min-h-12 w-full items-center justify-center rounded-xl px-5 text-[15px] font-semibold";
-
-async function post<T>(path: string, body: unknown) {
-  const res = await fetch(`/api${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return {
-    ok: res.ok,
-    data: (await res.json().catch(() => ({}))) as T & { message?: string; error?: string },
-  };
-}
 
 /**
  * Paying a shop in person: scan its Live QR, see who and how much (checked by our server: a
@@ -41,7 +25,7 @@ async function post<T>(path: string, body: unknown) {
 export function PayInPerson() {
   const [step, setStep] = useState<"idle" | "scan" | "paying" | "paid">("idle");
   const [via, setVia] = useState<"qr" | "sound">("qr");
-  const ears = useRef<{ stop: () => void } | null>(null);
+  const ears = useRef<Awaited<ReturnType<typeof listen>> | null>(null);
   const [heardOne, setHeardOne] = useState(false);
   useEffect(() => {
     preloadSound();
@@ -54,6 +38,7 @@ export function PayInPerson() {
   const [limit, setLimit] = useState<{ card: LimitData; chatId: string } | null>(null);
   const [tx, setTx] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cameraKey, setCameraKey] = useState(0); // a new key starts the camera again
   const scanner = useRef<ReturnType<typeof createScanner> | null>(null);
 
   const onRequest = async (f: string, hasLive: boolean) => {
@@ -83,7 +68,7 @@ export function PayInPerson() {
       how: via,
     });
     if (r.ok) {
-      setTx(r.data.payTx);
+      setTx(r.data.payTx); // the Paid screen's success mark buzzes and bursts
       setStep("paid");
     } else if (r.data.error === "needs_limit" && r.data.card && r.data.chatId) {
       setLimit({ card: r.data.card, chatId: r.data.chatId });
@@ -91,8 +76,28 @@ export function PayInPerson() {
     } else {
       setError(r.data.message ?? "The payment didn't go through. Nothing was charged.");
       setStep("scan");
+      haptic("error");
     }
   };
+  const toIdle = () => {
+    ears.current?.stop();
+    ears.current = null;
+    setHeardOne(false);
+    setFrame(null);
+    setSeen(null);
+    setLive(null);
+    setLimit(null);
+    setError(null);
+    setStep("idle");
+  };
+  // Back (Android's button, the iPhone's swipe) steps out of the scan to the start, not off the
+  // page; while a payment is going through it does nothing: it can't be called back mid-way.
+  const stepNow = useRef(step);
+  stepNow.current = step;
+  useBackToClose(step === "scan" || step === "paying", () => {
+    if (stepNow.current === "paying") return false; // stays: back can't call a payment back
+    toIdle();
+  });
   const reset = () => {
     ears.current?.stop();
     ears.current = null;
@@ -146,27 +151,13 @@ export function PayInPerson() {
   if (step === "paid" && seen)
     return (
       <Shell title="Paid">
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-white p-6 text-center">
-          <span className="flex size-16 items-center justify-center rounded-full bg-ok-soft text-ok">
-            <CheckIcon size={34} />
-          </span>
-          <span className="text-[30px] font-bold">₹{seen.inr.toLocaleString("en-IN")}</span>
-          <span className="text-sm text-ink-2">to {seen.merchant.name}</span>
-          <span className="text-xs text-muted">
-            {live ? "Live screen confirmed" : "Paid without the live check"} ·{" "}
-            {seen.merchant.account}
-          </span>
-          {tx && (
-            <a
-              href={hashscanTx(tx)}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-xs text-teal underline"
-            >
-              See it on Hedera
-            </a>
-          )}
-        </div>
+        <PaidCard
+          inr={seen.inr}
+          name={seen.merchant.name}
+          account={seen.merchant.account}
+          live={!!live}
+          tx={tx}
+        />
         <button type="button" onClick={reset} className={`${btn} border border-line-2 bg-white`}>
           Scan another
         </button>
@@ -210,10 +201,18 @@ export function PayInPerson() {
   const watching = via === "qr" && (!seen || (!live && !plain && seen.status === "open"));
   return (
     <Shell title={via === "qr" ? "Scan to pay" : "Listen to pay"}>
-      {via === "sound" && !seen && <Listening heard={heardOne} />}
+      {via === "sound" && !seen && (
+        <Listening heard={heardOne} levels={() => ears.current?.bands(16) ?? null} />
+      )}
       {watching && (
         <div className={seen ? "max-h-32 overflow-hidden rounded-2xl opacity-80" : ""}>
-          <Camera scanner={scanner} onRequest={onRequest} onLive={onLive} onError={setError} />
+          <Camera
+            key={cameraKey}
+            scanner={scanner}
+            onRequest={onRequest}
+            onLive={onLive}
+            onError={setError}
+          />
         </div>
       )}
       {seen && (
@@ -254,16 +253,39 @@ export function PayInPerson() {
                   : `Pay ₹${seen.inr.toLocaleString("en-IN")}`}
             </button>
           )}
-          <button
-            type="button"
-            onClick={reset}
-            className="min-h-11 text-sm font-semibold text-ink-3"
-          >
+          {step === "paying" && <WaitSteps steps={PAY_WAIT} />}
+          {step !== "paying" && (
+            <button
+              type="button"
+              onClick={toIdle}
+              className="min-h-11 text-sm font-semibold text-ink-3"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+      {error && <p className="text-sm text-bad">{error}</p>}
+      {/* Always a way out on screen (an installed app has no browser back button). */}
+      {!seen && (
+        <div className="flex gap-2">
+          {error && via === "qr" && (
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setCameraKey((k) => k + 1);
+              }}
+              className={`${btn} bg-teal text-white`}
+            >
+              Try again
+            </button>
+          )}
+          <button type="button" onClick={toIdle} className={`${btn} border border-line-2 bg-white`}>
             Cancel
           </button>
         </div>
       )}
-      {error && <p className="text-sm text-bad">{error}</p>}
     </Shell>
   );
 }

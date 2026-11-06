@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, usdc, type WalletLimit } from "@/lib/api";
 import { cancelled, withFaceId } from "@/lib/passkey";
+import { CardSkeleton } from "../Skeleton";
 
 const TONE: Record<WalletLimit["status"], string> = {
   active: "bg-ok-soft text-ok",
@@ -66,7 +67,7 @@ export function Limits() {
         </p>
       </div>
       {rows === null ? (
-        <p className="text-sm text-muted">Loading…</p>
+        <CardSkeleton label="Loading your limits" />
       ) : rows.length === 0 ? (
         <p className="rounded-2xl bg-side px-4 py-3 text-sm text-ink-3">
           None yet. The first time the concierge books an agent for you, you approve a limit for it

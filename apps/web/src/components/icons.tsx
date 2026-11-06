@@ -106,6 +106,16 @@ export const ChevronIcon = (p: IconProps) => (
     <path d="m6 9 6 6 6-6" />
   </Icon>
 );
+export const BackIcon = (p: IconProps) => (
+  <Icon strokeWidth={2.2} {...p}>
+    <path d="m15 18-6-6 6-6" />
+  </Icon>
+);
+export const ShareIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+  </Icon>
+);
 export const ExitIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M15 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 17l5-5-5-5M15 12H3" />

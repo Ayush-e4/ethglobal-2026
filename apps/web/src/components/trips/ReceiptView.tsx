@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, cardLine, type Receipt, rupeesOf, usdc } from "@/lib/api";
+import { ShareButton } from "../ShareButton";
 
 const ESCROW: Record<string, string> = {
   held: "Held: the agent isn't paid until it books",
@@ -54,9 +55,15 @@ export function ReceiptView({ id }: { id: string }) {
 
   return (
     <section className="flex w-full max-w-[560px] flex-col gap-5 rounded-2xl border border-line bg-white p-5 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <span className="text-xs font-semibold tracking-wide text-muted uppercase">Receipt</span>
-        <h1 className="text-xl font-bold">{r.title}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-semibold tracking-wide text-muted uppercase">Receipt</span>
+          <h1 className="text-xl font-bold">{r.title}</h1>
+        </div>
+        <ShareButton
+          title={`Receipt: ${r.title}`}
+          text="Paid through Shikigami: anyone can check it on Hedera and Arkiv."
+        />
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-sm">
         {rows.map(([k, v]) => (

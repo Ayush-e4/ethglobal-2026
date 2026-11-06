@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, type ChatSummary } from "@/lib/api";
+import { useEnter } from "@/lib/native/motion";
 import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
 import { ChatIcon, HotelIcon, MarketIcon, UndoIcon } from "../icons";
+import { InstallCard } from "../shell/Pwa";
 import { Composer } from "./Composer";
 
 /** The first message is handed to the chat page this way, so it sends once the page is open. */
@@ -60,6 +62,8 @@ export function ChatHome() {
   const { me, refreshChats } = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  useEnter(grid);
 
   const start = async (text: string, photos: Photo[] = []) => {
     setBusy(true);
@@ -71,7 +75,7 @@ export function ChatHome() {
       });
       savePending(chat.id, text, photos);
       await refreshChats();
-      router.push(`/chat/${chat.id}`);
+      router.push(`/chat/${chat.id}`, { transitionTypes: ["nav-forward"] });
     } catch {
       setError("Couldn't start a chat. Is the API running?");
       setBusy(false);
@@ -91,14 +95,19 @@ export function ChatHome() {
         </p>
       </div>
       <Composer onSend={start} disabled={busy} placeholder="Ask anything" />
+      <InstallCard />
       {error && (
         <p role="alert" className="text-center text-sm text-bad">
           {error}
         </p>
       )}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-3">
+      <div
+        ref={grid}
+        className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-3"
+      >
         {SUGGESTIONS.map((s) => (
           <button
+            data-enter
             key={s.title}
             type="button"
             disabled={busy}

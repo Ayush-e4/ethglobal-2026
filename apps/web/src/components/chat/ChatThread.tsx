@@ -6,6 +6,7 @@ import { api, type ChatMessage, type ChatSummary } from "@/lib/api";
 import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
 import { sendMessage } from "@/lib/stream";
+import { Skeleton } from "../Skeleton";
 import { PENDING_KEY, readPending } from "./ChatHome";
 import { Composer } from "./Composer";
 import { Messages, type Turn } from "./Messages";
@@ -158,12 +159,25 @@ export function ChatThread({ chatId }: { chatId: string }) {
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-[800px] flex-1 flex-col gap-6 px-4 pt-6 pb-4 sm:gap-7 sm:px-6 sm:pt-8">
-        <Messages
-          turns={turns}
-          onReply={send}
-          busy={busy}
-          ctx={{ chatId, isDemo: me?.isDemo ?? false }}
-        />
+        {chat ? (
+          <Messages
+            turns={turns}
+            onReply={send}
+            busy={busy}
+            ctx={{ chatId, isDemo: me?.isDemo ?? false }}
+          />
+        ) : (
+          // The conversation's shape while it loads: a question, then a reply.
+          <div role="status" aria-label="Loading the chat" className="flex flex-col gap-7">
+            <Skeleton className="h-11 w-2/3 self-end rounded-[18px]" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-5/6" />
+              <Skeleton className="h-3.5 w-2/3" />
+            </div>
+          </div>
+        )}
       </main>
       <div className="sticky bottom-0 z-20 mx-auto w-full max-w-[800px] bg-gradient-to-t from-white from-60% to-white/0 px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6 sm:pb-5">
         <Composer onSend={send} disabled={busy} placeholder="Reply, or ask something else" />
