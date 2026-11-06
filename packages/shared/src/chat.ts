@@ -92,12 +92,19 @@ export const LimitCardSchema = z.object({
   reply: z.string(),
 });
 
+/** Where a reply's facts from the web came from (web search citations), to check them. */
+export const SourcesCardSchema = z.object({
+  type: z.literal("sources"),
+  sources: z.array(z.object({ title: z.string(), url: z.string().startsWith("https://") })).max(8),
+});
+
 export const CardSchema = z.discriminatedUnion("type", [
   AgentsCardSchema,
   OptionsCardSchema,
   QuotesCardSchema,
   HireCardSchema,
   LimitCardSchema,
+  SourcesCardSchema,
 ]);
 export type Card = z.infer<typeof CardSchema>;
 
