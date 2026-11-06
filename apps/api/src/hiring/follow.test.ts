@@ -55,6 +55,7 @@ async function setup(
     {
       onBooked: async (_h, ref) => booked.push(ref),
       onDisputeSettled: async () => booked.push("settled"),
+      onRefunded: async (_h, why) => booked.push(`email:${why}`),
     },
   );
   const read = async () =>
@@ -107,7 +108,7 @@ describe("hireFollower", () => {
     expect(t.posted[0]).toBe(
       "StayWise accepted your report on Park Inn: the 0.02 USDC fee is refunded, and the booking is cancelled.",
     );
-    expect(t.booked).toEqual(["settled"]);
+    expect(t.booked).toEqual(["settled", "email:report"]);
   });
 
   it("records when the review window ends, once delivered", async () => {

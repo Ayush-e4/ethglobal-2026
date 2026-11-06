@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, desc, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { z } from "zod";
@@ -82,7 +82,11 @@ export async function bearerGrant(db: Db, authorization: string | undefined) {
  * registration), sends the user to /connect to say yes (signed in with their passkey), and swaps
  * the one-time code for tokens with PKCE. Everything is on the app's own origin.
  */
-export function oauthRoutes(db: Db, appOrigin: string) {
+export function oauthRoutes(
+  db: Db,
+  appOrigin: string,
+  onConnected?: (userId: string, app: string) => Promise<unknown>, // the security email
+) {
   const app = new Hono();
   const open = cors({ origin: "*", allowHeaders: ["content-type", "authorization"] });
   app.use("/.well-known/*", open);
@@ -198,8 +202,10 @@ export function oauthRoutes(db: Db, appOrigin: string) {
       .update(oauthRequests)
       .set({ answeredAt: new Date(), userId: user.id, codeHash: code ? hash(code) : null })
       .where(eq(oauthRequests.id, row.req.id));
-    if (code) back.searchParams.set("code", code);
-    else back.searchParams.set("error", "access_denied");
+    if (code) {
+      back.searchParams.set("code", code);
+      void onConnected?.(user.id, row.client.name).catch(() => {});
+    } else back.searchParams.set("error", "access_denied");
     return c.json({ redirect: back.toString() });
   });
 
@@ -256,38 +262,6 @@ export function oauthRoutes(db: Db, appOrigin: string) {
       return c.json(issued(t), 200, { "cache-control": "no-store" });
     }
     return bad("unsupported_grant_type");
-  });
-
-  // Connected apps, in the wallet: see them, disconnect one.
-  app.get("/oauth/grants", async (c) => {
-    const user = await currentUser(db, c);
-    if (!user) return c.json({ error: "signed_out" }, 401);
-    const rows = await db
-      .select({ grant: oauthGrants, app: oauthClients.name })
-      .from(oauthGrants)
-      .innerJoin(oauthClients, eq(oauthClients.id, oauthGrants.clientId))
-      .where(and(eq(oauthGrants.userId, user.id), isNull(oauthGrants.revokedAt)))
-      .orderBy(desc(oauthGrants.createdAt));
-    return c.json(
-      rows.map((r) => ({
-        id: r.grant.id,
-        app: r.app,
-        chatId: r.grant.chatId,
-        connectedAt: r.grant.createdAt.toISOString(),
-        lastUsedAt: r.grant.lastUsedAt?.toISOString() ?? null,
-      })),
-    );
-  });
-  app.delete("/oauth/grants/:id", async (c) => {
-    const user = await currentUser(db, c);
-    if (!user) return c.json({ error: "signed_out" }, 401);
-    if (!z.uuid().safeParse(c.req.param("id")).success) return c.json({ error: "not_found" }, 404);
-    const done = await db
-      .update(oauthGrants)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(oauthGrants.id, c.req.param("id")), eq(oauthGrants.userId, user.id)))
-      .returning();
-    return done.length ? c.json({ ok: true }) : c.json({ error: "not_found" }, 404);
   });
 
   return app;

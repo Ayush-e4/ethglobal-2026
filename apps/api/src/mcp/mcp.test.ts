@@ -7,6 +7,7 @@ import type { Db } from "../db/client";
 import { chats, hires, messages, users } from "../db/schema";
 import type { HiringService } from "../hiring/service";
 import { testDb } from "../test/db";
+import { grantRoutes } from "./grants";
 import { oauthRoutes } from "./oauth";
 import { mcpRoutes } from "./routes";
 
@@ -43,7 +44,7 @@ async function setup() {
     }),
   };
   const hiring = { cancel: vi.fn(async () => ({ title: "Air India · BOM → GOI · 20 Dec" })) };
-  const oauth = oauthRoutes(db, ORIGIN);
+  const oauth = oauthRoutes(db, ORIGIN).route("/", grantRoutes(db));
   const mcp = mcpRoutes(db, ORIGIN, { tools, hiring: hiring as unknown as HiringService });
   return { db, user, cookie, oauth, mcp, hired, hiring };
 }

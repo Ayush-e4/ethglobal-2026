@@ -85,11 +85,21 @@ const live = liveHires({
   },
   ratings,
 });
+// Emails (Resend; off without RESEND_API_KEY): the guest's confirmations, and account notices.
+const confirm = confirmations(
+  resendEmail(process.env.RESEND_API_KEY, process.env.RESEND_FROM),
+  config.appOrigin,
+);
 const hiringLive = {
   ...hiring,
   async cancel(...a: Parameters<typeof hiring.cancel>) {
     const h = await hiring.cancel(...a);
     void live.show(h.id);
+    return h;
+  },
+  async cancelBooking(...a: Parameters<typeof hiring.cancelBooking>) {
+    const h = await hiring.cancelBooking(...a);
+    void confirm.cancelled(h).catch(() => {});
     return h;
   },
 };
@@ -104,11 +114,6 @@ const tools: ToolDeps = {
   },
 };
 const concierge = claudeConcierge(tools);
-// Confirmation emails to the guest (Resend; off without RESEND_API_KEY).
-const confirm = confirmations(
-  resendEmail(process.env.RESEND_API_KEY, process.env.RESEND_FROM),
-  config.appOrigin,
-);
 // The concierge in Telegram too: the same turns as the web, in the same chats.
 const tgChat = telegramChat({
   db,
@@ -145,6 +150,11 @@ const app = createApp({
   alerts,
   tools,
   market: { market, reviews },
+  // An app (Claude) was connected: tell the account's own traveller ("me"), if it has one.
+  async onAppConnected(userId, app) {
+    const me = (await travellers.list(userId)).find((t) => t.isSelf);
+    if (me) await confirm.connected(me.email, me.firstName, app);
+  },
 });
 reviews.start(); // our own agents first, then every approved agent hourly
 await checks?.resume(); // World ID checks a restart interrupted
@@ -158,6 +168,7 @@ await hireFollower(
     onChange: live.show,
     onBooked: confirm.booked,
     onRebooked: confirm.rebooked,
+    onRefunded: confirm.refunded,
     onDisputeSettled: disputes.onSettled,
   },
 ).start();
