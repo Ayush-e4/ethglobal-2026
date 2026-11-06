@@ -17,6 +17,9 @@ type Step = { id: string; label: string; done: boolean; tx?: string | null };
 
 const FINAL: Status[] = ["cancelled", "released", "refunded", "failed"];
 const left = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 1000));
+/** The undo window's length: from the hire to the end of undo. */
+const windowSecs = (from: string, to: string) =>
+  Math.max(1, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 1000));
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 /**
@@ -234,7 +237,10 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
           onClick={undo}
           className="flex min-h-11 items-center justify-center gap-2 self-start rounded-xl border border-line-2 bg-white px-4 text-sm font-semibold text-bad disabled:opacity-50"
         >
-          <UndoRing secs={secs} />
+          <UndoRing
+            secs={secs}
+            total={hire ? windowSecs(hire.createdAt, hire.undoUntil ?? card.undoUntil) : undefined}
+          />
           {cancelling ? "Undoing…" : `Undo · ${clock(secs)} left`}
         </button>
       )}

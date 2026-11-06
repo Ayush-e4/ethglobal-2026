@@ -12,7 +12,8 @@ interface Device {
   onWallet: boolean;
 }
 
-const small = "h-9 rounded-[10px] border px-3 text-[13px] font-semibold disabled:opacity-60";
+const small =
+  "h-9 max-md:h-11 rounded-[10px] border px-3 text-[13px] font-semibold disabled:opacity-60";
 const day = (iso: string) =>
   new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 

@@ -6,7 +6,8 @@ import { ApiError, api } from "@/lib/api";
 
 type Status = { available: boolean; linked: boolean };
 
-const small = "h-9 rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold";
+const small =
+  "h-9 max-md:h-11 rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold";
 
 /**
  * Phone alerts in Telegram: when an agent books, refunds, or finds your room cheaper, our bot
@@ -111,7 +112,7 @@ export function Alerts() {
               href={link}
               target="_blank"
               rel="noreferrer"
-              className="flex min-h-10 items-center justify-center self-start rounded-xl bg-teal px-4 font-semibold text-white"
+              className="flex min-h-10 max-md:min-h-11 items-center justify-center self-start rounded-xl bg-teal px-4 font-semibold text-white"
             >
               Open Telegram
             </a>

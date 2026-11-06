@@ -63,7 +63,7 @@ export function ChatHome() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const grid = useRef<HTMLDivElement>(null);
-  useEnter(grid);
+  useEnter(grid, [], { once: "chat-home" });
 
   const start = async (text: string, photos: Photo[] = []) => {
     setBusy(true);

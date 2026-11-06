@@ -68,7 +68,7 @@ export function ConnectedApps() {
             {g.chatId && (
               <Link
                 href={`/chat/${g.chatId}`}
-                className="flex h-9 items-center rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold"
+                className="flex h-9 max-md:h-11 items-center rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold"
               >
                 Its chat
               </Link>
@@ -76,7 +76,7 @@ export function ConnectedApps() {
             <button
               type="button"
               onClick={() => void api(`/oauth/grants/${g.id}`, { method: "DELETE" }).then(load)}
-              className="h-9 rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold text-bad"
+              className="h-9 max-md:h-11 rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold text-bad"
             >
               Disconnect
             </button>

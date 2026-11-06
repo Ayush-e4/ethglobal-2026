@@ -36,7 +36,7 @@ export function TripsView() {
   }, []);
 
   const scope = useRef<HTMLElement>(null);
-  useEnter(scope, [trips === null]);
+  useEnter(scope, [trips === null], { once: "trips" });
   return (
     <main
       ref={scope}

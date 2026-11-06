@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, type MarketAgentView, shortAddress, usdc, verifiedRating } from "@/lib/api";
+import { CardSkeleton } from "../Skeleton";
 import { operatorLine, ReviewBadge } from "./ReviewBadge";
 
 /**
@@ -45,7 +46,14 @@ export function MarketView() {
         </Link>
       </div>
       {!agents ? (
-        <p className="p-10 text-center text-muted">{error ?? "Loading the market…"}</p>
+        error ? (
+          <p className="p-10 text-center text-muted">{error}</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <CardSkeleton label="Loading the market" />
+            <CardSkeleton label="Loading the market" />
+          </div>
+        )
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {agents.map((a) => (

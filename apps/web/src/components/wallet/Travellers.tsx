@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, type Traveller } from "@/lib/api";
 import { TravellerForm } from "../travellers/TravellerForm";
 
-const small = "h-8 rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold";
+const small = "h-8 max-md:h-11 rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold";
 
 /** Your saved travellers (up to 5): who bookings can be for. Add, change, remove. */
 export function Travellers() {

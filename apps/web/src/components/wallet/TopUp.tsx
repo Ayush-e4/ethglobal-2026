@@ -30,7 +30,7 @@ export function TopUp({ address }: { address: string }) {
             <button
               type="button"
               onClick={copy}
-              className="h-8 rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold"
+              className="h-8 max-md:h-11 rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold"
             >
               {copied ? "Copied" : "Copy"}
             </button>
