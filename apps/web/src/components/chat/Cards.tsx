@@ -40,6 +40,8 @@ export function CardView({ card, ctx }: { card: Card; ctx: CardCtx }) {
       return <HireCard card={card} ctx={ctx} />;
     case "limit":
       return <LimitCard card={card} ctx={ctx} />;
+    case "sources":
+      return <Sources card={card} />;
   }
 }
 
@@ -106,3 +108,30 @@ function Options({ card, ctx }: { card: Of<"options">; ctx: CardCtx }) {
 }
 
 /** Live, firm quotes; choosing one tells the concierge which to book. */
+
+/** Where a reply's facts from the web came from: tap to check. */
+function Sources({ card }: { card: Of<"sources"> }) {
+  return (
+    <section aria-label="Sources" className="flex flex-col gap-1.5">
+      <span className="text-xs font-semibold text-ink-3">Sources</span>
+      <ol className="flex flex-wrap gap-2">
+        {card.sources.map((s, i) => (
+          <li key={s.url}>
+            <a
+              href={s.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="flex max-w-[260px] items-center gap-1.5 rounded-full border border-line bg-white px-2.5 py-1 text-xs text-ink-2 hover:border-line-2"
+            >
+              <span className="font-mono text-muted">{i + 1}</span>
+              <span className="truncate">{s.title}</span>
+              <span className="flex-none text-muted">
+                · {new URL(s.url).hostname.replace(/^www\./, "")}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}

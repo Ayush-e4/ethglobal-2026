@@ -33,13 +33,15 @@ export function cardNote(card: Card): string {
       return `[agents shown: ${card.agents.map((a) => `${a.name} (${a.skill}, fee ${usdc(a.priceUnits)})`).join(", ")}]`;
     case "limit":
       return `[limit card shown: the user approves with Face ID a spending limit from their own wallet: up to ${usdc(card.budgetUnits)} in this chat, at most ${usdc(card.capUnits)} a payment, only to ${card.agentName}, for ${card.hours} hours]`;
+    case "sources":
+      return `[web sources shown: ${card.sources.map((x) => x.title).join("; ")}]`;
     case "options":
       return `[choices shown: ${card.options.map((o) => o.label).join(" / ")}]`;
   }
 }
 
 /** The chat so far as Claude messages (text, plus notes for the cards). */
-export function toHistory(rows: Message[], max = 30): Anthropic.MessageParam[] {
+export function toHistory(rows: Message[], max = 30): Anthropic.Beta.Messages.BetaMessageParam[] {
   return rows.slice(-max).map((m) => ({
     role: m.role,
     content: [m.text, ...m.cards.map(cardNote)].filter(Boolean).join("\n\n") || "(no text)",

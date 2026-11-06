@@ -15,7 +15,7 @@ const Hire = z.object({ quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
  * The market, in four generic tools: who does a job, what they need to know, firm offers from
  * all of them, and hiring one. A new kind of agent needs no new tool: it publishes its form.
  */
-export const TOOLS: Anthropic.Tool[] = [
+export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
   {
     name: "find_agents",
     description:
