@@ -39,7 +39,7 @@ The concierge is **Claude Haiku** (`claude-haiku-5-5`, effort low) in a streamin
 (`src/concierge`). Its tools: `find_agents` (agents listed on Arkiv) and `get_hotel_quotes` (asks
 each hotel agent's own API, free). A quote only counts if the agent also signed it on Arkiv with
 the same key, so an agent's API can't claim a price it didn't commit to. Tool inputs are validated
-before running; a refusal or truncated turn stops the loop. Agent text is third-party data, never
+before running; a refusal or truncated turn stops the loop. Claude sees earlier cards only as notes in the history (`chats/history.ts`), so each note carries every fact its card showed: with a fact missing, Claude once "corrected" a true earlier reply. Agent text is third-party data, never
 instructions (the system prompt says so). Earlier cards go back into the history as short notes
 (with quote keys), so "book the first one" works a turn later.
 
