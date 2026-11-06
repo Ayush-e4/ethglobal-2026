@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { deviceRoutes } from "./account/devices";
+import { alertRoutes } from "./alerts/routes";
+import type { TelegramAlerts } from "./alerts/telegram";
 import { deviceLinks } from "./auth/device-links";
 import { type AuthConfig, authRoutes } from "./auth/routes";
 import { chatRoutes } from "./chats/routes";
@@ -31,6 +33,7 @@ export type AppOptions = {
   walletChain?: WalletChain; // with `approvals`: Face ID approvals of spending limits
   approvals?: WalletApprovals;
   demoToken?: string; // enables the "simulate a price drop" demo control
+  alerts?: TelegramAlerts; // phone alerts in Telegram
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -50,6 +53,7 @@ export function createApp(o: AppOptions) {
   app.route("/", authRoutes(db, auth, onSignUp, links));
   app.route("/", chatRoutes(db, concierge));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
+  if (o.alerts) app.route("/", alertRoutes(db, o.alerts));
   if (wallets) app.route("/", walletRoutes(db, wallets));
   if (wallets && o.world) app.route("/", worldRoutes(db, { ...o.world, wallets }));
   if (o.world) app.route("/", approvalRoutes(db, o.world.checks, o.world.minFeeUnits));

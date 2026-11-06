@@ -110,6 +110,27 @@ goes out twice. Details of the wallet itself: [wallet.md](wallet.md).
 
 How a check is judged, and what's stored: [world-id.md](world-id.md).
 
+## Phone alerts (Telegram)
+
+| Route | |
+|-------|--|
+| `GET /alerts` | `{ available, linked }`: is Telegram set up on this server, and is your Telegram chat connected |
+| `POST /alerts/telegram` | A one-time link to our bot (`https://t.me/<bot>?start=<code>`); tapping **Start** there connects that Telegram chat to your account |
+| `POST /alerts/test` | Sends a test alert: `{ sent }` |
+| `DELETE /alerts/telegram` | Disconnect (in Telegram, `/stop` does the same) |
+
+Whenever the app writes in a chat by itself (booked, with the reference; refunded; a cheaper
+rebook by PriceGuard), the chat's owner gets that message in Telegram too, with a link back to the
+chat (`src/alerts`). The chat message is the record; the alert is a nudge, sent best effort.
+
+- **One thread per person.** A Telegram bot has one chat with each Telegram user, so alerts from
+  all of an account's chats arrive in that one thread, each titled with its chat. One Telegram chat
+  is connected to one account: connecting it to another account moves it.
+- **Its own bot.** The server reads the bot's messages by long polling (no public address needed),
+  and only one server may read a bot's messages, so each deployment needs its own bot from
+  @BotFather (`TELEGRAM_BOT_TOKEN`). Without one, alerts are off and the Wallet page doesn't show
+  them.
+
 ## Roles
 
 `user` for everyone; `admin` for account ids listed in `ADMIN_USERS` (server settings only, so

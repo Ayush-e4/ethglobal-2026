@@ -229,6 +229,23 @@ export const hires = pgTable(
   (t) => [index("hires_chat_idx").on(t.chatId), index("hires_status_idx").on(t.status)],
 );
 
+/**
+ * Phone alerts: the Telegram chat a user linked with our bot (one chat per account, one account
+ * per chat), by tapping Start on a one-time link. Until then, `linkCode` waits for that tap.
+ */
+export const alertChannels = pgTable(
+  "alert_channels",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    telegramChatId: text("telegram_chat_id"),
+    linkCode: text("link_code"),
+    createdAt: at("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("alert_channels_chat_idx").on(t.telegramChatId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Hire = typeof hires.$inferSelect;
 export type Wallet = typeof wallets.$inferSelect;
