@@ -108,6 +108,20 @@ Settings: `WORLD_IDKIT_APP_ID` (`app_…`), `WORLD_IDKIT_RP_ID` (`rp_…`), `WOR
 (secret), `WORLD_IDKIT_ENV` (`staging` for the simulator, `production` for World App). Without
 them the drop is hidden.
 
+Set up through World's Developer Portal MCP (`https://developer.world.org/api/mcp`, with
+`WORLD_DEV_PORTAL_API_KEY`):
+1. `create_app` made app `app_d07a3605682ac573d548059b9b81c4d3`.
+2. `configure_world_id` registered a managed World ID 4.0 RP, `rp_ac1e91b4a0c19725`, on
+   production and staging. Its signing key was made on our machine and went straight to `.env`.
+3. `create_world_id_action` made `deal-fee-back-1` in both environments.
+
+**Live (6 Nov 2026, staging):**
+1. The wallet's deal card opened IDKit's widget, and "Use the simulator" opened World's simulator
+   with our request ("Unique Human · Claim the deal drop…").
+2. Approving there sent the proof back; our server checked it with World and stored the nullifier.
+3. The card said "Claimed: your next booking's fee comes back once its agent is paid", and 19 of
+   20 were left.
+
 ## What people need
 
 Our hackathon build uses World's **sandbox** (`WORLD_ID_ISSUER=https://sandbox.auth.world.org`;
