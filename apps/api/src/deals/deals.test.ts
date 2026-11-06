@@ -23,18 +23,19 @@ const DROP: Drop = {
   maxFeeUnits: 50_000n,
   endsAt: new Date(Date.now() + 86_400_000),
 };
-const proof = (signal: string, nullifier = "0x2a", over: Record<string, unknown> = {}) => ({
-  protocol_version: "3.0",
+const proof = (signal: string, nullifier = "42", over: Record<string, unknown> = {}) => ({
+  protocol_version: "4.0",
   nonce: "n",
   action: "deal-test-drop",
   environment: "staging",
   responses: [
     {
-      identifier: "orb",
-      proof: "0x",
-      merkle_root: "0x",
+      identifier: "proof_of_human",
+      proof: ["1", "2", "3", "4", "5"],
       nullifier,
       signal_hash: hashSignal(signal),
+      issuer_schema_id: 1,
+      expires_at_min: 0,
     },
   ],
   ...over,
@@ -99,7 +100,7 @@ describe("deal drops: one per person, with World ID", () => {
     expect((await deals.claim(a, DROP.id, proof(a.id))).status).toBe("claimed");
     expect(verified).toHaveLength(1);
     await expect(deals.claim(a, DROP.id, proof(a.id))).rejects.toThrow(/claimed this one already/);
-    // The same World ID (same nullifier, written in hex or decimal) on another account.
+    // The same World ID (the same nullifier) on another account.
     await expect(deals.claim(b, DROP.id, proof(b.id, "42"))).rejects.toThrow(/one per person/);
   });
 
@@ -107,13 +108,18 @@ describe("deal drops: one per person, with World ID", () => {
     ["made for another account", (id: string) => proof(`${id}-other`), /for someone else/],
     [
       "from the wrong environment",
-      (id: string) => proof(id, "0x2a", { environment: "production" }),
+      (id: string) => proof(id, "42", { environment: "production" }),
       /wrong World ID environment/,
     ],
     [
       "for another action",
-      (id: string) => proof(id, "0x2a", { action: "deal-other" }),
+      (id: string) => proof(id, "42", { action: "deal-other" }),
       /another action/,
+    ],
+    [
+      "in the older 3.0 format (another nullifier for the same person)",
+      (id: string) => proof(id, "42", { protocol_version: "3.0" }),
+      /Only World ID 4.0/,
     ],
   ])("refuses a proof %s", async (_, make, why) => {
     const { deals, account } = await setup();
@@ -127,7 +133,7 @@ describe("deal drops: one per person, with World ID", () => {
     await expect(no.deals.claim(u, DROP.id, proof(u.id))).rejects.toThrow(/World didn't accept/);
     const one = await setup({ total: 1 });
     const [a, b] = [await one.account(), await one.account()];
-    await one.deals.claim(a, DROP.id, proof(a.id, "0x1"));
+    await one.deals.claim(a, DROP.id, proof(a.id, "1"));
     await expect(one.deals.start(b, DROP.id)).rejects.toThrow(/All claimed/);
     expect((await one.deals.list(b))[0]).toMatchObject({ left: 0, mine: null });
   });

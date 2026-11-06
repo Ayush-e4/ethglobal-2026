@@ -1,6 +1,11 @@
 "use client";
 
-import { IDKitRequestWidget, type IDKitResult, orbLegacy, type RpContext } from "@worldcoin/idkit";
+import {
+  IDKitRequestWidget,
+  type IDKitResult,
+  proofOfHuman,
+  type RpContext,
+} from "@worldcoin/idkit";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, hashscanTx } from "@/lib/api";
 
@@ -16,7 +21,7 @@ interface Drop {
 interface Start {
   app_id: `app_${string}`;
   action: string;
-  environment: "production" | "staging";
+  environment: "production" | "staging" | "sandbox";
   signal: string;
   rp_context: RpContext;
 }
@@ -126,8 +131,8 @@ export function DealDrop() {
           action={start.s.action}
           rp_context={start.s.rp_context}
           environment={start.s.environment}
-          allow_legacy_proofs
-          preset={orbLegacy({ signal: start.s.signal })}
+          allow_legacy_proofs={false} // World ID 4.0 only: one nullifier per person
+          preset={proofOfHuman({ signal: start.s.signal })}
           handleVerify={claim}
           onSuccess={() => {
             setStart(null);

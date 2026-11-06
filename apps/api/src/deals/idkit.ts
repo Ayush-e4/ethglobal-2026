@@ -11,7 +11,7 @@ export interface IdkitConfig {
   appId: `app_${string}`;
   rpId: string;
   signingKey: string;
-  environment: "production" | "staging";
+  environment: "production" | "staging" | "sandbox";
   verifyUrl: string; // World's verify API, for this RP
 }
 
@@ -22,7 +22,9 @@ export function loadIdkitConfig(env: Record<string, string | undefined> = proces
     appId: appId as `app_${string}`,
     rpId,
     signingKey: key.replace(/^0x/, ""),
-    environment: env.WORLD_IDKIT_ENV === "production" ? "production" : "staging",
+    // Sandbox (World's "World ID sbx" app) unless set; staging is World's web simulator.
+    environment:
+      (["production", "staging"] as const).find((e) => e === env.WORLD_IDKIT_ENV) ?? "sandbox",
     verifyUrl: `https://developer.world.org/api/v4/verify/${rpId}`,
   } satisfies IdkitConfig;
 }
@@ -66,6 +68,9 @@ export async function verifyProof(
   const r = Result.safeParse(raw);
   if (!r.success) throw new ProofError("That isn't a World ID proof.");
   const p = r.data;
+  // 4.0 only: a person's 3.0 proof has another nullifier, so taking both lets them claim twice.
+  if (p.protocol_version !== "4.0")
+    throw new ProofError("Only World ID 4.0 proofs count (one per person).");
   if (p.environment !== c.environment)
     throw new ProofError("A proof from the wrong World ID environment.");
   if (p.action !== undefined && p.action !== want.action)
@@ -86,5 +91,5 @@ export async function verifyProof(
   } | null;
   if (!res?.ok || body?.success !== true)
     throw new ProofError(`World didn't accept the proof${body?.detail ? `: ${body.detail}` : ""}.`);
-  return BigInt(item.nullifier).toString(); // v3 hex or v4 decimal: one canonical form
+  return BigInt(item.nullifier).toString(); // one canonical form (decimal)
 }

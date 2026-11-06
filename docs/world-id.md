@@ -81,9 +81,13 @@ on the server; `apps/api/src/deals`), not the sign-in used above:
 1. **Start**: `POST /deals/:id/start`. Our server signs the request (`signRequest`, with
    `WORLD_IDKIT_SIGNING_KEY`, which never leaves the server) for the drop's action
    (`deal-<drop>`), and binds it to the account (the signal is the account id).
-2. **Prove**: the wallet page opens IDKit's widget. The person approves in World App (in staging,
-   World's simulator at simulator.worldcoin.org).
+2. **Prove**: the wallet page opens IDKit's widget, asking for a World ID 4.0 proof of human
+   (`proofOfHuman`). The person scans it and approves in World's app: in sandbox, the "World ID
+   sbx" app; in staging, World's web simulator.
 3. **Claim**: `POST /deals/:id/claim` with the result. The server checks:
+   - it's a **World ID 4.0** proof. Older 3.0 proofs are refused: the same person's 3.0 proof
+     has another nullifier, so taking both would let them claim twice (World's team agreed:
+     one nullifier);
    - the environment and action are the ones we expect;
    - the signal hash is this account's, so nobody can use someone else's proof;
    - World accepts the proof (`POST https://developer.world.org/api/v4/verify/<rp_id>`).
@@ -105,8 +109,9 @@ on the server; `apps/api/src/deals`), not the sign-in used above:
 | A proof for another account, action or environment | Refused, with the reason |
 
 Settings: `WORLD_IDKIT_APP_ID` (`app_…`), `WORLD_IDKIT_RP_ID` (`rp_…`), `WORLD_IDKIT_SIGNING_KEY`
-(secret), `WORLD_IDKIT_ENV` (`staging` for the simulator, `production` for World App). Without
-them the drop is hidden.
+(secret), `WORLD_IDKIT_ENV` (`sandbox` by default, as World's team asked for the event: the
+"World ID sbx" app; `staging` for the web simulator; `production` for the World ID app).
+Without them the drop is hidden.
 
 Set up through World's Developer Portal MCP (`https://developer.world.org/api/mcp`, with
 `WORLD_DEV_PORTAL_API_KEY`):
@@ -115,7 +120,11 @@ Set up through World's Developer Portal MCP (`https://developer.world.org/api/mc
    production and staging. Its signing key was made on our machine and went straight to `.env`.
 3. `create_world_id_action` made `deal-fee-back-1` in both environments.
 
-**Live (6 Nov 2026, staging):**
+**Live, sandbox (6 Nov 2026):** the user scanned the QR with the "World ID sbx" app on an iPad
+and approved. World verified the 4.0 proof, the nullifier was stored, and the card said
+"Claimed…", with 19 of 20 left.
+
+**Live, staging (6 Nov 2026, earlier):**
 1. The wallet's deal card opened IDKit's widget, and "Use the simulator" opened World's simulator
    with our request ("Unique Human · Claim the deal drop…").
 2. Approving there sent the proof back; our server checked it with World and stored the nullifier.
