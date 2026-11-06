@@ -1,4 +1,4 @@
-// Gives each of our agents (StayWise, PriceGuard, SkyHop) its own key: a Hedera account (paid into, marks
+// Gives each of our agents (StayWise, PriceGuard, SkyHop, Bank Check) its own key: a Hedera account (paid into, marks
 // deliveries) whose alias is also its Arkiv writer. Funded from the operator (HBAR) and our
 // Arkiv writer (test GLM). Safe to re-run; keys go straight into .env, never on screen.
 // Run: pnpm --filter @app/agents agents-setup
@@ -16,6 +16,7 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { SKYHOP } from "../src/flights/config";
 import { HOTEL_AGENTS } from "../src/hotels/config";
+import { BANKCHECK } from "../src/lookups/bankcheck";
 
 const ENV_PATH = resolve(import.meta.dirname, "../../../.env");
 const config = loadConfig();
@@ -25,7 +26,7 @@ const arkiv = createPublicClient({
   transport: http(undefined, { retryCount: 0 }),
 });
 
-for (const a of [...Object.values(HOTEL_AGENTS), SKYHOP]) {
+for (const a of [...Object.values(HOTEL_AGENTS), SKYHOP, BANKCHECK]) {
   let key = process.env[`${a.env}_PRIVATE_KEY`] as Hex | undefined;
   let accountId = process.env[`${a.env}_ACCOUNT_ID`];
   if (!key || !accountId) {

@@ -2,7 +2,10 @@ import type { Card } from "@app/shared";
 
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const usdc = (units: string) => `${(Number(units) / 1e6).toFixed(2)} USDC`;
+const usdc = (units: string) => {
+  const n = Number(units) / 1e6;
+  return `${n > 0 && n < 0.01 ? String(Number(n.toFixed(4))) : n.toFixed(2)} USDC`;
+};
 const money = (n: number, currency = "INR") =>
   currency === "INR" ? `₹${Math.round(n).toLocaleString("en-IN")}` : `${currency} ${Math.round(n)}`;
 
@@ -190,7 +193,7 @@ export function cardMessages(card: Card, appLink: string | null): Send[] {
           card.agents
             .map(
               (a) =>
-                `• <b>${esc(a.name)}</b>${a.model ? ` (${esc(a.model)})` : ""}: ${usdc(a.priceUnits)} a job${a.delivered ? `, ${a.delivered} delivered` : ""}${a.rating ? `, ★ ${a.rating.average.toFixed(1)} from ${a.rating.count} verified` : ""}\n  ${esc(a.description)}`,
+                `• <b>${esc(a.name)}</b>${a.model ? ` (${esc(a.model)})` : ""}: ${usdc(a.priceUnits)} a ${a.kind === "lookup" ? "lookup" : "job"}${a.delivered ? `, ${a.delivered} delivered` : ""}${a.rating ? `, ★ ${a.rating.average.toFixed(1)} from ${a.rating.count} verified` : ""}\n  ${esc(a.description)}`,
             )
             .join("\n"),
         ),
@@ -199,6 +202,12 @@ export function cardMessages(card: Card, appLink: string | null): Send[] {
       return [
         msg(
           `Sources:\n${card.sources.map((s) => `• <a href="${esc(s.url)}">${esc(s.title)}</a>`).join("\n")}`,
+        ),
+      ];
+    case "answer":
+      return [
+        msg(
+          `<b>${esc(card.title)}</b> · ${esc(card.agentName)}\n${card.lines.map((l) => `${esc(l.label)}: ${esc(l.value)}`).join("\n")}\n\n<i>From ${esc(card.source)}. Paid ${usdc(card.feeUnits)}:</i> <a href="https://hashscan.io/testnet/transaction/${esc(card.payTx)}">see it on Hedera</a>`,
         ),
       ];
     case "limit":

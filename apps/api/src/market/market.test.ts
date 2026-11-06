@@ -32,6 +32,7 @@ const agent: MarketAgent = {
   agent: AGENT,
   endpoint: "https://agent.example",
   feeUnits: "30000",
+  kind: "booking",
   form: FORM,
   delivered: 4,
   disputes: 0,

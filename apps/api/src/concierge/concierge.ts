@@ -65,6 +65,7 @@ const STATUS: Record<string, string> = {
   agent_input: "Reading what the agents need",
   get_quotes: "Asking agents for firm prices",
   hire: "Paying the agent into escrow",
+  ask_agent: "Asking the agent",
   web_search: "Searching the web",
   web_fetch: "Reading the page",
   advisor: "Thinking it through",
@@ -73,7 +74,7 @@ const STATUS: Record<string, string> = {
 // Web pages are third-party text that can carry instructions: a reply that read the web can't
 // also spend money. The user confirms in their next message, which starts a fresh reply.
 const NO_HIRE_AFTER_WEB =
-  "Not hired: this reply read the web, and booking waits for the user's own go-ahead. Ask them to confirm in their next message.";
+  "Not done: this reply read the web, and paying an agent waits for the user's own go-ahead. Ask them to confirm in their next message.";
 
 /**
  * One chat turn with Claude: a streaming tool loop. Text streams to the app as it's written;
@@ -170,7 +171,7 @@ export function claudeConcierge(
         calls.map(async (call): Promise<Anthropic.Beta.Messages.BetaToolResultBlockParam> => {
           emit({ type: "status", label: STATUS[call.name] ?? "Working" });
           const out =
-            call.name === "hire" && readTheWeb
+            (call.name === "hire" || call.name === "ask_agent") && readTheWeb
               ? { result: NO_HIRE_AFTER_WEB, isError: true, card: undefined }
               : await runTool(deps, context, call.name, call.input).catch(() => ({
                   result: "The tool failed; say so briefly and offer to try again.",

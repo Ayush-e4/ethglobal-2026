@@ -12,7 +12,15 @@ import { demoCapsAllow } from "./caps";
 import type { HiringConfig } from "./config";
 import { type DisputeHook, type DisputeReason, disputeHire } from "./disputes";
 import { HireError } from "./errors";
-import { demoLimitFor, LIMIT_TERMS, limitParams, liveLimit, NeedsLimit } from "./limits";
+import {
+  demoLimitFor,
+  LIMIT_TERMS,
+  type LimitTerms,
+  limitParams,
+  liveLimit,
+  NeedsLimit,
+} from "./limits";
+import { lookupAsker } from "./lookups";
 import { AgentRefused, PayError, payAgent, TEST_TRAVELLER } from "./pay";
 
 const USDC_TESTNET = "0.0.429274";
@@ -218,8 +226,20 @@ export function hiringService(
 
     list: (chatId: string) => db.select().from(hires).where(eq(hires.chatId, chatId)),
 
+    /** Ask a lookup agent: its small fee is paid straight to it, the answer comes back (lookups.ts). */
+    ask: lookupAsker({
+      db,
+      registry,
+      ids,
+      concierge,
+      token,
+      demo: { owner: demoOwner, accountId: cfg.demoWallet.id, caps: cfg.caps },
+      ownWallet,
+    }),
+
     /** A new limit's terms for this agent, and where the registry is (for Face ID approvals). */
-    newLimit: (payee: `0x${string}`) => limitParams(concierge.address, token, payee),
+    newLimit: (payee: `0x${string}`, terms: LimitTerms = LIMIT_TERMS) =>
+      limitParams(concierge.address, token, payee, terms),
     registryAddress: cfg.registry,
   };
 }

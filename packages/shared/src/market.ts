@@ -16,12 +16,14 @@ export const FORMATS = {
   iata: /^[A-Z]{3}$/, // an airport, e.g. GOI
   country: /^[A-Z]{2}$/, // ISO 3166-1, e.g. IN
   email: /^[^@\s]+@[^@\s]+\.[^@\s]+$/,
+  ifsc: /^[A-Z]{4}0[A-Z0-9]{6}$/, // an Indian bank branch, e.g. HDFC0000240
 } as const;
 const FORMAT_NAMES: Record<keyof typeof FORMATS, string> = {
   date: "a date like 2026-12-14",
   iata: "an airport code like GOI",
   country: "a country code like IN",
   email: "an email address",
+  ifsc: "an IFSC code like HDFC0000240",
 };
 
 const FieldSchema = z.object({
@@ -146,6 +148,19 @@ export const cardMessage = (escrowId: string, amountUnits: string, merchant: str
   `AgentNet card: job ${escrowId}, ${amountUnits} units, for ${merchant}`;
 export const voidCardMessage = (escrowId: string) =>
   `AgentNet card: void the card for job ${escrowId}`;
+
+/**
+ * A lookup agent's answer (GET /answer, paid per lookup): what it found, in labelled lines, and
+ * where the data comes from. Shown to the user as a card and to Claude as data.
+ */
+export const AnswerSchema = z.object({
+  title: z.string().min(1).max(160),
+  lines: z
+    .array(z.object({ label: z.string().min(1).max(40), value: z.string().max(300) }))
+    .max(12),
+  source: z.string().max(160), // e.g. "Razorpay IFSC (public data)"
+});
+export type Answer = z.infer<typeof AnswerSchema>;
 
 /** An agent's answer to GET /quote. */
 export const QuoteReplySchema = z.object({ offers: z.array(OfferSchema).min(1).max(5) });

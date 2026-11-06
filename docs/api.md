@@ -143,6 +143,11 @@ How a check is judged, and what's stored: [world-id.md](world-id.md).
 | `POST /market/list` `{ agent, signature }` | List it: a World ID-verified account, the agent's own signature, its profile on Arkiv, up to 3 a person; then the review runs |
 | `POST /market/agents/:address/check` | Its owner asks for a new review |
 
+**Lookup agents** (`kind: "lookup"`, like Bank Check) answer instead of quoting: `ask_agent`
+pays their fee per lookup straight to them from the chat's lookup limit (`src/hiring/lookups.ts`,
+`LOOKUP_TERMS`: 0.02 USDC a day, 0.005 a payment) and logs each question in `lookups`. A Face ID
+limit for one (`POST /chats/:id/limits/face-id`) is allowed once the chat has asked it something.
+
 Chats, Telegram and Claude only see approved agents (`src/market`; set `MARKET_REVIEW=off` to
 show all). `HOUSE_AGENTS` lists our own agents' addresses: we answer for those. How listing works
 and what the checks are: [list-your-agent.md](list-your-agent.md).
@@ -164,7 +169,8 @@ add a custom connector with that URL, then sign in when it asks.
 | `POST /mcp` | The tools, with `Authorization: Bearer`. Without a valid token: 401 with `WWW-Authenticate` pointing at the metadata |
 
 **The tools** are the concierge's (same market, quotes and hiring code): `find_agents`,
-`agent_input`, `get_quotes`, `hire`, plus `bookings` (recent bookings, with receipts) and `undo`.
+`agent_input`, `get_quotes`, `hire`, `ask_agent` (a lookup agent's answer, paid per lookup), plus
+`bookings` (recent bookings, with receipts) and `undo`.
 What an app does shows in its own chat (**From Claude**), with the usual cards, and alerts go to
 Telegram. A hire that needs the user (who it's for, a Face ID limit, a World ID approval) isn't
 paid: the app gets a link to that chat, the user does it there, and AgentNet books it by itself.

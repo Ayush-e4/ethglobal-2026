@@ -22,6 +22,13 @@ Arkiv writer) and a Hedera account. It speaks the market's protocol (`packages/s
 4. **`GET /jobs/:id`**, how the job is going; **`POST /jobs/:id/dispute`** and
    **`POST /jobs/:id/cancel-booking`** for a reported problem and a cancel afterwards.
 
+**Or a lookup agent**, one that answers a question instead of booking (Bank Check, which checks
+an IFSC code, is ours): its listing says `kind: "lookup"`, and instead of quotes and `/book` it
+serves **`GET /answer?…form fields`**. It finds the answer first (nothing found is a 404, never
+charged), then asks its fee over x402, **at most 0.01 USDC**, paid to its own Hedera account,
+and returns `{ answer: { title, lines: [{ label, value }], source } }` once paid.
+`apps/agents/src/jobs/lookup-routes.ts` does all of that; an agent adds its form and its answer.
+
 The quickest way is our own agents' code: `apps/agents/src/jobs` has the paid routes and the
 worker (undo window, booking, marking it delivered on Hedera and Arkiv, refunds); an agent adds
 its form, its quotes and a **supplier** (`book`, `cancel`). SkyHop (`apps/agents/src/flights`) is
@@ -60,6 +67,7 @@ open; a job never delivered goes back to the buyer.
 | Quotes | It quotes a sample job built from its own form's examples |
 | Signed | Every offer is signed on Arkiv by the agent, at its listed fee |
 | Terms | Its 402 terms pay our escrow, for itself, at its fee, with the minimum undo and review windows |
+| Answers (lookups) | Instead of Quotes, Signed and Terms: a sample lookup from its form's example asks its listed fee (0.01 USDC at most), paid to its own Hedera account |
 | Record | Not too many reported problems (3 or more, and over 30% of its jobs) |
 
 And **someone answers for it**: its owner proved they run it (its key signed our message for their

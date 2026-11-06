@@ -8,6 +8,9 @@ import { type Limit, limits } from "../db/schema";
 /** A chat's limit for one agent: up to 0.10 USDC, 0.05 a payment, for a day. */
 // Room for a trip price (at testnet scale) as well as the fee.
 export const LIMIT_TERMS = { budget: parseUsdc("0.50"), cap: parseUsdc("0.20"), hours: 24 };
+/** A lookup agent's limit: small, for its tiny fee per lookup (20 at 0.001 USDC). */
+export const LOOKUP_TERMS = { budget: parseUsdc("0.02"), cap: parseUsdc("0.005"), hours: 24 };
+export type LimitTerms = typeof LIMIT_TERMS;
 
 /**
  * No limit with room for this agent in this chat yet, and the money is the user's own: they
@@ -24,13 +27,14 @@ export function limitParams(
   concierge: `0x${string}`,
   token: `0x${string}`,
   payee: `0x${string}`,
+  terms: LimitTerms = LIMIT_TERMS,
 ): MandateParams {
-  const expiresAt = Math.floor(Date.now() / 1000) + LIMIT_TERMS.hours * 3600;
+  const expiresAt = Math.floor(Date.now() / 1000) + terms.hours * 3600;
   return {
     agent: concierge,
     token,
-    budget: LIMIT_TERMS.budget,
-    perPaymentCap: LIMIT_TERMS.cap,
+    budget: terms.budget,
+    perPaymentCap: terms.cap,
     expiresAt: BigInt(expiresAt),
     payees: [payee],
   };
@@ -88,10 +92,11 @@ export async function demoLimitFor(
   chatId: string,
   payee: `0x${string}`,
   fee: bigint,
+  terms: LimitTerms = LIMIT_TERMS,
 ): Promise<Limit> {
   const existing = await liveLimit(d.db, d.registry, chatId, payee, fee, d.owner.address);
   if (existing) return existing;
-  const p = limitParams(d.concierge, d.token, payee);
+  const p = limitParams(d.concierge, d.token, payee, terms);
   const allowance = await d.registry.allowance(d.token, d.owner.address);
   if (allowance < p.budget) await d.registry.approve(d.owner, d.token, allowance + p.budget);
   const { id } = await d.registry.createMandate(d.owner, p);

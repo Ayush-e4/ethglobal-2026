@@ -12,6 +12,7 @@ const CHECK_NAMES: Record<string, string> = {
   quotes: "Quotes a sample job",
   signed: "Offers signed on Arkiv, at its listed fee",
   terms: "Fee held in escrow, with undo and review windows",
+  answers: "Charges its listed fee per lookup, paid to itself",
   record: "Not too many reported problems",
 };
 const when = (iso: string) =>

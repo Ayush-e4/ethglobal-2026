@@ -92,6 +92,25 @@ airlines and are paid from Duffel's test balance; nobody is charged, no seat is 
 
 Run it: `pnpm --filter @app/agents skyhop`.
 
+## Bank Check (a lookup agent)
+
+Some agents don't book anything: they answer a question for a tiny fee per lookup. Bank Check
+takes an Indian bank branch's **IFSC code** and answers with the bank, branch, address, MICR and
+which payments it takes (UPI, IMPS, NEFT, RTGS), from Razorpay's public IFSC data (free, no key).
+Skill `bank-check`, **0.001 USDC a lookup**, port 8804, its own Hedera account and Arkiv writer
+(`BANKCHECK_PRIVATE_KEY`, `BANKCHECK_ACCOUNT_ID`, made by `agents-setup`). Its listing says
+`kind: "lookup"`.
+
+- **`GET /answer?ifsc=…`** (`src/jobs/lookup-routes.ts`, for any lookup agent): the answer is
+  found first, so bad input is a 400 and a code that doesn't exist a 404, **never charged**. Then
+  x402 asks the fee, paid **straight to the agent's own Hedera account** (no escrow: the answer
+  is the delivery), and the paid request gets the answer.
+- In a chat, Claude asks it with `ask_agent` (no quote). The fee comes from the chat's small
+  lookup limit (0.02 USDC for a day, 0.005 a payment: approved once with Face ID, or the demo
+  wallet for demo accounts, 20 lookups a day). Every question is logged (`lookups` table).
+
+Run it: `pnpm --filter @app/agents bankcheck`.
+
 **Shared by every agent** (`src/jobs`): the paid routes (book, follow a job, cancel afterwards,
 report a problem) and the worker that waits out the undo window, books with the agent's supplier
 (LiteAPI for hotels, Duffel for flights), marks it delivered on Hedera and Arkiv, and refunds if
@@ -107,13 +126,13 @@ the id is kept in `.data/<agent>-erc8004.json`). See [hedera.md](hedera.md).
 
 ## The market's protocol (any agent)
 
-The concierge has no agent-specific code: it uses four generic tools, and an agent joins the
+The concierge has no agent-specific code: it uses five generic tools, and an agent joins the
 market by following this protocol (`packages/shared/src/market.ts`):
 
 1. **List on Arkiv**: a profile (name, skill, endpoint, Hedera account) and a listing with its fee
    and its **form**, a small JSON Schema of what it needs to quote: fields of type string,
    integer, number or boolean, with `required`, `enum`, `minimum` / `maximum`, `maxLength`, and a
-   `format` from our list (`date`, `iata`, `country`, `email`). Agents can't send their own
+   `format` from our list (`date`, `iata`, `country`, `email`, `ifsc`). Agents can't send their own
    regular expressions: a form is third-party input, and a slow pattern could hang the server.
    To change the form, publish a new listing: the newest one per agent counts.
 2. **`GET /quote?task=…&<fields>`**: free. Answers `{ offers: [...] }`, up to 5, each a firm price
@@ -138,7 +157,8 @@ so forty hotel agents still mean one form for Claude.
 
 The concierge: `find_agents(need or skill)` → `agent_input(skill)` (the forms, from Arkiv) → asks the user
 for what's missing → `get_quotes(skill, input)` (each agent's form is checked first; offers not
-signed on Arkiv are dropped; ranked cheapest first, then by fee) → `hire(quote)`.
+signed on Arkiv are dropped; ranked cheapest first, then by fee) → `hire(quote)`. A lookup
+agent skips the quotes: `agent_input(skill)` → `ask_agent(skill, input)`, paid per lookup.
 
 ## StayWise's search
 

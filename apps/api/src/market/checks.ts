@@ -1,5 +1,6 @@
 import { checkForm, type Form, QuoteReplySchema } from "@app/shared";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
+import { lookupProblems } from "./lookup-check";
 
 /** The marketplace's minimums: what every agent's payment terms must give the buyer. */
 export const MIN_UNDO_SECONDS = 30;
@@ -7,7 +8,7 @@ export const MIN_REVIEW_SECONDS = 600;
 export const MAX_DELIVER_SECONDS = 86_400;
 
 export interface Check {
-  id: "name" | "secure" | "reachable" | "quotes" | "signed" | "terms" | "record";
+  id: "name" | "secure" | "reachable" | "quotes" | "signed" | "terms" | "answers" | "record";
   ok: boolean;
   note: string;
 }
@@ -57,13 +58,16 @@ export interface Probed {
   form?: Form;
   delivered: number;
   disputes?: number;
+  kind?: "booking" | "lookup";
+  hederaAccount?: string; // where a lookup agent is paid
 }
 
 /**
  * Checks an agent from the outside, as a buyer would meet it, without paying anything: served
  * over https; up; quotes a sample job; each offer signed on Arkiv by the agent at its listed fee;
  * payment terms that hold the fee in our escrow for the agent itself, with an undo window and a
- * review window; and a record without too many reported problems.
+ * review window; and a record without too many reported problems. A lookup agent instead asks
+ * its listed fee for a sample lookup, paid to its own account (lookup-check.ts).
  */
 export async function checkAgent(
   a: Probed,
@@ -106,8 +110,19 @@ export async function checkAgent(
 
   const input = a.form ? sampleInput(a.form) : null;
   if (!input) {
-    add("quotes", false, "Its form has no examples to ask a sample quote with");
+    add(a.kind === "lookup" ? "answers" : "quotes", false, "Its form has no examples to try");
     return checks;
+  }
+  if (a.kind === "lookup") {
+    const problems = await lookupProblems(a, input, get);
+    add(
+      "answers",
+      problems.length === 0,
+      problems.length
+        ? `A sample lookup: ${problems.join("; ")}`
+        : `Asks ${Number(a.feeUnits) / 1e6} USDC per lookup, paid to its own account`,
+    );
+    return record(a, add, checks);
   }
   const task = `check-${Date.now().toString(36)}`;
   const q = new URL("quote", base);
@@ -189,6 +204,15 @@ export async function checkAgent(
       : `Fee held in escrow; undo ${escrow?.undoSeconds} s, review ${Math.round(Number(escrow?.reviewSeconds) / 60)} min`,
   );
 
+  return record(a, add, checks);
+}
+
+/** Its record: not too many of its jobs reported as a problem. */
+function record(
+  a: Probed,
+  add: (id: Check["id"], ok: boolean, note: string) => boolean,
+  checks: Check[],
+) {
   const disputes = a.disputes ?? 0;
   const tooMany = disputes >= 3 && disputes > a.delivered * 0.3;
   add(

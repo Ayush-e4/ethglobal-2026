@@ -61,6 +61,8 @@ export function agentReviewService(
         form: a.form,
         delivered: a.delivered,
         disputes: a.disputes ?? 0,
+        kind: a.kind,
+        hederaAccount: a.hederaAccount,
       },
       {
         registryId: d.registryId,

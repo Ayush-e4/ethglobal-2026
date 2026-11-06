@@ -1,11 +1,12 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import type { Card } from "@app/shared";
 import { z } from "zod";
-import type { User } from "../db/schema";
 import { NeedsLimit } from "../hiring/limits";
 import { NeedsTraveller } from "../travellers/service";
 import { NeedsHuman } from "../world/checkpoint";
-import type { Market, MarketOffer } from "./market";
+import { ASK_AGENT, askAgent } from "./lookup-tool";
+import type { ToolContext, ToolDeps, ToolOutcome } from "./tool-types";
+
+export type { ToolContext, ToolDeps, ToolOutcome } from "./tool-types";
 
 const Skill = z.string().regex(/^[a-z0-9_.-]{1,64}$/);
 const FindAgents = z.object({ need: z.string().max(300).optional(), skill: Skill.optional() });
@@ -14,8 +15,9 @@ const GetQuotes = z.object({ skill: Skill, input: z.record(z.string(), z.unknown
 const Hire = z.object({ quote: z.string().regex(/^0x[0-9a-fA-F]{64}$/) });
 
 /**
- * The market, in four generic tools: who does a job, what they need to know, firm offers from
- * all of them, and hiring one. A new kind of agent needs no new tool: it publishes its form.
+ * The market, in five generic tools: who does a job, what they need to know, firm offers from
+ * all of them, hiring one, and asking a lookup agent. A new agent needs no new tool: it
+ * publishes its form.
  */
 export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
   {
@@ -70,37 +72,10 @@ export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
       required: ["quote"],
     },
   },
+  ASK_AGENT,
 ];
 
-/** What the tools can reach, and whose chat this is. */
-export interface ToolDeps {
-  market: Market;
-  saveQuotes: (chatId: string, offers: MarketOffer[]) => Promise<void>;
-  hire: (
-    user: User,
-    chatId: string,
-    quoteKey: string,
-  ) => Promise<{
-    id: string;
-    title: string;
-    feeUnits: bigint;
-    priceUnits?: bigint | null; // the trip price, in the same escrow
-    undoUntil: Date | null;
-    payTx: string | null;
-  }>;
-}
-export interface ToolContext {
-  user: User;
-  chatId: string;
-}
-
 const usdc = (units: string) => (Number(units) / 1e6).toFixed(2);
-
-export interface ToolOutcome {
-  result: string; // what Claude reads
-  card?: Card; // what the app draws
-  isError?: boolean;
-}
 
 const invalid = (what: string): ToolOutcome => ({
   result: `invalid input: ${what}`,
@@ -143,7 +118,11 @@ export async function runTool(
           agents.map((a) => ({
             name: a.name,
             skill: a.skill,
-            fee: `${usdc(a.feeUnits)} USDC`,
+            kind: a.kind,
+            fee:
+              a.kind === "lookup"
+                ? `${(Number(a.feeUnits) / 1e6).toFixed(3)} USDC per lookup`
+                : `${usdc(a.feeUnits)} USDC`,
             model: a.service?.model,
             promise: a.service?.promise,
             afterwards: a.service?.afterwards,
@@ -170,10 +149,12 @@ export async function runTool(
           delivered: a.delivered,
           disputes: a.disputes,
           rating: a.rating,
+          kind: a.kind,
         })),
       },
     };
   }
+  if (name === "ask_agent") return askAgent(deps, ctx, input);
   if (name === "agent_input") {
     const p = AgentInput.safeParse(input);
     if (!p.success) return invalid("skill must be a short name (find_agents gives it)");
