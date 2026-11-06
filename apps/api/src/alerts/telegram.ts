@@ -210,7 +210,7 @@ export async function handleUpdate(t: TelegramAlerts, u: Update, h: BotHandlers 
     const linked = await t.finishLink(start[1], String(chatId));
     return say(
       linked
-        ? "Connected: Shikigami will tell you here when an agent books, refunds, or finds your room cheaper. Send /stop to stop."
+        ? "Connected! Chat with me right here, as in the app, and I'll tell you when an agent books, refunds, or finds you a better price. Send /help to see what I can do, /stop to stop."
         : "That link has expired or was used already. Tap Connect Telegram in Shikigami again.",
     );
   }
