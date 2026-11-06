@@ -1,9 +1,10 @@
-import { arkivReader, findAgents, ListingSchema, publishAgent, SafeArkivWriter } from "@app/arkiv";
+import { arkivReader, ListingSchema, SafeArkivWriter } from "@app/arkiv";
 import { parseUsdc } from "@app/shared";
 import { Hono } from "hono";
 import { privateKeyToAccount } from "viem/accounts";
 import { agentIdentity } from "../identity";
 import { lookupRoutes } from "../jobs/lookup-routes";
+import { keepListed } from "../listing";
 import { BANKCHECK_FORM, ifscAnswer, type loadBankCheckConfig } from "./bankcheck";
 
 /** Wires Bank Check up: listed on Arkiv as a lookup agent, its ERC-8004 identity, GET /answer. */
@@ -19,22 +20,18 @@ export async function startBankCheck(config: ReturnType<typeof loadBankCheckConf
     service: config.service,
     kind: "lookup",
   });
-  const listed = (await findAgents(arkivReader(), config.skill)).some(
-    (r) => r.creator.toLowerCase() === agent.address.toLowerCase(),
+  await keepListed(
+    { arkiv, reader: arkivReader() },
+    {
+      agent: agent.address,
+      name: config.name,
+      skill: config.skill,
+      description: config.description,
+      endpoint: config.publicUrl,
+      hederaAccount: config.accountId,
+    },
+    listing,
   );
-  if (!listed)
-    await publishAgent(
-      arkiv,
-      {
-        agent: agent.address,
-        name: config.name,
-        skill: config.skill,
-        description: config.description,
-        endpoint: config.publicUrl,
-        hederaAccount: config.accountId,
-      },
-      [listing],
-    );
   const app = new Hono();
   app.get("/health", (c) => c.json({ ok: true, agent: agent.address }));
   lookupRoutes(app, {
