@@ -5,19 +5,19 @@ import { LiveNumbers } from "@/components/site/LiveNumbers";
 import { SiteShell } from "@/components/site/SiteShell";
 
 export const metadata: Metadata = {
-  title: "Shikigami: your AI books it, you can always undo",
+  title: "Shikigami: ask for anything, AI agents get it done",
   description:
-    "Chat about anything. AI agents from an open market do the work, paid on Hedera only when it's done, within limits you approve with Face ID.",
+    "Ask for anything. AI agents from an open market do the work, paid on Hedera only when it's done, within limits you approve with Face ID. You can always undo.",
 };
 
 const STEPS = [
   {
     title: "Ask",
-    body: "Chat like you always do: a hotel in Goa, a flight, whether an IFSC code is real. The concierge finds the agents on the open market that do it.",
+    body: "Chat like you always do: a question, a plan, or a job. Today that's a stay or a flight, whether a bank code is real, or paying a shop. The concierge finds the agents on the open market that do it.",
   },
   {
     title: "Compare firm offers",
-    body: "Every agent quotes a firm price, signed by the agent itself on Arkiv and good for a few minutes. Pick one, or let the concierge explain the trade-offs.",
+    body: "Agents quote firm prices, each signed by the agent itself on Arkiv and good for a few minutes; a quick answer is just priced per lookup. Pick one, or let the concierge explain the trade-offs.",
   },
   {
     title: "Pay only when it's done",
@@ -85,14 +85,15 @@ export default function Landing() {
               · test funds only
             </span>
             <h1 className="text-[34px] leading-[1.1] font-bold tracking-tight sm:text-5xl">
-              Your AI books it.
+              Ask for anything.
               <br />
-              You can always undo.
+              AI agents get it done.
             </h1>
             <p className="max-w-[520px] text-[17px] leading-relaxed text-[#D7E8EA]">
-              Chat about anything. When something needs doing, AI agents from an open market do it,
-              and they&apos;re paid in USDC on Hedera only when the job is done, within limits you
-              approve with Face ID.
+              When something needs doing, Shikigami hires an AI agent from an open market: book a
+              stay or a flight, check a bank code, pay a shop in person. Agents are paid in USDC on
+              Hedera only when the job is done, within limits you approve with Face ID, and you can
+              always undo.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -196,7 +197,7 @@ export default function Landing() {
   );
 }
 
-/** A glimpse of the app: an offer, held in escrow, with the undo countdown. */
+/** A glimpse of the app: three kinds of job, each paid only when it's done. */
 function HeroCard() {
   return (
     <div
@@ -204,30 +205,34 @@ function HeroCard() {
       className="mx-auto flex w-full max-w-[400px] flex-col gap-3 rounded-3xl bg-white p-4 text-ink shadow-2xl"
     >
       <div className="self-end rounded-2xl rounded-br-md bg-bubble px-4 py-2.5 text-sm">
-        A sea-view room in Goa, 12–14 Dec, under ₹15k
+        Is IFSC HDFC0000240 real?
       </div>
-      <div className="flex flex-col gap-2 rounded-2xl border border-line p-3.5">
+      <div className="flex flex-col gap-1 rounded-2xl border border-line p-3.5">
         <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold">Park Inn by Radisson · Candolim</span>
-          <span className="font-mono">₹11,633</span>
+          <span className="font-semibold">✓ HDFC Bank · Mumbai</span>
+          <span className="font-mono text-xs">0.001 USDC</span>
         </div>
-        <span className="text-xs text-muted">
-          StayWise · firm price, signed on Arkiv · refundable
-        </span>
+        <span className="text-xs text-muted">Bank Check · paid per answer · takes UPI, NEFT</span>
+      </div>
+      <div className="self-end rounded-2xl rounded-br-md bg-bubble px-4 py-2.5 text-sm">
+        Book a sea-view room in Goa, 12–14 Dec
       </div>
       <div className="flex flex-col gap-2 rounded-2xl border border-warm-line bg-warm p-3.5">
-        <span className="text-sm font-semibold">Held in escrow on Hedera</span>
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-semibold">Held in escrow on Hedera</span>
+          <span className="font-mono">₹11,633</span>
+        </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-[#F3E2C6]">
           <span className="block h-full w-2/3 rounded-full bg-saffron" />
         </div>
         <div className="flex items-center justify-between text-xs text-saffron-ink">
-          <span>Undo for 40 more seconds</span>
+          <span>StayWise · undo for 40 more seconds</span>
           <span className="rounded-full bg-white px-3 py-1 font-semibold">Undo</span>
         </div>
       </div>
-      <div className="flex items-center gap-2 rounded-2xl bg-ok-soft px-3.5 py-2.5 text-sm text-ok">
-        <span className="font-semibold">Booked</span> · the agent is paid when the review ends
-      </div>
+      <p className="rounded-2xl bg-ok-soft px-3.5 py-2.5 text-sm text-ok">
+        <span className="font-semibold">Paid ₹40</span> · Demo Chai Stall · live screen confirmed
+      </p>
     </div>
   );
 }

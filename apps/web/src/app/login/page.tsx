@@ -6,7 +6,7 @@ const POINTS = [
   {
     Icon: ChatIcon,
     title: "Chat like you always do",
-    body: "When something needs doing, the concierge finds an agent on the open market and books it.",
+    body: "Ask for anything. When something needs doing, the concierge hires an agent from the open market to do it.",
   },
   {
     Icon: UndoIcon,
@@ -66,7 +66,7 @@ export default function LoginPage() {
         </div>
         <div className="flex max-w-[540px] flex-col gap-8">
           <h2 className="text-[26px] leading-[1.15] font-bold tracking-tight sm:text-4xl md:text-[44px] md:leading-[1.1]">
-            Your AI books it. You can always undo.
+            Ask for anything. AI agents get it done.
           </h2>
           <div className="hidden md:block">
             <Points dark />
