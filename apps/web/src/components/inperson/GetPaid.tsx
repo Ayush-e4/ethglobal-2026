@@ -10,7 +10,8 @@ import { useSession } from "@/lib/session";
 import { CardSkeleton } from "../Skeleton";
 import { SuccessMark } from "../SuccessMark";
 import { LiveQr } from "./LiveQr";
-import { chirp, openAudio, preloadSound } from "./sound";
+import { Shell, Verified } from "./shell";
+import { chirp, openAudio, preloadSound, stopChirps } from "./sound";
 
 type Merchant = { name: string; account: string; verified: boolean };
 type Req = { id: string; frame: string; liveKey: string; inr: number; expiresAt: string };
@@ -37,19 +38,20 @@ export function GetPaid() {
   const [left, setLeft] = useState(0);
   const [chirping, setChirping] = useState(false);
   const speaker = useRef<{ stop: () => void } | null>(null);
+  const [asking, setAsking] = useState(false); // a request on its way: no second one meanwhile
   const quiet = () => {
-    speaker.current?.stop();
+    stopChirps(); // also one still starting up
     speaker.current = null;
     setChirping(false);
   };
   useEffect(() => {
     preloadSound();
-    return () => speaker.current?.stop();
+    return () => stopChirps();
   }, []);
   // Paid, expired or a new request: the chirp stops.
   useEffect(() => {
     if (req && status?.status !== "paid" && status?.status !== "expired" && left !== 0) return;
-    speaker.current?.stop();
+    stopChirps();
     speaker.current = null;
     setChirping(false);
   }, [req, status?.status, left]);
@@ -58,8 +60,11 @@ export function GetPaid() {
     if (speaker.current) return quiet();
     if (!req) return;
     try {
-      speaker.current = await chirp(fromHex(req.frame));
-      setChirping(true);
+      const h = await chirp(fromHex(req.frame));
+      if (h) {
+        speaker.current = h;
+        setChirping(true);
+      }
     } catch {
       setError("The sound didn't start. Check the volume and try again.");
     }
@@ -99,6 +104,8 @@ export function GetPaid() {
       .then((r) => setMerchant(r.merchant))
       .catch(fail);
   const ask = () => {
+    if (asking) return;
+    setAsking(true);
     setError(null);
     setStatus(null);
     // The chirp starts with the QR, so its audio is opened now, inside this tap (phones only
@@ -109,9 +116,11 @@ export function GetPaid() {
         setReq(r);
         setLeft(Math.round((new Date(r.expiresAt).getTime() - Date.now()) / 1000));
         try {
-          speaker.current?.stop();
-          speaker.current = await chirp(fromHex(r.frame), audio);
-          setChirping(true);
+          const h = await chirp(fromHex(r.frame), audio);
+          if (h) {
+            speaker.current = h;
+            setChirping(true);
+          }
         } catch {
           setError("The chirp didn't start: tap Play the chirp, and check the volume.");
         }
@@ -119,7 +128,8 @@ export function GetPaid() {
       .catch((e) => {
         void audio.then((c) => c.close()).catch(() => {});
         fail(e);
-      });
+      })
+      .finally(() => setAsking(false));
   };
 
   if (merchant === undefined)
@@ -269,7 +279,7 @@ export function GetPaid() {
       <button
         type="button"
         onClick={ask}
-        disabled={!Number(inr)}
+        disabled={!Number(inr) || asking}
         className={`${btn} bg-teal text-white disabled:opacity-50`}
       >
         Show payment QR
@@ -277,33 +287,5 @@ export function GetPaid() {
       <p className="text-xs text-muted">Testnet: ₹1 is paid as 0.000001 test USDC on Hedera.</p>
       {error && <p className="text-sm text-bad">{error}</p>}
     </Shell>
-  );
-}
-
-function Verified({ m }: { m: Merchant }) {
-  return (
-    <span className={`text-xs font-semibold ${m.verified ? "text-ok" : "text-muted"}`}>
-      {m.verified ? "✓ Verified person (World ID)" : "Not verified with World ID yet"} · {m.account}
-    </span>
-  );
-}
-
-export function Shell({
-  title,
-  sub,
-  children,
-}: {
-  title: string;
-  sub?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-6">
-      <div className="flex flex-col gap-0.5">
-        <h1 className="text-[22px] font-bold tracking-tight">{title}</h1>
-        {sub}
-      </div>
-      {children}
-    </div>
   );
 }
