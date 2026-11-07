@@ -62,6 +62,9 @@ services:
       WORLD_ID_ISSUER: ${WORLD_ID_ISSUER:-}
       WORLD_ID_CLIENT_ID: ${WORLD_ID_CLIENT_ID:-}
       WORLD_ID_CLIENT_SECRET: ${WORLD_ID_CLIENT_SECRET:-}
+      # A hire paying this much or more (fee + trip price) needs a fresh World ID approval. 0.10:
+      # everyday hotels go through with Face ID alone; a big one still needs a real person.
+      WORLD_CHECK_FEE_USDC: ${WORLD_CHECK_FEE_USDC:-0.10}
       RATINGS_SECRET: ${RATINGS_SECRET:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       SKYHOP_PRIVATE_KEY: ${SKYHOP_PRIVATE_KEY:-}
