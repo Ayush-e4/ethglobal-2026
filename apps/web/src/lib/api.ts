@@ -49,6 +49,7 @@ export interface HireView {
     | "failed"
     | "disputed";
   payTx: string | null; // the Hedera transaction that holds the fee
+  offerUrl: string | null; // the agent's signed offer on Arkiv (its explorer page)
   undoUntil: string | null;
   bookingRef: string | null;
   note: string | null;
