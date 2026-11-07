@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { backCamera } from "./back-camera";
 import { createScanner } from "./scanner";
 
 /**
@@ -30,15 +31,7 @@ export function Camera(p: {
       if (!navigator.mediaDevices?.getUserMedia)
         return cb.current.onError("The camera needs the app's https address.");
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 },
-          },
-          audio: false,
-        });
+        stream = await backCamera(); // a back lens that can focus at 20–40 cm
       } catch {
         return cb.current.onError("Allow the camera to scan, then try again.");
       }
