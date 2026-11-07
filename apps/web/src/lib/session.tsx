@@ -9,6 +9,16 @@ interface Session {
   chats: ChatSummary[];
   refreshChats: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** Saves your name (Settings); the greeting and sidebar update at once. */
+  setName: (name: string) => Promise<void>;
+}
+
+/** Your name to greet you by: not a device's label ("Android · Chrome", given at sign-up) or "Demo". */
+export function realName(name: string | null | undefined): string | null {
+  const n = name?.trim();
+  if (!n || n === "Demo" || n.includes(" · ") || /^Shikigami \d{4}-\d{2}-\d{2}$/.test(n))
+    return null;
+  return n;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -42,13 +52,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [router, refreshChats]);
 
+  const setName = useCallback(async (name: string) => {
+    setMe(await api<Me>("/me", { method: "PATCH", body: { displayName: name } }));
+  }, []);
+
   const signOut = useCallback(async () => {
     await api("/auth/logout", { method: "POST" }).catch(() => undefined);
     router.replace("/login");
   }, [router]);
 
   return (
-    <SessionContext.Provider value={{ me, chats, refreshChats, signOut }}>
+    <SessionContext.Provider value={{ me, chats, refreshChats, signOut, setName }}>
       {children}
     </SessionContext.Provider>
   );

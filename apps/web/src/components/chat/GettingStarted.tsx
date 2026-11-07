@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, type Traveller, type WorldInfo } from "@/lib/api";
-import { useSession } from "@/lib/session";
+import { api, type WorldInfo } from "@/lib/api";
+import { realName, useSession } from "@/lib/session";
 import { CheckIcon } from "../icons";
 
 type Step = { id: string; title: string; why: string; href: string; cta: string; done: boolean };
@@ -12,16 +12,15 @@ const hiddenKey = (userId: string) => `getting-started:hidden:${userId}`;
 
 /**
  * Getting started, on the chat home: the few things that make Shikigami work for you, each
- * ticked off from your account as you do it (a chat, World ID, Telegram, yourself as a
- * traveller, a shop paid in person). Gone once all are done, or when dismissed.
+ * ticked off from your account as you do it (a chat, World ID, your name, Telegram, a shop paid
+ * in person). Gone once all are done, or when dismissed.
  */
 export function GettingStarted() {
   const { me, chats } = useSession();
   const [state, setState] = useState<{
     world: boolean | null;
     telegram: boolean | null;
-    self: boolean | null;
-  }>({ world: null, telegram: null, self: null });
+  }>({ world: null, telegram: null });
   const [hidden, setHidden] = useState(true);
 
   useEffect(() => {
@@ -34,12 +33,10 @@ export function GettingStarted() {
     void Promise.all([
       me.isDemo ? null : api<WorldInfo>("/world").catch(() => null),
       api<{ available: boolean; linked: boolean }>("/alerts").catch(() => null),
-      api<{ travellers: Traveller[] }>("/travellers").catch(() => null),
-    ]).then(([w, a, t]) =>
+    ]).then(([w, a]) =>
       setState({
         world: w ? !!w.verified || !w.available : null,
         telegram: a ? a.linked || !a.available : null,
-        self: t ? t.travellers.some((x) => x.isSelf) : null,
       }),
     );
   }, [me]);
@@ -74,14 +71,18 @@ export function GettingStarted() {
       cta: "Connect",
       done: !!state.telegram,
     },
-    {
-      id: "self",
-      title: "Add yourself as a traveller",
-      why: "So bookings for you go through in one tap. Only the agent you hire sees it.",
-      href: "/settings#travellers",
-      cta: "Add",
-      done: !!state.self,
-    },
+    ...(me.isDemo
+      ? []
+      : [
+          {
+            id: "name",
+            title: "Tell us your name",
+            why: "So Shikigami greets you, not your device.",
+            href: "/settings",
+            cta: "Add",
+            done: !!realName(me.displayName),
+          },
+        ]),
     {
       id: "shop",
       title: "Pay a shop in person",

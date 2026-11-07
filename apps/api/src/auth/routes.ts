@@ -121,6 +121,19 @@ export function authRoutes(
     return c.json({ ok: true });
   });
   app.get("/me", me);
+  // Your name, as the app greets you (a passkey account starts with its device's label).
+  app.patch("/me", async (c) => {
+    const user = await userForToken(db, getCookie(c, SESSION_COOKIE));
+    if (!user) return c.json({ error: "signed_out" }, 401);
+    if (user.isDemo)
+      return c.json({ error: "cannot", message: "A demo account has no name." }, 409);
+    const body = (await c.req.json().catch(() => null)) as { displayName?: unknown } | null;
+    const name = typeof body?.displayName === "string" ? body.displayName.trim() : "";
+    if (name.length < 1 || name.length > 40)
+      return c.json({ error: "bad_request", message: "A name of 1 to 40 characters." }, 400);
+    await db.update(users).set({ displayName: name }).where(eq(users.id, user.id));
+    return me(c);
+  });
 
   app.onError((err, c) => {
     if (err instanceof SignInError) {

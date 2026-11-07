@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "@/lib/session";
+import { realName, useSession } from "@/lib/session";
 import { ExitIcon, PasskeyIcon, WalletIcon } from "../icons";
 import { Alerts } from "../wallet/Alerts";
 import { ConnectedApps } from "../wallet/ConnectedApps";
 import { Devices } from "../wallet/Devices";
 import { EmailSettings } from "../wallet/EmailSettings";
 import { Travellers } from "../wallet/Travellers";
+import { NameField } from "./NameField";
 
 const ABOUT = [
   { href: "/security", label: "Security" },
@@ -21,7 +22,7 @@ const ABOUT = [
 export function SettingsView() {
   const { me, signOut } = useSession();
   if (!me) return <p className="p-10 text-center text-muted">Loading your settings…</p>;
-  const name = me.displayName ?? "You";
+  const name = realName(me.displayName) ?? (me.isDemo ? "Demo" : "You");
 
   return (
     <main className="mx-auto flex w-full max-w-[800px] flex-col gap-6 px-4 pt-6 pb-14 sm:px-6 sm:pt-8">
@@ -48,7 +49,7 @@ export function SettingsView() {
           {name.slice(0, 1).toUpperCase()}
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-lg font-semibold">{name}</span>
+          <NameField />
           <span className="flex items-center gap-1.5 text-sm text-ink-3">
             {me.isDemo ? (
               <>

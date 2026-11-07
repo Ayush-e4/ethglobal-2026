@@ -38,6 +38,25 @@ describe("sign-in", () => {
     expect(me).toMatchObject({ isDemo: true, roles: ["user"] });
   });
 
+  it("a passkey account sets its name (it starts as the device's label); a demo one can't", async () => {
+    const { call, cookieOf } = await setup();
+    const device = softPasskey(ORIGIN);
+    const reg = await json(call("/auth/passkey/register-options", { method: "POST", body: "{}" }));
+    const made = await call("/auth/passkey/register", {
+      method: "POST",
+      body: JSON.stringify({ response: device.register(reg.challenge), label: "Android · Chrome" }),
+    });
+    const cookie = cookieOf(made);
+    const patch = (displayName: unknown, c = cookie) =>
+      call("/me", { method: "PATCH", cookie: c, body: JSON.stringify({ displayName }) });
+    expect(await (await patch("  Ayush  ")).json()).toMatchObject({ displayName: "Ayush" });
+    expect((await patch("")).status).toBe(400);
+    expect((await patch("x".repeat(41))).status).toBe(400);
+    const demo = cookieOf(await call("/auth/demo", { method: "POST" }));
+    expect((await patch("Someone", demo)).status).toBe(409);
+    expect((await call("/me", { method: "PATCH", body: "{}" })).status).toBe(401);
+  });
+
   it("signed out without a session, and after logging out", async () => {
     const { call, cookieOf } = await setup();
     expect((await call("/me")).status).toBe(401);
