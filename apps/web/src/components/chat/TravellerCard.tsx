@@ -3,7 +3,9 @@
 import type { Card } from "@app/shared";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, type Traveller } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import { CheckIcon } from "../icons";
+import { RetryLine } from "../LoadError";
 import { TravellerForm, travellerLabel } from "../travellers/TravellerForm";
 import type { CardCtx } from "./Cards";
 
@@ -20,12 +22,17 @@ export function TravellerCard({ card, ctx }: { card: TravellerCardData; ctx: Car
   const [chosen, setChosen] = useState<Traveller | null>(null);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [all, mine] = await Promise.all([
       api<{ travellers: Traveller[]; max: number }>("/travellers"),
       api<{ traveller: Traveller | null }>(`/chats/${ctx.chatId}/traveller`),
-    ]).catch(() => [null, null] as const);
+    ]).catch((err) => {
+      setLoadError(friendly(err, "Couldn't load your travellers."));
+      return [null, null] as const;
+    });
+    if (all) setLoadError(null);
     if (all) {
       setList(all.travellers);
       setMax(all.max);
@@ -64,6 +71,8 @@ export function TravellerCard({ card, ctx }: { card: TravellerCardData; ctx: Car
         <p role="status" className="flex items-center gap-2 text-sm font-semibold text-ok">
           <CheckIcon size={16} /> Booking for {chosen.firstName} {chosen.lastName}
         </p>
+      ) : !list && loadError ? (
+        <RetryLine error={loadError} onRetry={load} />
       ) : (
         <>
           {list && list.length > 0 && (
@@ -108,7 +117,11 @@ export function TravellerCard({ card, ctx }: { card: TravellerCardData; ctx: Car
           )}
         </>
       )}
-      {error && <p className="text-sm text-bad">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-bad">
+          {error}
+        </p>
+      )}
     </section>
   );
 }

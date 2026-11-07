@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, type Traveller } from "@/lib/api";
+import { friendly } from "@/lib/errors";
+import { SectionRetry } from "../LoadError";
 import { TravellerForm } from "../travellers/TravellerForm";
 
 const small = "h-8 max-md:h-11 rounded-lg border border-line-2 bg-white px-3 text-xs font-semibold";
@@ -11,6 +13,8 @@ export function Travellers() {
   const [list, setList] = useState<Traveller[] | null>(null);
   const [max, setMax] = useState(5);
   const [editing, setEditing] = useState<Traveller | "new" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(
     () =>
@@ -18,17 +22,22 @@ export function Travellers() {
         .then((r) => {
           setList(r.travellers);
           setMax(r.max);
+          setLoadError(null);
         })
-        .catch(() => {}),
+        .catch((err) => setLoadError(friendly(err, "Couldn't load your travellers."))),
     [],
   );
   useEffect(() => {
     void load();
   }, [load]);
-  if (!list) return null;
+  if (!list)
+    return loadError ? <SectionRetry label="Travellers" error={loadError} onRetry={load} /> : null;
 
   const remove = async (t: Traveller) => {
-    await api(`/travellers/${t.id}`, { method: "DELETE" }).catch(() => {});
+    setError(null);
+    await api(`/travellers/${t.id}`, { method: "DELETE" }).catch((err) =>
+      setError(friendly(err, `Couldn't remove ${t.firstName}. Try again.`)),
+    );
     void load();
   };
 
@@ -104,6 +113,11 @@ export function Travellers() {
             + Add a traveller
           </button>
         )
+      )}
+      {error && (
+        <p role="alert" className="text-bad">
+          {error}
+        </p>
       )}
     </section>
   );

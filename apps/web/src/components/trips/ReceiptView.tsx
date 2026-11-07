@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, cardLine, type Receipt, rupeesOf, usdc } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { ApiError, api, cardLine, type Receipt, rupeesOf, usdc } from "@/lib/api";
+import { friendly } from "@/lib/errors";
+import { LoadError } from "../LoadError";
 import { ShareButton } from "../ShareButton";
 
 const ESCROW: Record<string, string> = {
@@ -16,15 +18,33 @@ const ESCROW: Record<string, string> = {
 /** A booking's public proof, read live: what was booked, and where to check it yourself. */
 export function ReceiptView({ id }: { id: string }) {
   const [r, setR] = useState<Receipt | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; gone: boolean } | null>(null);
 
-  useEffect(() => {
-    api<Receipt>(`/receipts/${id}`)
+  const load = useCallback(() => {
+    setError(null);
+    return api<Receipt>(`/receipts/${id}`)
       .then(setR)
-      .catch(() => setError("There's no such receipt."));
+      .catch((err) =>
+        setError({
+          text: friendly(err, "Couldn't load the receipt."),
+          gone: err instanceof ApiError && err.status === 404,
+        }),
+      );
   }, [id]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  if (!r) return <p className="p-10 text-center text-muted">{error ?? "Loading the receipt…"}</p>;
+  if (!r && error?.gone)
+    return (
+      <LoadError
+        title="There's no such receipt"
+        error="Check the link: it may be cut short, or the booking was removed."
+      />
+    );
+  if (!r && error)
+    return <LoadError title="Couldn't load the receipt" error={error.text} onRetry={load} />;
+  if (!r) return <p className="p-10 text-center text-muted">Loading the receipt…</p>;
   const rows: [string, string][] = [
     ["Booked by", `${r.agentName}, an agent on Shikigami`],
     [

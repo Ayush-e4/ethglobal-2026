@@ -1,4 +1,5 @@
 import { type ConciergeEvent, ConciergeEventSchema } from "@app/shared";
+import { ApiError, noAnswer, SIGNED_OUT_EVENT, saying } from "./errors";
 import type { Photo } from "./photos";
 
 /**
@@ -46,7 +47,11 @@ export function parseBlock(block: string): ConciergeEvent | null {
   }
 }
 
-/** Sends a chat message and streams the reply's events. */
+/**
+ * Sends a chat message and streams the reply's events. Not sent at all (offline, signed out,
+ * refused) throws an ApiError in words before any event; a stream that drops part-way throws
+ * something else, and the reply is still being made on the server.
+ */
 export async function* sendMessage(
   chatId: string,
   text: string,
@@ -63,14 +68,14 @@ export async function* sendMessage(
     }),
     credentials: "same-origin",
     signal,
+  }).catch((err) => {
+    throw signal?.aborted ? err : noAnswer();
   });
   if (!res.ok || !res.body) {
-    const err = (await res.json().catch(() => ({}))) as { error?: string };
-    yield {
-      type: "error",
-      message: err.error ?? `couldn't send (${res.status})`,
-    } as ConciergeEvent;
-    return;
+    const err = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+    if (res.status === 401 && err.error === "signed_out")
+      window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+    throw new ApiError(res.status, saying(res.status, err), err.error);
   }
   yield* readEvents(res.body);
 }

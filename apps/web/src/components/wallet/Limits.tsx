@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api, usdc, type WalletLimit } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import { cancelled, withFaceId } from "@/lib/passkey";
+import { RetryLine } from "../LoadError";
 import { CardSkeleton } from "../Skeleton";
 
 const TONE: Record<WalletLimit["status"], string> = {
@@ -27,11 +29,15 @@ export function Limits() {
   const [rows, setRows] = useState<WalletLimit[] | null>(null);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const load = useCallback(
     () =>
       api<WalletLimit[]>("/wallet/limits")
-        .then(setRows)
-        .catch(() => setError("Couldn't load your limits.")),
+        .then((r) => {
+          setRows(r);
+          setLoadError(null);
+        })
+        .catch((err) => setLoadError(friendly(err, "Couldn't load your limits."))),
     [],
   );
   useEffect(() => {
@@ -66,7 +72,9 @@ export function Limits() {
           What the concierge may pay from your wallet. Hedera enforces each one; cancel any at once.
         </p>
       </div>
-      {rows === null ? (
+      {rows === null && loadError ? (
+        <RetryLine error={loadError} onRetry={load} />
+      ) : rows === null ? (
         <CardSkeleton label="Loading your limits" />
       ) : rows.length === 0 ? (
         <p className="rounded-2xl bg-side px-4 py-3 text-sm text-ink-3">

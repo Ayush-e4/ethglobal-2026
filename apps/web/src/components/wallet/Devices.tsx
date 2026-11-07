@@ -3,7 +3,9 @@
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import { cancelled, thisDevice, withFaceId } from "@/lib/passkey";
+import { SectionRetry } from "../LoadError";
 
 interface Device {
   id: string;
@@ -27,12 +29,17 @@ export function Devices() {
   const [link, setLink] = useState<{ code: string; expiresAt: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const known = useRef<number | null>(null);
   const me = useRef<string | null>(null);
 
   const load = useCallback(async () => {
-    const l = await api<Device[]>("/account/devices").catch(() => null);
+    const l = await api<Device[]>("/account/devices").catch((err) => {
+      setLoadError(friendly(err, "Couldn't load your devices."));
+      return null;
+    });
     if (!l) return;
+    setLoadError(null);
     // A new device joined with the code on screen: put the code away, ask to approve it.
     if (known.current !== null && l.length > known.current) {
       setLink(null);
@@ -81,7 +88,10 @@ export function Devices() {
   const addDevice = () =>
     act("link", async () => setLink(await api("/account/devices/link", { method: "POST" })));
 
-  if (!list) return null;
+  if (!list)
+    return loadError ? (
+      <SectionRetry label="Your devices" error={loadError} onRetry={load} />
+    ) : null;
   const approvers = list.filter((d) => d.onWallet).length;
   const url = link && `${window.location.origin}/link#${link.code}`;
   return (

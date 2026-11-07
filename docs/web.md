@@ -78,6 +78,29 @@ payment says what Hedera is doing, and an offline bar explains a stalled screen.
 Not used yet: push notifications and app-icon badges (installed apps on both, iOS 16.4+): they
 need a server side (subscriptions, signing keys); Telegram alerts cover it for now.
 
+## When something goes wrong
+
+Every failure says what happened in words, and offers the next step.
+
+- **Words, never codes.** The API often answers with only a code (`not_found`, `signed_out`),
+  and a proxy or a dropped connection with nothing. `lib/errors.ts` turns each into a sentence
+  (by the code, else the status), and drops setup details ("no RESEND_API_KEY"). All requests
+  go through it, so no screen shows "request failed (502)" or "Failed to fetch".
+- **It mends itself where it safely can.** Reads (GET) try twice more on a blip (no answer, a
+  502–504) before giving up. Anything that changes something (a hire, a payment) is never
+  sent twice. A screen that couldn't load tries again when the phone comes back online.
+- **A way on, every time.** A screen that couldn't load shows Try again and a way out
+  (`LoadError`). A settings section shows a Try again line, not a silent gap. A failed chat
+  message shows Try again, which sends the same words and photos again.
+- **Signed out mid-use** (the cookie expired): straight to sign in, then back to the same
+  screen.
+- **Money is said carefully.** Paying a shop with no answer from the server doesn't claim
+  "nothing was charged". It says the code can only be paid once, so scanning it again is safe.
+  A shop's QR screen says "Reconnecting…" while its checks aren't getting through.
+- **A screen that crashes** (a bug) gets `error.tsx`: Try again, Go to chat, the log's
+  reference, and a line that payments are safe on the server. A link to nowhere gets a
+  not-found page with the way back. `global-error.tsx` covers the rest, with its own styles.
+
 ## The hire card
 
 After **Choose**, the concierge hires the agent and the chat shows its card, which follows the hire

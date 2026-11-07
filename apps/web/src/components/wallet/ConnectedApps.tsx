@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { friendly } from "@/lib/errors";
+import { SectionRetry } from "../LoadError";
 
 interface Grant {
   id: string;
@@ -26,17 +28,24 @@ const when = (iso: string) =>
  */
 export function ConnectedApps() {
   const [grants, setGrants] = useState<Grant[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const load = useCallback(
     () =>
       api<Grant[]>("/oauth/grants")
-        .then(setGrants)
-        .catch(() => setGrants([])),
+        .then((g) => {
+          setGrants(g);
+          setLoadError(null);
+        })
+        .catch((err) => setLoadError(friendly(err, "Couldn't load your connected apps."))),
     [],
   );
   useEffect(() => {
     void load();
   }, [load]);
-  if (!grants) return null;
+  if (!grants)
+    return loadError ? (
+      <SectionRetry label="Connected apps" error={loadError} onRetry={load} />
+    ) : null;
   const mcpUrl = typeof window === "undefined" ? "/mcp" : `${window.location.origin}/mcp`;
 
   return (

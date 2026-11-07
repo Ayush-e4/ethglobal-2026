@@ -74,7 +74,13 @@ export function PayInPerson() {
       setLimit({ card: r.data.card, chatId: r.data.chatId });
       setStep("scan");
     } else {
-      setError(r.data.message ?? "The payment didn't go through. Nothing was charged.");
+      // No answer: it may have gone through before the connection dropped. A request can only
+      // be paid once, so scanning it again is safe: it's refused if it was paid.
+      setError(
+        r.status === 0
+          ? "The connection dropped while paying, so we can't confirm it here. A code can only be paid once: scan it again to check, or look at your wallet."
+          : (r.data.message ?? "The payment didn't go through. Nothing was charged."),
+      );
       setStep("scan");
       haptic("error");
     }

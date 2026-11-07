@@ -3,6 +3,8 @@
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
+import { friendly } from "@/lib/errors";
+import { SectionRetry } from "../LoadError";
 
 type Status = { available: boolean; linked: boolean };
 
@@ -18,16 +20,21 @@ export function Alerts() {
   const [s, setS] = useState<Status | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(
     () =>
       api<Status>("/alerts")
         .then((r) => {
           setS(r);
+          setLoadError(null);
           if (r.linked) setLink(null);
           return r;
         })
-        .catch(() => null),
+        .catch((err) => {
+          setLoadError(friendly(err, "Couldn't load your phone alerts."));
+          return null;
+        }),
     [],
   );
   useEffect(() => {
@@ -46,6 +53,8 @@ export function Alerts() {
     return () => clearInterval(t);
   }, [link, load]);
 
+  if (!s && loadError)
+    return <SectionRetry label="Phone alerts" error={loadError} onRetry={load} />;
   if (!s?.available) return null;
 
   const act = async (fn: () => Promise<void>) => {

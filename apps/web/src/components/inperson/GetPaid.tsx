@@ -1,19 +1,20 @@
 "use client";
 
 import { fromHex } from "@app/shared";
-import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { ApiError, api, hashscanTx } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, hashscanTx } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import { useBackToClose } from "@/lib/native/back";
 import { useWakeLock } from "@/lib/native/wake-lock";
 import { useSession } from "@/lib/session";
+import { LoadError } from "../LoadError";
 import { CardSkeleton } from "../Skeleton";
 import { SuccessMark } from "../SuccessMark";
 import { LiveQr } from "./LiveQr";
 import { Shell, Verified } from "./shell";
+import { btn, type Merchant, SetUpShop } from "./shop-parts";
 import { chirp, openAudio, preloadSound, stopChirps } from "./sound";
 
-type Merchant = { name: string; account: string; verified: boolean };
 type Req = { id: string; frame: string; liveKey: string; inr: number; expiresAt: string };
 type Status = {
   status: "open" | "paying" | "paid" | "expired";
@@ -22,7 +23,6 @@ type Status = {
 };
 const PICKS = [20, 40, 100, 250];
 const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
-const btn = "flex min-h-12 items-center justify-center rounded-xl px-5 text-[15px] font-semibold";
 
 /**
  * Getting paid in person, on the shop's screen: an amount, then a Live QR the customer scans
@@ -78,11 +78,22 @@ export function GetPaid() {
   });
   useWakeLock(!!req && status?.status !== "paid" && status?.status !== "expired" && left !== 0);
 
+  // Couldn't load the shop: say so (not the set-up form, as if there were none), and retry.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const loadShop = useCallback(
+    () =>
+      api<{ merchant: Merchant | null }>("/merchant")
+        .then((r) => {
+          setMerchant(r.merchant);
+          setLoadError(null);
+        })
+        .catch((err) => setLoadError(friendly(err, "Couldn't load your shop."))),
+    [],
+  );
   useEffect(() => {
-    api<{ merchant: Merchant | null }>("/merchant")
-      .then((r) => setMerchant(r.merchant))
-      .catch(() => setMerchant(null));
-  }, []);
+    void loadShop();
+  }, [loadShop]);
+  const [lost, setLost] = useState(false); // the QR's "paid yet?" checks aren't getting through
 
   // While the QR is up: is it paid yet, and how long it has left.
   useEffect(() => {
@@ -91,14 +102,14 @@ export function GetPaid() {
     const t = setInterval(async () => {
       setLeft(Math.max(0, Math.round((end - Date.now()) / 1000)));
       const s = await api<Status>(`/merchant/requests/${req.id}`).catch(() => null);
+      setLost(!s);
       if (s) setStatus(s);
       if (s?.status === "paid" || s?.status === "expired") clearInterval(t);
     }, 1500);
     return () => clearInterval(t);
   }, [req]);
 
-  const fail = (e: unknown) =>
-    setError(e instanceof ApiError ? e.message : "Something went wrong. Try again.");
+  const fail = (e: unknown) => setError(friendly(e, "Something went wrong. Try again."));
   const setUp = () =>
     api<{ merchant: Merchant }>("/merchant", { method: "POST", body: { name } })
       .then((r) => setMerchant(r.merchant))
@@ -135,61 +146,22 @@ export function GetPaid() {
   if (merchant === undefined)
     return (
       <Shell title="Get paid in person">
-        <CardSkeleton label="Loading your shop" />
+        {loadError ? (
+          <LoadError title="Couldn't load your shop" error={loadError} onRetry={loadShop} />
+        ) : (
+          <CardSkeleton label="Loading your shop" />
+        )}
       </Shell>
     );
   if (!merchant)
     return (
-      <Shell title="Get paid in person">
-        {me?.isDemo ? (
-          <>
-            <p className="text-sm text-ink-2">
-              Getting paid goes into your own Face ID wallet. Sign in with a passkey to set it up; a
-              demo account can still <b>pay</b> a shop.
-            </p>
-            <Link href="/pay" replace className={`${btn} press bg-teal text-white`}>
-              Pay a shop instead
-            </Link>
-          </>
-        ) : (
-          <form
-            className="flex flex-col gap-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void setUp();
-            }}
-          >
-            <p className="text-sm text-ink-2">
-              Customers pay you by scanning a QR on this screen. The money goes to your Face ID
-              wallet on Hedera. One real person per shop: you verify with World ID once, and your
-              shop&apos;s name is yours alone.
-            </p>
-            <label className="flex flex-col gap-1 text-sm font-semibold">
-              The name customers see
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Chai Point, Bandra"
-                maxLength={40}
-                className="min-h-12 rounded-xl border border-line-2 px-3 text-[15px] font-normal"
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={name.trim().length < 2}
-              className={`${btn} bg-teal text-white disabled:opacity-50`}
-            >
-              Start getting paid
-            </button>
-          </form>
-        )}
-        {error && <p className="text-sm text-bad">{error}</p>}
-        {error?.includes("World ID") && (
-          <a href="/wallet" className={`${btn} border border-line-2 bg-white text-teal`}>
-            Verify with World ID in Wallet
-          </a>
-        )}
-      </Shell>
+      <SetUpShop
+        isDemo={!!me?.isDemo}
+        name={name}
+        onName={setName}
+        onSubmit={() => void setUp()}
+        error={error}
+      />
     );
 
   const paid = status?.status === "paid";
@@ -221,6 +193,11 @@ export function GetPaid() {
               <p className="text-sm text-ink-2">
                 {status?.status === "paying" ? "Paying…" : "Scan with Shikigami to pay"} · {left}s
               </p>
+              {lost && (
+                <p role="status" className="text-xs font-semibold text-saffron-ink">
+                  Reconnecting… a payment still lands, and this turns Paid once it&apos;s back.
+                </p>
+              )}
               <p className="text-xs text-muted">
                 This QR proves it&apos;s live on this screen: a sticker or a screenshot of it
                 won&apos;t pass.
@@ -285,7 +262,11 @@ export function GetPaid() {
         Show payment QR
       </button>
       <p className="text-xs text-muted">Testnet: ₹1 is paid as 0.000001 test USDC on Hedera.</p>
-      {error && <p className="text-sm text-bad">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-bad">
+          {error}
+        </p>
+      )}
     </Shell>
   );
 }

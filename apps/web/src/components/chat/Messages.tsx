@@ -15,6 +15,7 @@ export interface Turn {
   status?: string; // what the concierge is doing right now, while streaming
   streaming?: boolean;
   error?: string;
+  retry?: () => void; // the reply failed: send the same message again
 }
 
 export function Messages({
@@ -87,9 +88,22 @@ export function Messages({
               </p>
             )}
             {t.error && (
-              <p role="alert" className="rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad">
-                {t.error}
-              </p>
+              <div
+                role="alert"
+                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl bg-bad-soft px-4 py-3 text-sm text-bad"
+              >
+                <span>{t.error}</span>
+                {t.retry && (
+                  <button
+                    type="button"
+                    onClick={t.retry}
+                    disabled={busy}
+                    className="press flex min-h-10 items-center rounded-lg border border-line-2 bg-white px-3.5 font-semibold text-ink disabled:opacity-60 max-md:min-h-11"
+                  >
+                    Try again
+                  </button>
+                )}
+              </div>
             )}
           </li>
         ),

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, type Trip } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import { useEnter } from "@/lib/native/motion";
+import { LoadError, ToChat } from "../LoadError";
 import { CardSkeleton } from "../Skeleton";
 import { TripCard } from "./TripCard";
 
@@ -29,11 +31,15 @@ export function TripsView() {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api<Trip[]>("/trips")
+  const load = useCallback(() => {
+    setError(null);
+    return api<Trip[]>("/trips")
       .then(setTrips)
-      .catch(() => setError("Couldn't load your trips."));
+      .catch((err) => setError(friendly(err, "Couldn't load your trips.")));
   }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const scope = useRef<HTMLElement>(null);
   useEnter(scope, [trips === null], { once: "trips" });
@@ -51,7 +57,9 @@ export function TripsView() {
       </div>
       {!trips ? (
         error ? (
-          <p className="p-10 text-center text-muted">{error}</p>
+          <LoadError title="Couldn't load your trips" error={error} onRetry={load}>
+            <ToChat />
+          </LoadError>
         ) : (
           <div className="flex flex-col gap-3">
             <CardSkeleton label="Loading your trips" />

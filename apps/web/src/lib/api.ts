@@ -1,4 +1,5 @@
 import type { Card } from "@app/shared";
+import { ApiError, noAnswer, SIGNED_OUT_EVENT, saying } from "./errors";
 
 /** Shapes the API returns (apps/api). USDC amounts in base units travel as strings. */
 export interface Me {
@@ -193,29 +194,49 @@ export interface WalletLimit {
   status: "active" | "expired" | "cancelled";
 }
 
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+export { ApiError } from "./errors";
 
-/** Same-origin call to the API (Next forwards /api/* to it, so the cookie stays first-party). */
+/** A blip worth a quiet second try: no answer, or the API restarting behind the proxy. */
+const passing = (status: number) =>
+  status === 0 || status === 502 || status === 503 || status === 504;
+
+/**
+ * Same-origin call to the API (Next forwards /api/* to it, so the cookie stays first-party).
+ * Fails with an ApiError whose message a person can read. Reads (GET) try twice more on a blip
+ * before giving up; anything that changes something is never sent twice.
+ */
 export async function api<T>(
   path: string,
   init: { method?: string; body?: unknown } = {},
 ): Promise<T> {
+  const method = init.method ?? "GET";
+  for (const wait of method === "GET" ? [600, 1500, -1] : [-1]) {
+    try {
+      return await once<T>(path, method, init.body);
+    } catch (err) {
+      const blip = err instanceof ApiError && passing(err.status) && navigator.onLine !== false;
+      if (wait < 0 || !blip) throw err;
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
+  throw noAnswer(); // not reached
+}
+
+async function once<T>(path: string, method: string, body: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
-    method: init.method ?? "GET",
-    headers: init.body === undefined ? undefined : { "content-type": "application/json" },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    method,
+    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
     credentials: "same-origin",
+  }).catch(() => {
+    throw noAnswer();
   });
   const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-  if (!res.ok)
-    throw new ApiError(res.status, data.message ?? data.error ?? `request failed (${res.status})`);
+  if (!res.ok) {
+    if (res.status === 401 && data.error === "signed_out")
+      window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+    throw new ApiError(res.status, saying(res.status, data), data.error);
+  }
   return data as T;
 }
 
