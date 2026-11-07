@@ -52,10 +52,12 @@ type Offer = Extract<Card, { type: "quotes" }>["quotes"][number];
 /** "PriceGuard: Book and keep watching · 0.05 USDC": one button per agent offering a hotel. */
 export function bookLabel(q: Offer, withPrice = false) {
   const agent = q.title.split(" · ")[1];
-  const price =
-    withPrice && q.itemTotal !== undefined ? ` · ${money(q.itemTotal, q.itemCurrency)}` : "";
+  // A phone shows about 40 characters of a button: with the price, it comes first and the
+  // agent's model (in the caption and the concierge's text) is left out.
+  if (withPrice && q.itemTotal !== undefined)
+    return `${money(q.itemTotal, q.itemCurrency)} · ${agent ?? "Book"} · fee ${usdc(q.feeUnits)}`;
   const who = agent ? (q.model ? `${agent}: ${q.model}` : `Book with ${agent}`) : "Book it";
-  return `${who} · ${usdc(q.feeUnits)}${price}`;
+  return `${who} · ${usdc(q.feeUnits)}`;
 }
 
 /**
@@ -77,8 +79,13 @@ type QuotesCard = Extract<Card, { type: "quotes" }>;
 function hotelCaption(hotel: string, offers: Offer[]) {
   const q = offers[0] as Offer;
   const samePrice = offers.every((o) => o.itemTotal === q.itemTotal);
+  const totals = offers.map((o) => o.itemTotal).filter((n): n is number => n !== undefined);
+  const range = // agents' prices differ: from the lowest to the highest (each is on its button)
+    totals.length > 1
+      ? `${money(Math.min(...totals), q.itemCurrency)}–${money(Math.max(...totals), q.itemCurrency)}`
+      : null;
   const facts = [
-    samePrice && q.itemTotal !== undefined ? money(q.itemTotal, q.itemCurrency) : null,
+    samePrice && q.itemTotal !== undefined ? money(q.itemTotal, q.itemCurrency) : range,
     q.rating?.stars ? `${q.rating.stars}-star` : null,
     q.rating?.score ? `${q.rating.score}/10` : null,
     q.location ?? null,
@@ -213,7 +220,7 @@ export function cardMessages(card: Card, appLink: string | null): Send[] {
     case "limit":
       return [
         msg(
-          `To pay ${esc(card.agentName)} from your own wallet, approve a spending limit with Face ID in Shikigami: up to ${usdc(card.budgetUnits)} in this chat, for ${card.hours} hours. The booking then carries on, and it shows up here live.${web ? "" : `\n\n${esc(appLink ?? "")}`}`,
+          `To pay ${esc(card.agentName)} from your own wallet, approve a spending limit with Face ID in Shikigami: up to ${usdc(card.budgetUnits)} in this chat, for ${card.hours} hours. Then it carries on by itself, and the result shows up here.${web ? "" : `\n\n${esc(appLink ?? "")}`}`,
           web,
         ),
       ];

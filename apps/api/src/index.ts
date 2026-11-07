@@ -192,6 +192,8 @@ const app = createApp({
     const to = (await accountEmail(userId)) ?? me?.email;
     if (to) await confirm.connected(to, me?.firstName ?? "there", app);
   },
+  // A reply made in the app, in the chat Telegram talks to: shown in Telegram too.
+  mirrorReply: (userId, chatId, said, reply) => tgChat.mirror(userId, chatId, said, reply),
   // Left before a slow reply was done: a short Telegram nudge (no email: that would be too much).
   async replyReady(userId, chatId, title) {
     const url = `${config.appOrigin}/chat/${chatId}`;

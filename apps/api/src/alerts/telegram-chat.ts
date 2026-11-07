@@ -10,15 +10,8 @@ import type { WorldCheck } from "../world/checks";
 import type { CallbackQuery } from "./live-hires";
 import type { TelegramAlerts, TgPhotos } from "./telegram";
 import { showSlide } from "./telegram-carousel";
-import {
-  cardMessages,
-  carouselRef,
-  chunks,
-  draftText,
-  esc,
-  html,
-  quoteButton,
-} from "./telegram-format";
+import { ACTION_CARDS, deliverReply } from "./telegram-deliver";
+import { carouselRef, draftText, esc, quoteButton } from "./telegram-format";
 import { telegramLinks } from "./telegram-links";
 import { telegramTravellers } from "./telegram-travellers";
 
@@ -158,33 +151,13 @@ export function telegramChat(d: TelegramChatDeps) {
         },
       });
       await store.add(chat.id, "assistant", reply.text, reply.cards);
-      const sayText = async () => {
-        for (const part of chunks(html(reply.text)))
-          await say(tgChatId, part, {
-            parse_mode: "HTML",
-            link_preview_options: { is_disabled: true },
-          });
-      };
-      // With offers, the hotels come first and the concierge's pick after them, to read on from.
-      const offersFirst = reply.cards.some((c) => c.type === "quotes");
-      if (!offersFirst) await sayText();
-      const appLink = `${d.appOrigin}/chat/${chat.id}`;
-      for (const card of reply.cards) {
-        if (card.type === "human") await human(tgChatId, user.id, chat.id, card);
-        else if (card.type === "traveller") await people.ask(tgChatId, user.id, card);
-        else
-          for (const m of cardMessages(card, appLink)) {
-            const sent = await t.tg(m.method, { chat_id: tgChatId, ...m.body }).catch(() => null);
-            if (!sent?.ok && m.method === "sendPhoto") {
-              // A photo Telegram can't load: the same offer as text, with its buttons.
-              const { photo: _, caption, ...rest } = m.body;
-              await t
-                .tg("sendMessage", { chat_id: tgChatId, ...rest, text: caption })
-                .catch(() => null);
-            }
-          }
-      }
-      if (offersFirst) await sayText();
+      await deliverReply(t, say, tgChatId, reply, `${d.appOrigin}/chat/${chat.id}`, (card) =>
+        card.type === "human"
+          ? human(tgChatId, user.id, chat.id, card)
+          : card.type === "traveller"
+            ? people.ask(tgChatId, user.id, card)
+            : Promise.resolve(),
+      );
     } catch (err) {
       log(`telegram chat ${tgChatId}: ${String(err).slice(0, 160)}`);
       await say(tgChatId, "Sorry, something went wrong. Please try again.");
@@ -237,6 +210,29 @@ export function telegramChat(d: TelegramChatDeps) {
 
   return {
     turn,
+
+    /**
+     * A reply made in the app, in the Shikigami chat this Telegram chat talks to (after a Face ID
+     * approval, say): shown here too, so the conversation carries on in both places. Not a reply
+     * that asks for something in the app: the person is there doing it. True if it was sent.
+     */
+    async mirror(
+      userId: string,
+      chatId: string,
+      said: string,
+      reply: { text: string; cards: Card[] },
+    ) {
+      if (reply.cards.some((c) => ACTION_CARDS.has(c.type))) return false;
+      const [l] = await db
+        .select({ tg: alertChannels.telegramChatId })
+        .from(alertChannels)
+        .where(and(eq(alertChannels.userId, userId), eq(alertChannels.appChatId, chatId)));
+      if (!l?.tg) return false;
+      const tg = l.tg;
+      await say(tg, `<i>In the app:</i> ${esc(said.slice(0, 300))}`, { parse_mode: "HTML" });
+      await deliverReply(t, say, tg, reply, `${d.appOrigin}/chat/${chatId}`);
+      return true;
+    },
 
     /** "/new": the next message starts a new Shikigami chat. */
     async fresh(tgChatId: string) {
