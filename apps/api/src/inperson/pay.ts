@@ -37,6 +37,13 @@ export function inPersonPayer(d: {
   onPaid?: (receipt: Receipt) => void; // for the public record (Arkiv)
 }) {
   const facilitatorUrl = process.env.FACILITATOR_URL ?? "http://localhost:8790";
+  // A live code is good for 3 s (a photo can't keep up), but a person taps Pay later than
+  // that. So a payer whose camera confirmed the shop's live screen keeps that confirmation
+  // for this request for a while: request id + payer → until (ms).
+  const liveSeen = new Map<string, number>();
+  const LIVE_HOLD_MS = 120_000;
+  const seenLive = (requestId: string, userId: string) =>
+    (liveSeen.get(`${requestId}:${userId}`) ?? 0) > Date.now();
 
   /** What the payer sees before paying: who, how much, and whether the screen was live. */
   async function check(frameHex: string, liveHex?: string) {
@@ -144,9 +151,10 @@ export function inPersonPayer(d: {
   async function pay(user: User, frameHex: string, o: { live?: string; how: "qr" | "sound" }) {
     const { row, view } = await check(frameHex, o.live);
     if (row.m.userId === user.id) throw new HireError("That's your own request.");
+    const live = !!view.live?.ok || seenLive(row.r.id, user.id);
     // A scanned QR pays only once its live layer proved it's the shop's screen right now: a
     // sticker or a screenshot never does. (A chirp is heard live; it's paid once and expires.)
-    if (o.how === "qr" && !view.live?.ok)
+    if (o.how === "qr" && !live)
       throw new HireError("Not confirmed as the shop's live screen: keep the camera on their QR.");
     if (view.status !== "open")
       throw new HireError(
@@ -186,7 +194,7 @@ export function inPersonPayer(d: {
         payTx,
         paidAt: new Date(),
         how: o.how,
-        live: view.live?.ok ?? null,
+        live: o.how === "qr" ? live : (view.live?.ok ?? null),
       };
       await d.db.update(payRequests).set(done).where(eq(payRequests.id, row.r.id));
       d.onPaid?.({
@@ -208,7 +216,16 @@ export function inPersonPayer(d: {
   }
 
   return {
-    check: async (frameHex: string, live?: string) => (await check(frameHex, live)).view,
+    /** Who and how much; a live screen confirmed for `userId` is remembered for their Pay. */
+    async check(frameHex: string, live?: string, userId?: string) {
+      const { row, view } = await check(frameHex, live);
+      if (userId && view.live?.ok) {
+        if (liveSeen.size > 5000)
+          for (const [k, until] of liveSeen) if (until < Date.now()) liveSeen.delete(k);
+        liveSeen.set(`${row.r.id}:${userId}`, Date.now() + LIVE_HOLD_MS);
+      }
+      return view;
+    },
     pay,
     payerChat,
   };

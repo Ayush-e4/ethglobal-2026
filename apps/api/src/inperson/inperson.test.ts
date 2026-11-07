@@ -125,6 +125,21 @@ describe("paying in person", () => {
     );
   });
 
+  it("the live screen this payer's camera confirmed still counts when they tap Pay seconds later", async () => {
+    const { shop, payer, merchants, payers } = await setup();
+    await merchants.become(shop, "Chai Point");
+    const r = await merchants.request(shop, 40);
+    const scanned = toHex(await liveCode(fromHex(r.liveKey), fromHex(r.frame), counterAt()));
+    // Someone else's camera confirming it doesn't count for this payer.
+    await payers.check(r.frame, scanned, "someone-else");
+    await expect(payers.pay(payer, r.frame, { how: "qr" })).rejects.toThrow(/live screen/);
+    // This payer's scan confirmed it; Pay comes later with a code by now too old on its own.
+    expect((await payers.check(r.frame, scanned, payer.id)).live).toMatchObject({ ok: true });
+    const stale = toHex(await liveCode(fromHex(r.liveKey), fromHex(r.frame), counterAt() - 40));
+    const err = await payers.pay(payer, r.frame, { how: "qr", live: stale }).catch((e) => e);
+    expect(err).toBeInstanceOf(NeedsLimit); // past the live check: on to the limit, as usual
+  });
+
   it("a demo account pays a shop at most ₹500 at a time (the demo wallet is shared)", async () => {
     const { shop, demo, merchants, payers } = await setup();
     await merchants.become(shop, "Chai Point");
