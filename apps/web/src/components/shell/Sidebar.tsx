@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useSession } from "@/lib/session";
+import { realName, useSession } from "@/lib/session";
 import {
   ChatIcon,
   CloseIcon,
@@ -171,10 +171,12 @@ export function Sidebar({
             aria-hidden
             className="flex size-[30px] flex-none items-center justify-center rounded-full bg-teal-soft text-[13px] font-bold text-teal"
           >
-            {(me?.displayName ?? "?").slice(0, 1).toUpperCase()}
+            {(realName(me?.displayName) ?? "?").slice(0, 1).toUpperCase()}
           </span>
           <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-semibold">{me?.displayName ?? "You"}</span>
+            <span className="truncate text-sm font-semibold">
+              {realName(me?.displayName) ?? (me?.isDemo ? "Demo" : "You")}
+            </span>
             <span className="truncate text-xs text-muted">
               {me ? (me.isDemo ? "demo account · test funds" : "passkey account") : "…"}
             </span>

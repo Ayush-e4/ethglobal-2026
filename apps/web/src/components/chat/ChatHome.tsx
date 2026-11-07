@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { api, type ChatSummary } from "@/lib/api";
 import { useEnter } from "@/lib/native/motion";
 import type { Photo } from "@/lib/photos";
-import { useSession } from "@/lib/session";
+import { realName, useSession } from "@/lib/session";
 import { ChatIcon, MarketIcon, QrIcon, UndoIcon } from "../icons";
 import { InstallCard } from "../shell/Pwa";
 import { Composer } from "./Composer";
@@ -83,7 +83,8 @@ export function ChatHome() {
     }
   };
 
-  const name = me?.displayName ? `, ${me.displayName}` : "";
+  const real = realName(me?.displayName);
+  const name = real ? `, ${real}` : "";
   return (
     <main className="mx-auto flex w-full max-w-[780px] flex-col gap-6 px-4 pt-8 pb-10 sm:gap-9 sm:px-6 sm:pt-16 sm:pb-14">
       <div className="flex flex-col gap-2.5 text-center">
