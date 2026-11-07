@@ -71,7 +71,7 @@ export function inPersonRoutes(db: Db, hiring: HiringService, wallets: WalletSer
     const b = Check.safeParse(await c.req.json().catch(() => null));
     if (!b.success) return c.json({ error: "bad_request" }, 400);
     try {
-      return c.json(await hiring.inPerson.check(b.data.frame.toLowerCase(), b.data.live));
+      return c.json(await hiring.inPerson.check(b.data.frame.toLowerCase(), b.data.live, user.id));
     } catch (err) {
       return c.json(refuse(err), 409);
     }
