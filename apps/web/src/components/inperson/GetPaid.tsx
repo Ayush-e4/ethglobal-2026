@@ -10,7 +10,7 @@ import { useSession } from "@/lib/session";
 import { CardSkeleton } from "../Skeleton";
 import { SuccessMark } from "../SuccessMark";
 import { LiveQr } from "./LiveQr";
-import { chirp, preloadSound } from "./sound";
+import { chirp, openAudio, preloadSound } from "./sound";
 
 type Merchant = { name: string; account: string; verified: boolean };
 type Req = { id: string; frame: string; liveKey: string; inr: number; expiresAt: string };
@@ -101,12 +101,25 @@ export function GetPaid() {
   const ask = () => {
     setError(null);
     setStatus(null);
+    // The chirp starts with the QR, so its audio is opened now, inside this tap (phones only
+    // start sound from one); it plays once the request is ready.
+    const audio = openAudio();
     api<Req>("/merchant/requests", { method: "POST", body: { inr: Number(inr) } })
-      .then((r) => {
+      .then(async (r) => {
         setReq(r);
         setLeft(Math.round((new Date(r.expiresAt).getTime() - Date.now()) / 1000));
+        try {
+          speaker.current?.stop();
+          speaker.current = await chirp(fromHex(r.frame), audio);
+          setChirping(true);
+        } catch {
+          setError("The chirp didn't start: tap Play the chirp, and check the volume.");
+        }
       })
-      .catch(fail);
+      .catch((e) => {
+        void audio.then((c) => c.close()).catch(() => {});
+        fail(e);
+      });
   };
 
   if (merchant === undefined)
@@ -208,7 +221,7 @@ export function GetPaid() {
                 aria-pressed={chirping}
                 className={`min-h-11 rounded-full px-4 text-sm font-semibold ${chirping ? "bg-teal text-white" : "border border-line-2 bg-white text-teal"}`}
               >
-                {chirping ? "Chirping… tap to stop" : "Play the chirp too"}
+                {chirping ? "🔊 Chirping · tap to mute" : "Play the chirp"}
               </button>
             </>
           )}
