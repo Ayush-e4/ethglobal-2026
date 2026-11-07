@@ -1,3 +1,4 @@
+import { ARKIV_EXPLORER } from "@app/arkiv";
 import { formatUsdc } from "@app/shared";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
@@ -22,6 +23,7 @@ export const show = (h: Hire) => ({
   card: h.card ?? null, // the one-time card the agent paid the supplier with
   status: h.status,
   payTx: h.payTx,
+  offerUrl: ARKIV_EXPLORER.entity(h.quoteKey), // the agent's signed offer on Arkiv
   undoUntil: h.undoUntil?.toISOString() ?? null,
   bookingRef: h.bookingRef,
   note: h.note,

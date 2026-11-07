@@ -2,20 +2,18 @@
 
 import type { Card } from "@app/shared";
 import { useEffect, useRef, useState } from "react";
-import { ApiError, api, cardLine, type HireView, hashscanTx, rupeesOf, usdc } from "@/lib/api";
+import { ApiError, api, type HireView, usdc } from "@/lib/api";
 import { celebrate } from "@/lib/native/celebrate";
 import { haptic } from "@/lib/native/haptics";
 import { CancelBooking } from "../trips/CancelBooking";
 import type { CardCtx } from "./Cards";
+import { FINAL, hireExtras, hireSteps, type Status, type Step } from "./hire-steps";
+import { PaymentReceipt } from "./PaymentReceipt";
 import { RateAgent } from "./RateAgent";
 import { ReportProblem } from "./ReportProblem";
 import { UndoRing } from "./UndoRing";
 
 type HireCardData = Extract<Card, { type: "hire" }>;
-type Status = HireView["status"];
-type Step = { id: string; label: string; done: boolean; tx?: string | null };
-
-const FINAL: Status[] = ["cancelled", "released", "refunded", "failed"];
 const left = (iso: string) => Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 1000));
 /** The undo window's length: from the hire to the end of undo. */
 const windowSecs = (from: string, to: string) =>
@@ -113,73 +111,17 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
     }
   };
 
-  // The trip price rides in the same escrow as the fee (testnet scale), so say both.
-  const what = hire?.priceUnits ? `${rupeesOf(hire.priceUnits)} + ${fee} fee` : `${fee} fee`;
-  const steps: Step[] = [
-    {
-      id: "held",
-      label:
-        status === "released"
-          ? `${what} held on Hedera until it was done`
-          : FINAL.includes(status)
-            ? `${what} was held on Hedera`
-            : `${what} held on Hedera, not paid yet`,
-      tx: card.payTx || hire?.payTx,
-      done: true,
-    },
-  ];
-  if (status === "cancelled")
-    steps.push({
-      id: "end",
-      label: "Undone: nothing booked, the fee is back on your limit",
-      done: true,
-    });
-  else if (status === "refunded")
-    steps.push({
-      id: "end",
-      label: hire?.note?.toLowerCase().includes("report")
-        ? `${name} accepted your report and refunded the fee`
-        : `${name} couldn't book it and refunded the fee`,
-      done: true,
-    });
-  else if (status === "failed")
-    steps.push({ id: "end", label: hire?.note ?? "It didn't go through", done: false });
-  else if (status === "disputed")
-    steps.push(
-      { id: "book", label: `Booked · reference ${hire?.bookingRef ?? "pending"}`, done: true },
-      {
-        id: "end",
-        label: `You reported a problem: the fee is frozen on Hedera while ${name} sorts it out`,
-        done: false,
-      },
-    );
-  else {
-    steps.push(
-      status === "held"
-        ? {
-            id: "book",
-            label: canUndo
-              ? `${name} books it when the undo window ends`
-              : `${name} is booking it…`,
-            done: false,
-          }
-        : { id: "book", label: `Booked · reference ${hire?.bookingRef ?? "pending"}`, done: true },
-      status === "released"
-        ? { id: "pay", label: `Hedera paid ${name} the fee`, done: true }
-        : { id: "pay", label: `Hedera pays ${name} when the review window ends`, done: false },
-    );
-  }
-
-  if (hire?.card)
-    steps.push({
-      id: "card",
-      label: `${name} paid with a one-time card (simulated) ${cardLine(hire.card)}`,
-      done: hire.card.status !== "authorized",
-    });
-  if (hire?.bookingCancelledAt)
-    steps.push({ id: "cancelled", label: "You cancelled the booking afterwards", done: true });
-  if (hire?.watchNote)
-    steps.push({ id: "watch", label: `${name}: ${hire.watchNote}`, done: !hire.watching });
+  const payTx = card.payTx || hire?.payTx || null;
+  const steps = hireSteps({
+    status,
+    hire,
+    name,
+    paid: !!payTx,
+    canUndo,
+    undoLeft: clock(secs),
+    undoUntil: hire?.undoUntil ?? card.undoUntil,
+  });
+  const extras = hireExtras(hire, name);
 
   const [pill, tone] = gone
     ? ["see Hedera for the outcome", "bg-side text-ink-3"]
@@ -213,23 +155,16 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
           {pill}
         </span>
       </div>
-      <ol aria-label="Progress" className="flex flex-col gap-1.5">
-        {steps.map((s) => (
-          <li key={s.id} className="flex items-start gap-2 text-[13px]">
-            <span
-              aria-hidden
-              className={`mt-1.5 size-2 flex-none rounded-full ${s.done ? "bg-ok" : "border border-line-2 bg-white"}`}
-            />
-            {s.tx ? (
-              <a className="text-teal" href={hashscanTx(s.tx)} target="_blank" rel="noreferrer">
-                {s.label}
-              </a>
-            ) : (
-              <span className={s.done ? "" : "text-muted"}>{s.label}</span>
-            )}
-          </li>
-        ))}
-      </ol>
+      <PaymentReceipt
+        feeUnits={card.feeUnits}
+        priceUnits={hire?.priceUnits ?? null}
+        payTx={payTx}
+        offerUrl={hire?.offerUrl ?? null}
+        status={status}
+        name={name}
+      />
+      <Timeline label="Progress" steps={steps} />
+      {extras.length > 0 && <Timeline label="Along the way" steps={extras} />}
       {canUndo && (
         <button
           type="button"
@@ -287,5 +222,48 @@ export function HireCard({ card, ctx }: { card: HireCardData; ctx: CardCtx }) {
       )}
       {error && <p className="text-xs text-bad">{error}</p>}
     </section>
+  );
+}
+
+const DOT: Record<Step["state"], string> = {
+  done: "bg-ok",
+  now: "bg-saffron ring-4 ring-saffron/25 animate-pulse",
+  todo: "border border-line-2 bg-white",
+  bad: "bg-bad",
+};
+
+/** Steps as a timeline: a dot per step, joined by a line; the current one pulses. */
+function Timeline({ label, steps }: { label: string; steps: Step[] }) {
+  return (
+    <ol aria-label={label} className="flex flex-col">
+      {steps.map((s, i) => (
+        <li key={s.id} className="relative flex gap-3 pb-2.5 last:pb-0">
+          {i < steps.length - 1 && (
+            <span aria-hidden className="absolute top-3.5 bottom-0 left-[4px] w-px bg-line-2" />
+          )}
+          <span
+            aria-hidden
+            className={`relative mt-1.5 size-[9px] flex-none rounded-full ${DOT[s.state]}`}
+          />
+          <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 text-[13px]">
+            <span
+              className={
+                s.state === "todo"
+                  ? "text-muted"
+                  : s.state === "bad"
+                    ? "font-semibold text-bad"
+                    : s.state === "now"
+                      ? "font-semibold"
+                      : ""
+              }
+            >
+              {s.state === "now" && <span className="sr-only">Now: </span>}
+              {s.label}
+            </span>
+            {s.detail && <span className="text-xs text-muted">{s.detail}</span>}
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
