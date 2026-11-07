@@ -1,4 +1,7 @@
 import { meter, openAudio, openMic, play, tap } from "@/lib/inperson/audio";
+
+export { openAudio };
+
 import { createModem } from "@/lib/inperson/modem";
 
 /**
@@ -36,14 +39,17 @@ const SEND = ["audible-fastest", "audible-normal"];
 export const LISTEN_ONE_MORE_CYCLE_MS = 3500;
 const GAP_MS = 800;
 
-/** Plays the request over and over until stop(). Start it from a tap (iPhones insist). */
-export async function chirp(frame: Uint8Array) {
-  const ctx = await openAudio(); // first, inside the tap: iPhones only start audio from one
+/**
+ * Plays the request over and over until stop(). Audio must start from a tap (phones insist):
+ * pass `audio`, an openAudio() begun inside the tap, when the request is only ready after it.
+ */
+export async function chirp(frame: Uint8Array, audio?: Promise<AudioContext>) {
+  const ctx = await (audio ?? openAudio()); // first, inside the tap: phones only start audio from one
   const g = await ggwave();
   const modem = createModem(g, {
     sampleRate: ctx.sampleRate,
     fixed: true,
-    volume: 40,
+    volume: 85, // ~80% of full scale: a phone speaker at 40 was too quiet to notice
     listenFor: [],
   });
   const waves = SEND.map((p) => modem.encode(frame, p));
