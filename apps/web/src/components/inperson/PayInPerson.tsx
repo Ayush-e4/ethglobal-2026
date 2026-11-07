@@ -7,11 +7,11 @@ import { haptic } from "@/lib/native/haptics";
 import { LimitCard } from "../chat/LimitCard";
 import { WaitSteps } from "../WaitSteps";
 import { Camera } from "./Camera";
-import { Shell } from "./GetPaid";
 import { type LimitData, post, type Seen } from "./pay-api";
 import { PAY_WAIT, PaidCard } from "./pay-done";
 import { Listening, LiveLine } from "./pay-lines";
 import type { createScanner } from "./scanner";
+import { Shell } from "./shell";
 import { LISTEN_ONE_MORE_CYCLE_MS, listen, preloadSound } from "./sound";
 
 const btn =

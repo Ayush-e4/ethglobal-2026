@@ -39,13 +39,32 @@ const SEND = ["audible-fastest", "audible-normal"];
 export const LISTEN_ONE_MORE_CYCLE_MS = 3500;
 const GAP_MS = 800;
 
+// One chirp at a time on a page, and only the newest asked for: two requests chirping at once
+// (a double tap, or Play while the automatic one was still starting) make a payer refuse both.
+let latest = 0;
+let playing: { stop(): void } | null = null;
+
+/** Silences the chirp playing now, and cancels one still starting up. */
+export function stopChirps() {
+  latest++;
+  playing?.stop();
+}
+
 /**
  * Plays the request over and over until stop(). Audio must start from a tap (phones insist):
  * pass `audio`, an openAudio() begun inside the tap, when the request is only ready after it.
+ * Starting one silences any other; one that finishes starting after a newer was asked for
+ * stops itself.
  */
 export async function chirp(frame: Uint8Array, audio?: Promise<AudioContext>) {
+  const mine = ++latest;
+  playing?.stop();
   const ctx = await (audio ?? openAudio()); // first, inside the tap: phones only start audio from one
   const g = await ggwave();
+  if (mine !== latest) {
+    void ctx.close();
+    return null; // a newer chirp (or a stop) was asked for while this one started
+  }
   const modem = createModem(g, {
     sampleRate: ctx.sampleRate,
     fixed: true,
@@ -65,10 +84,11 @@ export async function chirp(frame: Uint8Array, audio?: Promise<AudioContext>) {
         await new Promise((r) => setTimeout(r, GAP_MS));
       }
   })();
-  return {
+  const handle = {
     stop() {
       if (stopped) return;
       stopped = true;
+      if (playing === handle) playing = null;
       try {
         current?.stop();
       } catch {}
@@ -76,6 +96,8 @@ export async function chirp(frame: Uint8Array, audio?: Promise<AudioContext>) {
       void ctx.close();
     },
   };
+  playing = handle;
+  return handle;
 }
 
 /** Listens for a request: every 24 bytes heard (ggwave's error correction already applied). */
