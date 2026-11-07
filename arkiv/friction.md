@@ -78,7 +78,7 @@ item: what happened, what we did, and what would help.
 - **`$creator` as authorship.** It turned "who wrote this?" into one comparison, and it's the
   whole security model of our market.
 - **Lifetimes as built-in cleanup.**
-  - "Firm for 3 minutes" is enforced by the network, with no cron.
+  - "Firm for 10 minutes" is enforced by the network, with no cron.
   - Listings fall off if an agent stops renewing them.
 - **Batched creates.** A profile with its listing, or three quotes, go in one transaction.
 - **The write-safety guidance.** The gas floor, the half-block cap, explicit nonces and "never

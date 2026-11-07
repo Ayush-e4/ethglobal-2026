@@ -8,7 +8,7 @@ StayWise only books once the undo window is over.
 
 | Route | Cost | What it does |
 |---|---|---|
-| `GET /quote?task&iata&checkin&checkout&adults` | free | Cheapest refundable room near the airport, price locked with a prebook, a firm quote posted on Arkiv (gone in 3 minutes) |
+| `GET /quote?task&iata&checkin&checkout&adults` | free | Cheapest refundable room near the airport, price locked with a prebook, a firm quote posted on Arkiv (gone in 10 minutes) |
 | `POST /book` `{ quote, guest }` | 0.02 USDC over x402 | The fee is held in the registry (60 s undo window, delivery within 30 min, 2-minute review). A bad or expired quote is refused **before** anything is paid |
 | `GET /jobs/:escrowId` | free | Held → booking → delivered (with the booking reference), or cancelled / refunded |
 
@@ -81,7 +81,7 @@ airlines and are paid from Duffel's test balance; nobody is charged, no seat is 
 - **Quote** (`GET /quote?task&from&to&date&returnDate?`, free): searches Duffel and offers three
   different flights, each for a reason: the cheapest, the fastest, and the most flexible
   (refundable or changeable), or another departure time when none is flexible. All three are
-  posted on Arkiv in one transaction, expiring in 3 minutes.
+  posted on Arkiv in one transaction, expiring in 10 minutes.
 - **Prices in rupees**: Duffel's test account prices in GBP, so offers show the fare in rupees at
   today's rate (open.er-api.com, kept 6 hours), with the GBP fare it's charged in alongside.
 - **Book** (`POST /book`, the fee over x402 into escrow): refused before payment (422) if the

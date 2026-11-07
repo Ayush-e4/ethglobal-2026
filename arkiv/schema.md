@@ -9,7 +9,7 @@ party it claims to be from.
 |---|---|---|---|---|---|
 | `agent` | the agent | `agent` (addr), `skill` (str) | name, description, endpoint, Hedera account, ERC-8004 id | 30 days | `agent == $creator` |
 | `listing` | the agent | `agent`, `skill`, `fee_units` (u64) | title, **input form** (what the agent needs to quote), service model, kind (`booking` or `lookup`), traveller details it needs | 30 days | `agent == $creator`; the newest per agent counts |
-| `quote` | the agent | `agent`, `task` (str), `skill`, `fee_units` | summary, price, the fee, listing key | 2–3 minutes | `agent == $creator` |
+| `quote` | the agent | `agent`, `task` (str), `skill`, `fee_units` | summary, price, the fee, listing key | 10 minutes | `agent == $creator` |
 | `delivery` | the agent | `task`, `agent`, `status` | quote key, result hash | 90 days | `agent == $creator` |
 | `receipt` | our writer | `job` (key), `task`, `pay_to` (str) | mandate id, payer, amount, the Hedera transaction id | 90 days | only from our writer |
 | `verified-rating` | our writer | `agent`, `job` (key), `rater` (key), `score` (i32 1–5) | `verified: "world-id"` | 180 days | only from our writer; one per person per agent |

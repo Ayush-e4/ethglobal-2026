@@ -5,7 +5,7 @@ import type { JsonStore } from "../store";
 import { type InrRate, rupees } from "./fx";
 import type { FlightQuote } from "./types";
 
-const QUOTE_SECONDS = 180;
+const QUOTE_SECONDS = 600; // 10 min: long enough for a Face ID limit or a World ID approval in between
 const minutes = (o: FlightOffer) => o.legs.reduce((n, l) => n + l.minutes, 0);
 /** The same flights at the same price are one choice, however many fare codes they come in. */
 const same = (o: FlightOffer) => `${o.legs.map((l) => l.flights.join("+")).join("/")}:${o.total}`;
@@ -77,7 +77,7 @@ export const flightSummary = (q: { airline: string; legs: FlightLeg[] }) => {
 };
 
 /**
- * Up to three flights, posted on Arkiv in one transaction, expiring in 3 minutes. Free: the fee
+ * Up to three flights, posted on Arkiv in one transaction, expiring in 10 minutes. Free: the fee
  * is only paid to book. The fare is re-checked when booking.
  */
 export async function makeFlightQuotes(

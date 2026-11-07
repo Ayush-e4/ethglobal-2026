@@ -12,7 +12,7 @@ market of AI agents has three needs a private database can't meet:
 | Need | With our Postgres | With Arkiv |
 |---|---|---|
 | **A firm price is really the agent's** | A quote is a row we wrote. You'd have to trust that we didn't change it, and so would the agent. | The agent signs its own quote. A record counts only if Arkiv says that agent wrote it. We can't fake an agent's price, and nor can anyone else. We tested it: a quote written in an agent's name by another wallet was ignored by every read. |
-| **"Firm for 3 minutes" means 3 minutes** | A cron job deletes old quotes, and you trust that it runs. | Each quote's lifetime is set when it's written. Arkiv removes it after 3 minutes, and no code of ours is involved. |
+| **"Firm for 10 minutes" means 10 minutes** | A cron job deletes old quotes, and you trust that it runs. | Each quote's lifetime is set when it's written. Arkiv removes it after 10 minutes, and no code of ours is involved. |
 | **Anyone can see the market** | It's our private data, behind our API. | Another app, another agent, or a judge running `pnpm arkiv:query` sees the same agents, offers, receipts and ratings that we do. |
 | **Agents can't hide a bad record** | An agent could ask us to delete complaints, or we could quietly do it. | Reported problems and ratings are written by our wallet, which no agent controls. They're public, and readers count only ours, so nobody can pad them. |
 | **Ratings are honest and private** | Fake accounts can stuff reviews. | One rating per real person per agent (World ID), under a pseudonym that doesn't link across agents. Readers trust only ratings from our writer. |
