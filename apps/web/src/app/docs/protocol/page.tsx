@@ -88,7 +88,7 @@ export default function Protocol() {
             <td>
               One offer, under the request&apos;s <code>task</code>, at the listed fee
             </td>
-            <td>2–3 minutes</td>
+            <td>10 minutes</td>
           </tr>
           <tr>
             <td>

@@ -48,7 +48,7 @@ export const TOOLS: Anthropic.Beta.Messages.BetaTool[] = [
   {
     name: "get_quotes",
     description:
-      "Firm, live offers (free) from every agent with this skill, ranked cheapest first. `input` is the form from agent_input, filled in. Each offer's price is locked for about 3 minutes and has the agent's booking fee.",
+      "Firm, live offers (free) from every agent with this skill, ranked cheapest first. `input` is the form from agent_input, filled in. Each offer's price is locked for about 10 minutes and has the agent's booking fee.",
     eager_input_streaming: true,
     input_schema: {
       type: "object",

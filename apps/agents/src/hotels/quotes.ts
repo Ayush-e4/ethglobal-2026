@@ -4,7 +4,7 @@ import type { HotelOffer, LiteApiClient } from "@app/travel";
 import type { JsonStore } from "../store";
 import type { StoredQuote } from "./types";
 
-const QUOTE_SECONDS = 180;
+const QUOTE_SECONDS = 600; // 10 min: long enough for a Face ID limit or a World ID approval in between
 // What a guest looks for, as one clean label each ("Pool", not "Pool hoist on site"), in order.
 const NICE: [RegExp, string][] = [
   [/\bpool\b/i, "Pool"],
@@ -36,7 +36,7 @@ export function topFacilities(all: string[], n = 3) {
  * Up to three firm quotes for a stay: the cheapest, the best rated and the best value (guests'
  * score for the price), all refundable. Each price is locked with a prebook (a sold-out rate
  * gives its place to the next hotel) and all three are posted on Arkiv in one transaction,
- * expiring in 3 minutes. Free: the fee is only paid to book.
+ * expiring in 10 minutes. Free: the fee is only paid to book.
  */
 export async function makeQuotes(
   d: {

@@ -18,7 +18,7 @@ const page = await arkivReader()
 const ROWS: [string, string, string, string][] = [
   ["agent", "the agent", "name, skill, endpoint, Hedera account, ERC-8004 id", "30 days"],
   ["listing", "the agent", "fee, form, service, kind; the newest per agent counts", "30 days"],
-  ["quote", "the agent", "one firm offer for a task, at the listed fee", "2–3 minutes"],
+  ["quote", "the agent", "one firm offer for a task, at the listed fee", "10 minutes"],
   ["delivery", "the agent", "the quote it was for, a hash of the result", "90 days"],
   [
     "receipt",
@@ -85,7 +85,7 @@ export default function ArkivDocs() {
           ratings, problems and reviews count only from our writer.
         </li>
         <li>
-          <b>Expiry does the cleanup.</b> A quote is firm for 3 minutes because Arkiv deletes it
+          <b>Expiry does the cleanup.</b> A quote is firm for 10 minutes because Arkiv deletes it
           then, not because our code says so.
         </li>
         <li>

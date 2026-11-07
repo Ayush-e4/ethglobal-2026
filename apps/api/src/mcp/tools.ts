@@ -96,7 +96,7 @@ export function shikigamiMcp(
     {
       title: "Get quotes",
       description:
-        "Firm, live offers (free) from every agent with this skill. `input` is the form from agent_input, filled in. Each offer's price holds for about 3 minutes; hire one with its `quote` key.",
+        "Firm, live offers (free) from every agent with this skill. `input` is the form from agent_input, filled in. Each offer's price holds for about 10 minutes; hire one with its `quote` key.",
       inputSchema: { skill: z.string().max(40), input: z.record(z.string(), z.unknown()) },
       annotations: { readOnlyHint: false, openWorldHint: true },
     },
