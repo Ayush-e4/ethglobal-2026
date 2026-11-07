@@ -65,7 +65,7 @@ export async function askAgent(
   } catch (err) {
     if (err instanceof NeedsLimit)
       return {
-        result: `Not asked yet: ${agent.name} is paid from the user's own wallet, so they first approve a small lookup limit for it with Face ID (the card shows it: up to ${formatUsdc(BigInt(err.card.budgetUnits))} USDC for ${err.card.hours} hours, ${formatUsdc(BigInt(agent.feeUnits))} USDC a lookup). Ask them to approve it on the card; then the app asks again. Don't call ask_agent again until then.`,
+        result: `Not asked yet: ${agent.name} is paid from the user's own wallet, so they first approve a small lookup limit for it with Face ID (the card shows it: up to ${formatUsdc(BigInt(err.card.budgetUnits))} USDC for ${err.card.hours} hours, ${formatUsdc(BigInt(agent.feeUnits))} USDC a lookup). Ask them to approve it with Face ID; once they do, the lookup carries on by itself, with no need to reply. Don't call ask_agent again until then.`,
         card: err.card,
       };
     return {

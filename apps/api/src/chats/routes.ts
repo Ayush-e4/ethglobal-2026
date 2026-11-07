@@ -1,4 +1,4 @@
-import { SendMessageSchema } from "@app/shared";
+import { type Card, SendMessageSchema } from "@app/shared";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { currentUser } from "../auth/current";
@@ -20,6 +20,17 @@ export type ReplyReady = (
   reply: string,
 ) => Promise<unknown>;
 
+/**
+ * A reply made here, shown wherever else this chat is open (its Telegram chat): true if it was.
+ * Then no nudge is needed.
+ */
+export type MirrorReply = (
+  userId: string,
+  chatId: string,
+  said: string,
+  reply: { text: string; cards: Card[] },
+) => Promise<boolean>;
+
 /** Only a reply someone waited a while for is worth a nudge. */
 export const READY_AFTER_MS = 60_000;
 
@@ -28,6 +39,7 @@ export function chatRoutes(
   concierge: Concierge,
   replyReady?: ReplyReady,
   readyAfterMs = READY_AFTER_MS,
+  mirror?: MirrorReply,
 ) {
   const store = chatStore(db);
   const app = new Hono();
@@ -96,8 +108,13 @@ export function chatRoutes(
         });
         const saved = await store.add(chat.id, "assistant", reply.text, reply.cards);
         emit({ type: "done", messageId: saved.id });
-        if (away && Date.now() - started >= readyAfterMs)
-          void replyReady?.(user.id, chat.id, chat.title, reply.text).catch(() => {});
+        const nudge = away && Date.now() - started >= readyAfterMs;
+        void (async () => {
+          const shown = mirror
+            ? await mirror(user.id, chat.id, text, reply).catch(() => false)
+            : false;
+          if (nudge && !shown) await replyReady?.(user.id, chat.id, chat.title, reply.text);
+        })().catch(() => {});
       } catch (err) {
         console.error(`chat ${chat.id}: ${err instanceof Error ? err.message : err}`);
         await store.add(chat.id, "assistant", "Sorry, something went wrong. Please try again.");

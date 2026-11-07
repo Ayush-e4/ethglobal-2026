@@ -263,7 +263,7 @@ export async function runTool(
         };
       if (err instanceof NeedsLimit)
         return {
-          result: `Not booked yet: ${err.card.agentName} is paid from the user's own wallet, so they first approve a spending limit for it with Face ID (the card shows it: up to ${usdc(err.card.budgetUnits)} USDC in this chat for ${err.card.hours} hours). Ask them to approve it on the card; once they do, the app sends the booking again. Don't call hire again until then.`,
+          result: `Not booked yet: ${err.card.agentName} is paid from the user's own wallet, so they first approve a spending limit for it with Face ID (the card shows it: up to ${usdc(err.card.budgetUnits)} USDC in this chat for ${err.card.hours} hours). Ask them to approve it with Face ID; once they do, the booking carries on by itself, with no need to reply. Don't call hire again until then.`,
           card: err.card,
         };
       return {

@@ -7,7 +7,7 @@ import type { TelegramAlerts } from "./alerts/telegram";
 import { deviceLinks } from "./auth/device-links";
 import { type AuthConfig, authRoutes } from "./auth/routes";
 import type { CardIssuerService } from "./cards/issuer";
-import { chatRoutes, type ReplyReady } from "./chats/routes";
+import { chatRoutes, type MirrorReply, type ReplyReady } from "./chats/routes";
 import type { Concierge } from "./concierge/concierge";
 import type { Market } from "./concierge/market";
 import type { ToolDeps } from "./concierge/tools";
@@ -61,6 +61,7 @@ export type AppOptions = {
   replyReady?: ReplyReady; // a slow reply finished after its reader left: nudge them
   cards?: CardIssuerService; // the (mock) issuer of agents' one-time cards
   replyReadyAfterMs?: number; // how long a reply must take to be worth it (tests: 0)
+  mirrorReply?: MirrorReply; // a reply made in the app, shown in the chat's Telegram chat too
   // World ID: "prove you're a person", for the bonus and to approve hires from `minFeeUnits`
   world?: {
     checks: WorldChecks | null;
@@ -78,7 +79,7 @@ export function createApp(o: AppOptions) {
   const onSignUp = wallets ? (id: string) => void wallets.ensure(id).catch(() => {}) : undefined;
   const links = deviceLinks(); // "use this account on another device" codes
   app.route("/", authRoutes(db, auth, onSignUp, links));
-  app.route("/", chatRoutes(db, concierge, o.replyReady, o.replyReadyAfterMs));
+  app.route("/", chatRoutes(db, concierge, o.replyReady, o.replyReadyAfterMs, o.mirrorReply));
   if (hiring) app.route("/", hireRoutes(db, hiring, o.demoToken));
   if (hiring) app.route("/", tripRoutes(db, hiring));
   if (o.market) app.route("/", marketRoutes(db, o.market));

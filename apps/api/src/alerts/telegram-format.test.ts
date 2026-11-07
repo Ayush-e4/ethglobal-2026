@@ -1,6 +1,6 @@
 import type { Card } from "@app/shared";
 import { describe, expect, it } from "vitest";
-import { cardMessages, chunks, html } from "./telegram-format";
+import { cardMessages, chunks, html, slide } from "./telegram-format";
 
 const offer = (key: string, title: string, img: string) => ({
   key,
@@ -22,6 +22,30 @@ const QUOTES: Card = {
 };
 
 describe("Telegram formatting", () => {
+  it("agents' prices differ: the price range in the caption, each price first on its button", () => {
+    const card = {
+      ...QUOTES,
+      quotes: [
+        {
+          ...offer(KEY_A, "Fairfield · StayWise", "https://p/1.jpg"),
+          model: "Book it, done",
+          itemTotal: 22480,
+        },
+        {
+          ...offer(KEY_B, "Fairfield · PriceGuard", "https://p/1.jpg"),
+          model: "Book and keep watching",
+          feeUnits: "50000",
+          itemTotal: 22333,
+        },
+      ],
+    } as Extract<Card, { type: "quotes" }>;
+    const s = slide(card, 0, 0);
+    expect(s.caption).toContain("₹22,333–₹22,480");
+    const labels = s.rows.flat().map((b) => b.text);
+    expect(labels).toContain("₹22,333 · PriceGuard · fee 0.05 USDC");
+    expect(labels.every((l) => l.length <= 40)).toBe(true);
+  });
+
   it("turns the concierge's Markdown into Telegram HTML, escaping the rest", () => {
     expect(html("**Park Inn** <3 & [map](https://m.example/a?b=1)\n- pool\n## Next")).toBe(
       '<b>Park Inn</b> &lt;3 &amp; <a href="https://m.example/a?b=1">map</a>\n• pool\n<b>Next</b>',
