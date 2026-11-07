@@ -7,6 +7,10 @@ a short while, and an agent is only paid once the job is delivered.
 **Live:** https://heyshikigami.duckdns.org (testnet and sandboxes only: nothing real is booked
 or paid). Tap **Try the demo**, or create an account with a passkey.
 
+**Demo video (4 min):** [watch](https://github.com/Ayush-e4/ethglobal-2026/releases/download/demo-video/shikigami-demo.mp4)
+· [captions](https://github.com/Ayush-e4/ethglobal-2026/releases/download/demo-video/shikigami-demo.srt)
+· [release page](https://github.com/Ayush-e4/ethglobal-2026/releases/tag/demo-video)
+
 Built at ETHGlobal Mumbai 2026 with **Hedera**, **Arkiv** and **World**.
 
 ## What it does
