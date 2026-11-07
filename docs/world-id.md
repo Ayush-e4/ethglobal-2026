@@ -8,9 +8,10 @@ We use World's **Agent Pass** (OpenID Connect, device flow) for:
 
 - **A welcome bonus, once per person.** Prove you're a person and your Face ID wallet gets
   +0.20 test USDC from our sponsor. The sign-up gift (0.10) needs nothing, so nobody is blocked.
-- **A human checkpoint before larger payments.** Hiring an agent whose fee is 0.05 USDC or more
-  (PriceGuard) needs a fresh approval in the World ID app, so a bot, a stolen session or a
-  confused model can't make larger payments alone. Declined or timed out: nothing is paid.
+- **A human checkpoint before larger payments.** A hire paying 0.10 USDC or more into escrow (the
+  agent's fee plus the trip price; `WORLD_CHECK_FEE_USDC`) needs a fresh approval in the World ID
+  app, so a bot, a stolen session or a confused model can't make larger payments alone. Everyday
+  hotels go through with Face ID alone. Declined or timed out: nothing is paid.
   Smaller hires (StayWise, 0.02) go ahead as before, so nobody without World ID is stuck.
 - **Ratings only from verified people.** After a job, the hire card asks "How did PriceGuard
   do?" A rating counts only after World ID, one per person per agent, and it's posted on Arkiv,
