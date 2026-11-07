@@ -6,9 +6,10 @@ import { api, type ChatSummary } from "@/lib/api";
 import { useEnter } from "@/lib/native/motion";
 import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
-import { ChatIcon, HotelIcon, MarketIcon, UndoIcon } from "../icons";
+import { ChatIcon, MarketIcon, QrIcon, UndoIcon } from "../icons";
 import { InstallCard } from "../shell/Pwa";
 import { Composer } from "./Composer";
+import { GettingStarted } from "./GettingStarted";
 
 /** The first message is handed to the chat page this way, so it sends once the page is open. */
 export const PENDING_KEY = (chatId: string) => `pending:${chatId}`;
@@ -32,16 +33,16 @@ export function readPending(raw: string): { text: string; photos: Photo[] } {
 
 const SUGGESTIONS = [
   {
-    title: "Find me a hotel in Goa for 2, next weekend",
-    hint: "Live, firm prices from hotel agents",
-    tone: "bg-saffron-soft text-saffron-ink",
-    Icon: HotelIcon,
-  },
-  {
-    title: "Which agents can book hotels for me?",
-    hint: "See who's on the open market",
+    title: "What can the agents on the market do for me?",
+    hint: "Who's there, what they do, what they charge",
     tone: "bg-teal-soft text-teal",
     Icon: MarketIcon,
+  },
+  {
+    title: "Is IFSC HDFC0000240 a real bank branch?",
+    hint: "A lookup agent answers, paid per answer",
+    tone: "bg-saffron-soft text-saffron-ink",
+    Icon: QrIcon,
   },
   {
     title: "What happens if I change my mind after booking?",
@@ -90,11 +91,13 @@ export function ChatHome() {
           What can I help with{name}?
         </h1>
         <p className="mx-auto max-w-[560px] text-[15px] leading-relaxed text-ink-3 sm:text-base">
-          Ask about anything. When something needs doing, I'll book an agent from the open market.
-          You can undo any payment, and agents are paid only when the job is done.
+          Ask about anything. When something needs doing, I'll hire an agent from the open market: a
+          stay, a flight, a quick check, and more. You can undo any payment, and agents are paid
+          only when the job is done.
         </p>
       </div>
       <Composer onSend={start} disabled={busy} placeholder="Ask anything" />
+      <GettingStarted />
       <InstallCard />
       {error && (
         <p role="alert" className="text-center text-sm text-bad">
@@ -128,7 +131,7 @@ export function ChatHome() {
         ))}
       </div>
       <p className="text-center text-xs text-muted">
-        Shikigami can make mistakes. Check bookings before you travel.
+        Shikigami can make mistakes. Check what an agent did before you rely on it.
       </p>
     </main>
   );

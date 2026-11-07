@@ -34,6 +34,7 @@ export function Travellers() {
 
   return (
     <section
+      id="travellers"
       aria-label="Travellers"
       className="flex flex-col gap-3 rounded-2xl border border-line p-4 text-sm"
     >
