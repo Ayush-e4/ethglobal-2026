@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, type MarketAgentView, shortAddress, usdc, verifiedRating } from "@/lib/api";
+import { friendly } from "@/lib/errors";
+import { LoadError } from "../LoadError";
 import { CardSkeleton } from "../Skeleton";
 import { operatorLine, ReviewBadge } from "./ReviewBadge";
 
@@ -13,8 +15,9 @@ import { operatorLine, ReviewBadge } from "./ReviewBadge";
 export function MarketView() {
   const [agents, setAgents] = useState<MarketAgentView[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    api<MarketAgentView[]>("/market/agents")
+  const load = useCallback(() => {
+    setError(null);
+    return api<MarketAgentView[]>("/market/agents")
       .then((a) =>
         setAgents(
           [...a].sort(
@@ -24,8 +27,11 @@ export function MarketView() {
           ),
         ),
       )
-      .catch(() => setError("Couldn't load the market."));
+      .catch((err) => setError(friendly(err, "Couldn't load the market.")));
   }, []);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <div className="flex w-full max-w-[860px] flex-col gap-6">
@@ -47,7 +53,7 @@ export function MarketView() {
       </div>
       {!agents ? (
         error ? (
-          <p className="p-10 text-center text-muted">{error}</p>
+          <LoadError title="Couldn't load the market" error={error} onRetry={load} />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <CardSkeleton label="Loading the market" />

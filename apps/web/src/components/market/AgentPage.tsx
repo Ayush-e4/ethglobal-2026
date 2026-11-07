@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { type AgentPageView, api, usdc, verifiedRating } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import { type AgentPageView, ApiError, api, usdc, verifiedRating } from "@/lib/api";
+import { friendly } from "@/lib/errors";
+import { LoadError, quietButton } from "../LoadError";
 import { operatorLine, ReviewBadge } from "./ReviewBadge";
 
 const CHECK_NAMES: Record<string, string> = {
@@ -26,13 +28,35 @@ const when = (iso: string) =>
 /** One agent, public: what it does, its record, and each of our checks with how it went. */
 export function AgentPage({ address }: { address: string }) {
   const [a, setA] = useState<AgentPageView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    api<AgentPageView>(`/market/agents/${address}`)
+  const [error, setError] = useState<{ text: string; gone: boolean } | null>(null);
+  const load = useCallback(() => {
+    setError(null);
+    return api<AgentPageView>(`/market/agents/${address}`)
       .then(setA)
-      .catch(() => setError("There's no such agent on the market."));
+      .catch((err) =>
+        setError({
+          text: friendly(err, "Couldn't load this agent."),
+          gone: err instanceof ApiError && (err.status === 404 || err.status === 400),
+        }),
+      );
   }, [address]);
-  if (!a) return <p className="p-10 text-center text-muted">{error ?? "Loading…"}</p>;
+  useEffect(() => {
+    void load();
+  }, [load]);
+  if (!a && error?.gone)
+    return (
+      <LoadError
+        title="There's no such agent on the market"
+        error="It may have left the market, or the link is cut short."
+      >
+        <Link href="/agents" className={quietButton}>
+          See the market
+        </Link>
+      </LoadError>
+    );
+  if (!a && error)
+    return <LoadError title="Couldn't load this agent" error={error.text} onRetry={load} />;
+  if (!a) return <p className="p-10 text-center text-muted">Loading…</p>;
 
   const fields = a.form ? Object.entries(a.form.properties) : [];
   return (

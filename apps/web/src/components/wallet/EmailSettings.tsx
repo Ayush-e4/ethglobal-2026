@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
+import { friendly } from "@/lib/errors";
+import { SectionRetry } from "../LoadError";
 
 const small =
   "h-9 max-md:h-11 rounded-[10px] border border-line-2 bg-white px-3 text-[13px] font-semibold";
@@ -15,14 +17,22 @@ export function EmailSettings() {
   const [draft, setDraft] = useState("");
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const load = useCallback(
+    () =>
+      api<{ email: string | null; available: boolean }>("/account/email")
+        .then((r) => {
+          setState(r);
+          setDraft(r.email ?? "");
+          setLoadError(null);
+        })
+        .catch((err) => setLoadError(friendly(err, "Couldn't load your email."))),
+    [],
+  );
   useEffect(() => {
-    api<{ email: string | null; available: boolean }>("/account/email")
-      .then((r) => {
-        setState(r);
-        setDraft(r.email ?? "");
-      })
-      .catch(() => {});
-  }, []);
+    void load();
+  }, [load]);
+  if (!state && loadError) return <SectionRetry label="Email" error={loadError} onRetry={load} />;
   if (!state?.available) return null;
 
   const run = async (fn: () => Promise<void>) => {

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, hashscanAccount, shortAddress, usdc, type WalletInfo } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import { PasskeyIcon, SettingsIcon } from "../icons";
+import { LoadError, ToChat } from "../LoadError";
 import { CardSkeleton } from "../Skeleton";
 import { DealDrop } from "./DealDrop";
 import { Limits } from "./Limits";
@@ -25,7 +27,7 @@ export function WalletView() {
           setInfo(w);
           setError(null);
         })
-        .catch(() => setError("Couldn't load your wallet.")),
+        .catch((err) => setError(friendly(err, "Couldn't load your wallet."))),
     [],
   );
   useEffect(() => {
@@ -42,7 +44,11 @@ export function WalletView() {
 
   if (!info)
     return error ? (
-      <p className="p-10 text-center text-muted">{error}</p>
+      <main className="px-4 pt-10">
+        <LoadError title="Couldn't load your wallet" error={error} onRetry={load}>
+          <ToChat />
+        </LoadError>
+      </main>
     ) : (
       <main className="mx-auto flex w-full max-w-[800px] flex-col gap-4 px-4 pt-6 sm:px-6 sm:pt-8">
         <h1 className="text-[28px] font-bold tracking-tight sm:text-[32px]">Wallet</h1>

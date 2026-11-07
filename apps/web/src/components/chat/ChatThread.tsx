@@ -2,14 +2,18 @@
 
 import type { Card } from "@app/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type ChatMessage, type ChatSummary } from "@/lib/api";
+import { ApiError, api, type ChatMessage, type ChatSummary } from "@/lib/api";
+import { friendly } from "@/lib/errors";
 import type { Photo } from "@/lib/photos";
 import { useSession } from "@/lib/session";
 import { sendMessage } from "@/lib/stream";
+import { LoadError, ToChat } from "../LoadError";
 import { Skeleton } from "../Skeleton";
 import { PENDING_KEY, readPending } from "./ChatHome";
 import { Composer } from "./Composer";
 import { Messages, type Turn } from "./Messages";
+
+const NOT_HERE = "not here"; // the chat was removed, or isn't this account's
 
 const fromSaved = (m: ChatMessage): Turn => ({
   id: m.id,
@@ -23,7 +27,8 @@ export function ChatThread({ chatId }: { chatId: string }) {
   const [chat, setChat] = useState<ChatSummary | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
-  const [missing, setMissing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const bottom = useRef<HTMLDivElement>(null);
   const abort = useRef<AbortController | null>(null);
   const saved = useRef(0); // messages the server has, for recovering a dropped reply
@@ -56,13 +61,19 @@ export function ChatThread({ chatId }: { chatId: string }) {
       const shown: Card[] = photos.length
         ? [{ type: "photos", thumbs: photos.map((p) => p.thumb) }]
         : [];
+      const userId = `user-${Date.now()}`;
       setTurns((t) => [
         ...t,
-        { id: `user-${Date.now()}`, role: "user", text, cards: shown },
+        { id: userId, role: "user", text, cards: shown },
         { id: draftId, role: "assistant", text: "", cards: [], streaming: true },
       ]);
       const patch = (fn: (d: Turn) => Turn) =>
         setTurns((t) => t.map((x) => (x.id === draftId ? fn(x) : x)));
+      // "Try again": the failed message and its reply go, and the same words (and photos) go again.
+      const again = () => {
+        setTurns((t) => t.filter((x) => x.id !== userId && x.id !== draftId));
+        void resend.current(text, photos);
+      };
       abort.current = new AbortController();
       let finished = false;
       try {
@@ -77,11 +88,29 @@ export function ChatThread({ chatId }: { chatId: string }) {
             patch((d) => ({ ...d, id: e.messageId, text: d.text.trim(), streaming: false }));
           } else if (e.type === "error") {
             finished = true;
-            patch((d) => ({ ...d, streaming: false, error: e.message }));
+            saved.current += 2; // the server kept our message, and an apology
+            patch((d) => ({
+              ...d,
+              streaming: false,
+              status: undefined,
+              error: e.message,
+              retry: again,
+            }));
           }
         }
-      } catch {
-        // handled below: no "done" means the reply is still being saved on the server
+      } catch (err) {
+        // Never sent (offline, signed out, refused): say why, and offer it again. Anything else is
+        // a stream that dropped part-way: the reply is still being saved on the server (below).
+        if (err instanceof ApiError) {
+          finished = true;
+          patch((d) => ({
+            ...d,
+            streaming: false,
+            status: undefined,
+            error: err.message,
+            retry: err.status === 401 ? undefined : again,
+          }));
+        }
       } finally {
         if (!finished && !abort.current?.signal.aborted) {
           patch((d) => ({
@@ -98,8 +127,11 @@ export function ChatThread({ chatId }: { chatId: string }) {
     },
     [chatId, refreshChats, recover],
   );
+  const resend = useRef(send);
+  resend.current = send;
 
   useEffect(() => {
+    void attempt; // "Try again" loads it afresh
     let live = true;
     api<ChatSummary & { messages: ChatMessage[] }>(`/chats/${chatId}`)
       .then(({ messages, ...chat }) => {
@@ -114,12 +146,16 @@ export function ChatThread({ chatId }: { chatId: string }) {
           void send(p.text, p.photos);
         }
       })
-      .catch(() => live && setMissing(true));
+      .catch((err) => {
+        if (!live) return;
+        const gone = err instanceof ApiError && (err.status === 404 || err.status === 403);
+        setLoadError(gone ? NOT_HERE : friendly(err, "Couldn't open this chat."));
+      });
     return () => {
       live = false;
       abort.current?.abort();
     };
-  }, [chatId, send]);
+  }, [chatId, send, attempt]);
 
   // Agents finish later (a delivery, a fare drop, a payment to review) and the server posts it
   // here: look for new messages every few seconds while this chat is open and idle.
@@ -141,9 +177,31 @@ export function ChatThread({ chatId }: { chatId: string }) {
     bottom.current?.scrollIntoView({ block: "end" });
   }, [turns]);
 
-  if (missing)
+  if (loadError === NOT_HERE)
     return (
-      <p className="p-10 text-center text-ink-3">This chat doesn't exist, or it isn't yours.</p>
+      <main className="px-4 pt-10">
+        <LoadError
+          title="This chat isn't here"
+          error="It was removed, or it belongs to another account."
+        >
+          <ToChat label="Start a new chat" />
+        </LoadError>
+      </main>
+    );
+  if (loadError)
+    return (
+      <main className="px-4 pt-10">
+        <LoadError
+          title="Couldn't open this chat"
+          error={loadError}
+          onRetry={() => {
+            setLoadError(null);
+            setAttempt((a) => a + 1);
+          }}
+        >
+          <ToChat label="New chat" />
+        </LoadError>
+      </main>
     );
 
   return (

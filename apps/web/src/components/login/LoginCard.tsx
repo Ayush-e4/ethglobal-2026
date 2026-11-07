@@ -36,7 +36,9 @@ export function LoginCard() {
           : err instanceof ApiError && /user verification/i.test(err.message)
             ? "Your passkey app didn't confirm it's you (Face ID, fingerprint or PIN). Try again, and when asked where to save the passkey, pick this Mac's or your phone's."
             : err instanceof ApiError
-              ? `Sign-in failed: ${err.message}`
+              ? err.status === 0 || err.status === 429 || err.status >= 500
+                ? err.message // offline, too many tries, our side: the words say it all
+                : `Sign-in didn't work: ${err.message}`
               : "This device couldn't use a passkey. Try your phone, or the demo.",
       );
       setBusy(false);
